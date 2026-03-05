@@ -1,0 +1,404 @@
+{
+  "common": {
+    "appName": "IMI",
+    "copyright": "© {year} IMI. All rights reserved.",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "error": "Error",
+    "noContent": "No content"
+  },
+  "nav": {
+    "logout": "Log out",
+    "patients": "Patients",
+    "report": "Report"
+  },
+  "language": {
+    "label": "Language",
+    "es": "Español",
+    "en": "English",
+    "toggle": "Switch language"
+  },
+  "home": {
+    "title": "Dashboard",
+    "subtitle": "Welcome back, Doctor.",
+    "stats": {
+      "patients": "Patients",
+      "totalReports": "Total reports",
+      "completed": "Completed",
+      "withErrors": "With errors",
+      "processing": "Processing"
+    },
+    "patientsTitle": "Patients"
+  },
+  "welcome": {
+    "greeting": "Hello, {name}!",
+    "messages": [
+      "Wishing you a day full of success!",
+      "Your dedication makes a difference every day.",
+      "Today is a great day to help your patients!",
+      "Your work transforms lives. Keep going!",
+      "Let's start this day with positive energy!",
+      "Every patient is an opportunity to do good.",
+      "Your expertise and care are invaluable.",
+      "May it be a productive and fulfilling day!",
+      "Your commitment inspires the whole team.",
+      "Today will be an excellent day in medicine!"
+    ],
+    "defaultName": "Doctor"
+  },
+  "welcomeScreen": {
+    "greeting": "Hello, {name}!",
+    "messages": {
+      "0": "Wishing you a day full of success!",
+      "1": "Your dedication makes a difference every day.",
+      "2": "Today is a great day to help your patients!",
+      "3": "Your work transforms lives. Keep going!",
+      "4": "Let's start this day with positive energy!",
+      "5": "Every patient is an opportunity to do good.",
+      "6": "Your expertise and care are invaluable.",
+      "7": "May it be a productive and fulfilling day!",
+      "8": "Your commitment inspires the whole team.",
+      "9": "Today will be an excellent day in medicine!"
+    },
+    "defaultName": "Doctor"
+  },
+  "patientsList": {
+    "empty": "No patients yet",
+    "emptySubtitle": "Create a new report to register your first patient.",
+    "emptyHint": "Create a new report to register your first patient.",
+    "lastConsult": "Last consult:",
+    "report": "report",
+    "reports": "reports"
+  },
+  "patientSearch": {
+    "placeholder": "Search by name, phone, email or diagnosis…",
+    "noResults": "No results for \"{query}\"",
+    "noResultsHint": "Try another name, phone or diagnosis",
+    "clearSearch": "Clear search",
+    "inReport": "in report",
+    "report": "report",
+    "reports": "reports"
+  },
+  "nuevoInformeDialog": {
+    "trigger": "New Report",
+    "title": "New Report",
+    "description": "Enter the patient's details to start the consultation.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "E.g.: Maria Garcia",
+    "dob": "Date of birth",
+    "phone": "Phone (WhatsApp)",
+    "phonePlaceholder": "E.g.: +1 555 123 4567",
+    "phoneHint": "The patient's report will be sent to this number via WhatsApp.",
+    "email": "Email (optional)",
+    "emailPlaceholder": "patient@email.com",
+    "cancel": "Cancel",
+    "submit": "Start consultation",
+    "creating": "Creating...",
+    "errorPatient": "Error creating patient",
+    "errorInforme": "Error creating report",
+    "validation": {
+      "nameTooShort": "Name must be at least 2 characters",
+      "dobRequired": "Date of birth is required",
+      "phoneInvalid": "Please enter a valid phone number",
+      "emailInvalid": "Invalid email"
+    }
+  },
+  "newInformeButton": {
+    "submit": "New consultation",
+    "creating": "Creating…",
+    "error": "Error creating report"
+  },
+  "newReportDialog": {
+    "trigger": "New Report",
+    "title": "New Report",
+    "description": "Enter the patient's details to start the consultation.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "E.g.: María García",
+    "dob": "Date of birth",
+    "phone": "Phone (WhatsApp)",
+    "phonePlaceholder": "E.g.: +54 9 261 123 4567",
+    "phoneHint": "The patient's report will be sent to this number via WhatsApp.",
+    "email": "Email (optional)",
+    "emailPlaceholder": "patient@email.com",
+    "cancel": "Cancel",
+    "submit": "Start consultation",
+    "creating": "Creating...",
+    "errorPatient": "Error creating patient",
+    "errorReport": "Error creating report",
+    "validation": {
+      "nameMin": "Name must be at least 2 characters",
+      "dobRequired": "Date of birth is required",
+      "phoneMin": "Please enter a valid phone number",
+      "emailInvalid": "Invalid email"
+    }
+  },
+  "patientPage": {
+    "yearsOld": "years old",
+    "phone": "Phone",
+    "email": "Email",
+    "consults": "Consultations",
+    "consultsCount": "{total} total · {completed} completed",
+    "history": "Consultation history",
+    "consult": "consultation",
+    "consults2": "consultations",
+    "noConsults": "No consultations yet",
+    "noConsultsHint": "Start a new consultation using the button above.",
+    "newConsult": "New consultation",
+    "creating": "Creating…"
+  },
+  "status": {
+    "recording": "Recording",
+    "processing": "Processing",
+    "completed": "Completed",
+    "error": "Error",
+    "unknownPatient": "Unknown patient"
+  },
+  "informesList": {
+    "empty": "No reports yet",
+    "emptySubtitle": "Create a new report to start a consultation.",
+    "emptyHint": "Create a new report to start a consultation.",
+    "unknownPatient": "Unknown patient",
+    "report": "report",
+    "reports": "reports",
+    "status": {
+      "recording": "Recording",
+      "processing": "Processing",
+      "completed": "Completed",
+      "error": "Error"
+    }
+  },
+  "informePage": {
+    "title": "Consultation report",
+    "viewPdf": "View PDF",
+    "generatePdf": "Generate PDF",
+    "processing": "Generating reports...",
+    "processingHint": "AI is analyzing the consultation. This may take a moment.",
+    "errorProcessing": "Processing error",
+    "errorHint": "An error occurred while generating the reports. Please try again.",
+    "transcript": "Consultation transcript",
+    "transcriptFull": "View full text",
+    "interventions": "{count} turns",
+    "yearsOld": "years old"
+  },
+  "grabarPage": {
+    "newConsult": "New consultation",
+    "title": "Record consultation",
+    "subtitle": "Start recording when the consultation with the patient begins.",
+    "howItWorks": "How does it work?",
+    "step1": "Press \"Start recording\" to begin",
+    "step2": "Conduct the consultation with the patient normally",
+    "step3": "When finished, press \"End consultation\"",
+    "step4": "AI will analyze the conversation and automatically generate two reports",
+    "yearsOld": "years old"
+  },
+  "audioRecorder": {
+    "stateIdle": "Ready to record",
+    "stateIdleHint": "Press the button to start the consultation",
+    "stateRequesting": "Requesting microphone access...",
+    "stateRecording": "Recording...",
+    "statePaused": "Paused",
+    "stateStopped": "Finalizing recording...",
+    "stateUploading": "Uploading audio...",
+    "stateProcessing": "Generating reports with AI...",
+    "stateDone": "Reports generated!",
+    "stateRedirecting": "Redirecting...",
+    "stateError": "Processing error",
+    "progressUploading": "Uploading recording...",
+    "progressAnalyzing": "Analyzing consultation with AI...",
+    "progressGenerating": "Generating reports...",
+    "liveTranscript": "Live transcription",
+    "btnStart": "Start recording",
+    "btnRequesting": "Accessing microphone...",
+    "btnPause": "Pause",
+    "btnStop": "End consultation",
+    "btnResume": "Resume",
+    "btnRetry": "Try again",
+    "errorMicDenied": "Microphone permission denied. Please allow microphone access.",
+    "errorMicAccess": "Could not access microphone",
+    "transcriptFallback": "Audio could not be transcribed automatically. Please review the recording.",
+    "errorProcess": "Error processing consultation",
+    "successTitle": "Report generated successfully",
+    "successDescription": "The medical and patient reports are ready."
+  },
+  "informeEditor": {
+    "edit": "Edit reports",
+    "regenerate": "Regenerate with AI",
+    "save": "Save changes",
+    "cancel": "Cancel",
+    "unsavedChanges": "You have unsaved changes",
+    "medicalReport": "Medical report",
+    "forDoctor": "For the doctor",
+    "patientReport": "Patient report",
+    "viaWhatsApp": "Will be sent via WhatsApp",
+    "medicalReportPlaceholder": "Medical report...",
+    "patientReportPlaceholder": "Patient report...",
+    "noContent": "No content",
+    "saveSuccess": "Reports saved successfully",
+    "regenerateSuccess": "Report regenerated with AI successfully",
+    "consentLabel": "PATIENT CONSENT",
+    "consentText": "{patientName} confirmed having read the report and gave consent on {patientConsentAt}."
+  },
+  "consentSection": {
+    "title": "Patient consent",
+    "grantedAt": "Consent given on {date}",
+    "granted": "Consent given on {date}",
+    "pending": "The patient must review and confirm the report before proceeding",
+    "confirmed": "Confirmed",
+    "instructions": "The patient must read the consultation summary and confirm the content is correct before the report is finalized. Once confirmed, the PDF will be regenerated with the consent stamp.",
+    "previewTitle": "Report preview for {firstName}",
+    "consultSummary": "Consultation summary",
+    "dialogTranscript": "Dialogue transcript",
+    "consentCheckboxLabel": "I, <strong>{patientName}</strong>, confirm that I have read the medical consultation summary and consent that the content is correct and reflects what was discussed during the consultation.",
+    "submitting": "Registering consent...",
+    "submit": "Confirm consent",
+    "consentConfirmedMessage": "{firstName} confirmed having read and agreed to the report content.",
+    "errorToast": "Error registering consent",
+    "successToast": "Consent registered successfully"
+  },
+  "transcriptDialog": {
+    "doctor": "Doctor",
+    "patient": "Patient",
+    "interventions": "{count} turns"
+  },
+  "deleteInforme": {
+    "srLabel": "Delete report",
+    "title": "Delete report?",
+    "description": "This action will permanently delete the report from {date}, including the audio, generated report and all related data. This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "errorToast": "Error deleting report",
+    "successToast": "Report deleted",
+    "successDesc": "The report from {date} was successfully deleted."
+  },
+  "deleteInformeButton": {
+    "srLabel": "Delete report",
+    "confirmTitle": "Delete report?",
+    "confirmDescription": "This action will permanently delete the report from {date}, including the audio, generated report and all related data. This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "errorTitle": "Error deleting report",
+    "successTitle": "Report deleted",
+    "successMessage": "The report from {date} was successfully deleted."
+  },
+  "whatsapp": {
+    "button": "Send via WhatsApp",
+    "message": "Hello {name}, we are sending you your medical report from today's consultation.\n\nYou can download it here: {url}\n\nIf you have any questions, please do not hesitate to contact us.",
+    "toastTitle": "WhatsApp opened",
+    "toastDesc": "WhatsApp was opened to send the report to {name}."
+  },
+  "whatsappButton": {
+    "label": "Send via WhatsApp",
+    "message": "Hello {patientName}, we are sending you your medical report from today's consultation.\n\nYou can download it here: {pdfUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
+    "successTitle": "WhatsApp opened",
+    "successMessage": "WhatsApp was opened to send the report to {patientName}."
+  },
+  "loginPage": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your doctor account"
+  },
+  "loginForm": {
+    "title": "Sign in",
+    "description": "Enter your email and password to access your account",
+    "email": "Email address",
+    "emailPlaceholder": "doctor@hospital.com",
+    "password": "Password",
+    "forgotPassword": "Forgot your password?",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "noAccount": "Don't have an account?",
+    "register": "Sign up"
+  },
+  "signupPage": {
+    "title": "Join IMI",
+    "subtitle": "Create your doctor account to get started"
+  },
+  "signupForm": {
+    "title": "Create an account",
+    "description": "Register as a doctor to access the IMI platform",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Dr. María García",
+    "dni": "ID Number",
+    "dniPlaceholder": "E.g.: 30123456",
+    "email": "Email address",
+    "emailPlaceholder": "doctor@hospital.com",
+    "phone": "Phone",
+    "phonePlaceholder": "E.g.: +54 11 1234-5678",
+    "matricula": "Medical license",
+    "matriculaPlaceholder": "E.g.: 123456",
+    "specialty": "Specialty",
+    "specialtyPlaceholder": "Select your specialty",
+    "searchSpecialty": "Search specialty…",
+    "specialtyNotFound": "Specialty not found.",
+    "password": "Password",
+    "passwordPlaceholder": "Min. 8 characters",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Repeat your password",
+    "submit": "Create account",
+    "creating": "Creating account…",
+    "hasAccount": "Already have an account?",
+    "login": "Sign in",
+    "successTitle": "Check your email",
+    "successMessage": "We sent you a confirmation link. Click on it to activate your account.",
+    "backToLogin": "Back to sign in"
+  },
+  "signatureField": {
+    "label": "Digital Signature",
+    "clear": "Clear",
+    "placeholder": "Draw your signature here"
+  },
+  "forgotPasswordPage": {
+    "title": "Reset password",
+    "subtitle": "We'll send you a link to reset it"
+  },
+  "forgotPasswordForm": {
+    "title": "Forgot my password",
+    "description": "Enter your email and we'll send you a link to reset your password",
+    "email": "Email address",
+    "emailPlaceholder": "doctor@hospital.com",
+    "submit": "Send link",
+    "submitting": "Sending link…",
+    "rememberPassword": "Remember your password?",
+    "login": "Sign in",
+    "successTitle": "Check your email",
+    "successMessage": "If an account with that email exists, we sent you a link to reset your password. It expires in 1 hour.",
+    "backToLogin": "Back to sign in"
+  },
+  "resetPasswordPage": {
+    "title": "Set new password",
+    "subtitle": "Choose a secure password for your account"
+  },
+  "resetPasswordForm": {
+    "title": "Set new password",
+    "description": "Choose a secure password for your account",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "Min. 8 characters",
+    "confirmPassword": "Confirm new password",
+    "confirmPasswordPlaceholder": "Repeat your new password",
+    "submit": "Update password",
+    "submitting": "Updating password…"
+  },
+  "validation": {
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "confirmPasswordRequired": "Please confirm your password",
+    "passwordsMismatch": "Passwords do not match",
+    "nameMin": "Name is required",
+    "dniRequired": "ID number is required",
+    "dniFormat": "ID must be 7 or 8 numeric digits",
+    "matriculaRequired": "Medical license is required",
+    "matriculaFormat": "Medical license must contain only numbers",
+    "phoneRequired": "Phone is required",
+    "phoneInvalid": "Invalid phone number",
+    "specialtyRequired": "Specialty is required",
+    "specialtyInvalid": "Please select a valid specialty"
+  }
+}
