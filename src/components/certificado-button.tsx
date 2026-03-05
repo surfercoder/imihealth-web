@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useReducer, useTransition } from "react";
 import { toast } from "sonner";
 import { Award, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,32 +23,62 @@ interface CertificadoButtonProps {
   patientName: string;
 }
 
+type State = {
+  open: boolean;
+  daysOff: string;
+  diagnosis: string;
+  observations: string;
+  certUrl: string | null;
+};
+
+type Action =
+  | { type: "OPEN" }
+  | { type: "CLOSE" }
+  | { type: "SET_FIELD"; field: "daysOff" | "diagnosis" | "observations"; value: string }
+  | { type: "SET_CERT_URL"; url: string }
+  | { type: "RESET_FORM" };
+
+const initialState: State = {
+  open: false,
+  daysOff: "",
+  diagnosis: "",
+  observations: "",
+  certUrl: null,
+};
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "OPEN":
+      return { ...state, open: true };
+    case "CLOSE":
+      return initialState;
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value };
+    case "SET_CERT_URL":
+      return { ...state, certUrl: action.url };
+    case "RESET_FORM":
+      return { ...state, certUrl: null, daysOff: "", diagnosis: "", observations: "" };
+    default:
+      return state;
+  }
+}
+
 export function CertificadoButton({ informeId, patientName }: CertificadoButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [state, dispatch] = useReducer(reducer, initialState);
   const [isPending, startTransition] = useTransition();
-  const [daysOff, setDaysOff] = useState<string>("");
-  const [diagnosis, setDiagnosis] = useState<string>("");
-  const [observations, setObservations] = useState<string>("");
-  const [certUrl, setCertUrl] = useState<string | null>(null);
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
-      setOpen(val);
-      if (!val) {
-        setCertUrl(null);
-        setDaysOff("");
-        setDiagnosis("");
-        setObservations("");
-      }
+      dispatch(val ? { type: "OPEN" } : { type: "CLOSE" });
     }
   }
 
   function handleGenerate() {
     startTransition(async () => {
       const result = await generateAndSaveCertificado(informeId, {
-        daysOff: daysOff ? parseInt(daysOff, 10) : null,
-        diagnosis: diagnosis.trim() || null,
-        observations: observations.trim() || null,
+        daysOff: state.daysOff ? parseInt(state.daysOff, 10) : null,
+        diagnosis: state.diagnosis.trim() || null,
+        observations: state.observations.trim() || null,
       });
 
       if (result?.error) {
@@ -56,7 +86,7 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
           description: result.error,
         });
       } else if (result?.signedUrl) {
-        setCertUrl(result.signedUrl);
+        dispatch({ type: "SET_CERT_URL", url: result.signedUrl });
         toast.success("Certificado generado", {
           description: `El certificado médico de ${patientName} está listo.`,
         });
@@ -65,7 +95,7 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={state.open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Award className="size-4 mr-1.5" />
@@ -80,7 +110,7 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
           </DialogDescription>
         </DialogHeader>
 
-        {certUrl ? (
+        {state.certUrl ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
               <Award className="size-7 text-primary" />
@@ -89,7 +119,7 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
               El certificado fue generado correctamente.
             </p>
             <Button asChild className="w-full">
-              <a href={certUrl} target="_blank" rel="noopener noreferrer">
+              <a href={state.certUrl} target="_blank" rel="noopener noreferrer">
                 <Download className="size-4 mr-1.5" />
                 Descargar certificado
               </a>
@@ -97,12 +127,7 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => {
-                setCertUrl(null);
-                setDaysOff("");
-                setDiagnosis("");
-                setObservations("");
-              }}
+              onClick={() => dispatch({ type: "RESET_FORM" })}
             >
               Generar otro certificado
             </Button>
@@ -118,8 +143,8 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
                   min={1}
                   max={365}
                   placeholder="Ej: 2"
-                  value={daysOff}
-                  onChange={(e) => setDaysOff(e.target.value)}
+                  value={state.daysOff}
+                  onChange={(e) => dispatch({ type: "SET_FIELD", field: "daysOff", value: e.target.value })}
                   disabled={isPending}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -132,8 +157,8 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
                 <Input
                   id="diagnosis"
                   placeholder="Ej: Síndrome gripal"
-                  value={diagnosis}
-                  onChange={(e) => setDiagnosis(e.target.value)}
+                  value={state.diagnosis}
+                  onChange={(e) => dispatch({ type: "SET_FIELD", field: "diagnosis", value: e.target.value })}
                   disabled={isPending}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -146,8 +171,8 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
                 <Textarea
                   id="observations"
                   placeholder="Observaciones adicionales..."
-                  value={observations}
-                  onChange={(e) => setObservations(e.target.value)}
+                  value={state.observations}
+                  onChange={(e) => dispatch({ type: "SET_FIELD", field: "observations", value: e.target.value })}
                   disabled={isPending}
                   rows={3}
                 />

@@ -11,47 +11,48 @@ import { useTranslations } from "next-intl";
 
 function MarkdownDisplay({ text }: { text: string }) {
   const lines = text.split("\n");
-  const elements: React.ReactNode[] = [];
-  let i = 0;
+  const seen = new Map<string, number>();
 
-  while (i < lines.length) {
-    const raw = lines[i];
-    const trimmed = raw.trim();
+  return (
+    <div className="text-sm leading-relaxed space-y-0.5">
+      {lines.map((raw) => {
+        const trimmed = raw.trim();
+        const base = trimmed || "blank";
+        const count = seen.get(base) ?? 0;
+        seen.set(base, count + 1);
+        const key = count === 0 ? base : `${base}-${count}`;
 
-    if (!trimmed) {
-      elements.push(<div key={i} className="h-2" />);
-      i++;
-      continue;
-    }
+        if (!trimmed) {
+          return <div key={key} className="h-2" />;
+        }
 
-    const isHeader =
-      trimmed.startsWith("#") ||
-      (trimmed.endsWith(":") && trimmed === trimmed.toUpperCase()) ||
-      /^\*\*[^*]+\*\*:?\s*$/.test(trimmed);
+        const isHeader =
+          trimmed.startsWith("#") ||
+          (trimmed.endsWith(":") && trimmed === trimmed.toUpperCase()) ||
+          /^\*\*[^*]+\*\*:?\s*$/.test(trimmed);
 
-    const clean = raw
-      .replace(/^#+\s*/, "")
-      .replace(/\*\*/g, "")
-      .replace(/\*/g, "")
-      .trim();
+        const clean = raw
+          .replace(/^#+\s*/, "")
+          .replace(/\*\*/g, "")
+          .replace(/\*/g, "")
+          .trim();
 
-    if (isHeader) {
-      elements.push(
-        <p key={i} className="font-semibold text-card-foreground mt-3 first:mt-0">
-          {clean}
-        </p>
-      );
-    } else {
-      elements.push(
-        <p key={i} className="text-card-foreground">
-          {clean}
-        </p>
-      );
-    }
-    i++;
-  }
+        if (isHeader) {
+          return (
+            <p key={key} className="font-semibold text-card-foreground mt-3 first:mt-0">
+              {clean}
+            </p>
+          );
+        }
 
-  return <div className="text-sm leading-relaxed space-y-0.5">{elements}</div>;
+        return (
+          <p key={key} className="text-card-foreground">
+            {clean}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 interface InformeEditorProps {
@@ -75,16 +76,24 @@ export function InformeEditor({
 }: InformeEditorProps) {
   const t = useTranslations("informeEditor");
   const [isEditing, setIsEditing] = useState(false);
-  const [doctorText, setDoctorText] = useState(informeDoctor);
-  const [pacienteText, setPacienteText] = useState(informePaciente);
+  const [editedDoctor, setEditedDoctor] = useState<string | null>(null);
+  const [editedPaciente, setEditedPaciente] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [isRegenerating, startRegenerating] = useTransition();
 
+  const doctorText = editedDoctor ?? informeDoctor;
+  const pacienteText = editedPaciente ?? informePaciente;
   const isDirty = doctorText !== informeDoctor || pacienteText !== informePaciente;
 
+  function handleEdit() {
+    setEditedDoctor(informeDoctor);
+    setEditedPaciente(informePaciente);
+    setIsEditing(true);
+  }
+
   function handleCancel() {
-    setDoctorText(informeDoctor);
-    setPacienteText(informePaciente);
+    setEditedDoctor(null);
+    setEditedPaciente(null);
     setIsEditing(false);
   }
 
@@ -95,6 +104,8 @@ export function InformeEditor({
         toast.error(result.error);
       } else {
         toast.success(t("saveSuccess"));
+        setEditedDoctor(null);
+        setEditedPaciente(null);
         setIsEditing(false);
       }
     });
@@ -107,6 +118,8 @@ export function InformeEditor({
         toast.error(result.error);
       } else {
         toast.success(t("regenerateSuccess"));
+        setEditedDoctor(null);
+        setEditedPaciente(null);
         setIsEditing(false);
       }
     });
@@ -164,7 +177,7 @@ export function InformeEditor({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsEditing(true)}
+            onClick={handleEdit}
             className="gap-1.5"
           >
             <Pencil className="size-3.5" />
@@ -203,7 +216,7 @@ export function InformeEditor({
             {isEditing ? (
               <Textarea
                 value={doctorText}
-                onChange={(e) => setDoctorText(e.target.value)}
+                onChange={(e) => setEditedDoctor(e.target.value)}
                 disabled={isLoading}
                 className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-primary/50 font-mono"
                 placeholder={t("medicalReportPlaceholder")}
@@ -231,7 +244,7 @@ export function InformeEditor({
             {isEditing ? (
               <Textarea
                 value={pacienteText}
-                onChange={(e) => setPacienteText(e.target.value)}
+                onChange={(e) => setEditedPaciente(e.target.value)}
                 disabled={isLoading}
                 className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-accent/50 font-mono"
                 placeholder={t("patientReportPlaceholder")}

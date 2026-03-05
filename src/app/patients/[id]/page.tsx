@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,21 @@ import { DeleteInformeButton } from "@/components/delete-informe-button";
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: patient } = await supabase
+    .from("patients")
+    .select("name")
+    .eq("id", id)
+    .single();
+
+  return {
+    title: patient ? `${patient.name} | IMI Health` : "Paciente | IMI Health",
+    description: "Historial de consultas del paciente.",
+  };
 }
 
 const statusIcons = {

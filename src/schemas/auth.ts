@@ -51,9 +51,7 @@ export const ESPECIALIDADES = [
   "Hidrología médica",
 ] as const;
 
-export type Especialidad = (typeof ESPECIALIDADES)[number];
-
-export type ValidationMessages = {
+type ValidationMessages = {
   emailRequired: string;
   emailInvalid: string;
   passwordRequired: string;
@@ -71,7 +69,7 @@ export type ValidationMessages = {
   specialtyInvalid: string;
 };
 
-export const defaultMessages: ValidationMessages = {
+const defaultMessages: ValidationMessages = {
   emailRequired: "El correo es requerido",
   emailInvalid: "Correo inválido",
   passwordRequired: "La contraseña es requerida",

@@ -8,9 +8,9 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/components/welcome-screen', () => ({
   WelcomeScreen: ({ userName, onDone }: { userName?: string; onDone: () => void }) => (
-    <div data-testid="welcome-screen" onClick={onDone}>
+    <button type="button" data-testid="welcome-screen" onClick={onDone}>
       {userName}
-    </div>
+    </button>
   ),
 }))
 

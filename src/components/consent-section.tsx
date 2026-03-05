@@ -28,10 +28,12 @@ export function ConsentSection({
 }: ConsentSectionProps) {
   const t = useTranslations("consentSection");
   const [checked, setChecked] = useState(false);
-  const [consented, setConsented] = useState(initialConsent);
-  const [consentAt, setConsentAt] = useState<string | null>(initialConsentAt);
+  const [localConsent, setLocalConsent] = useState<{ consented: boolean; consentAt: string | null } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const consented = localConsent?.consented ?? initialConsent;
+  const consentAt = localConsent?.consentAt ?? initialConsentAt;
 
   function handleCheck() {
     /* v8 ignore next */
@@ -47,8 +49,7 @@ export function ConsentSection({
       if ("error" in result && result.error) {
         toast.error(t("errorToast"), { description: result.error });
       } else if ("success" in result && result.success) {
-        setConsented(true);
-        setConsentAt(result.consentAt ?? null);
+        setLocalConsent({ consented: true, consentAt: result.consentAt ?? null });
         toast.success(t("successToast"));
       }
     });

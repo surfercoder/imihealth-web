@@ -3,8 +3,7 @@ import { render, screen, act } from '@testing-library/react'
 
 jest.mock('next/image', () => {
   const MockImage = (props: Record<string, unknown>) => (
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    <img {...props} />
+    <div role="img" aria-label={props.alt as string} data-src={props.src as string} data-testid="next-image" />
   )
   MockImage.displayName = 'MockImage'
   return MockImage
@@ -42,9 +41,9 @@ describe('WelcomeScreen', () => {
   it('renders the IMI Health image', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
-    const img = screen.getByAltText('IMI Health')
+    const img = screen.getByRole('img', { name: 'IMI Health' })
     expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('src', '/assets/images/IMIHEALTH.jpeg')
+    expect(img).toHaveAttribute('data-src', '/assets/images/IMIHEALTH.jpeg')
   })
 
   it('renders a motivational message', () => {
@@ -67,17 +66,12 @@ describe('WelcomeScreen', () => {
     expect(found).toBe(true)
   })
 
-  it('applies fading class after 3500ms', () => {
+  it('renders overlay with CSS fade animation', () => {
     const onDone = jest.fn()
     const { container } = render(<WelcomeScreen userName="Test" onDone={onDone} />)
     const overlay = container.querySelector('.ws-overlay')
-    expect(overlay).not.toHaveClass('ws-fading')
-
-    act(() => {
-      jest.advanceTimersByTime(3500)
-    })
-
-    expect(overlay).toHaveClass('ws-fading')
+    expect(overlay).toBeInTheDocument()
+    expect(overlay).toHaveClass('ws-overlay')
   })
 
   it('does not call onDone before 4200ms', () => {

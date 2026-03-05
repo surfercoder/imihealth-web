@@ -41,11 +41,11 @@ export function TranscriptDialog({ dialog, patientName }: TranscriptDialogProps)
       </div>
 
       <div className="space-y-3">
-        {dialog.map((turn, i) => {
+        {dialog.map((turn) => {
           const isDoctor = turn.speaker === "doctor";
           return (
             <div
-              key={i}
+              key={`${turn.speaker}-${turn.text}`}
               className={cn(
                 "flex gap-2.5",
                 isDoctor ? "flex-row" : "flex-row-reverse"

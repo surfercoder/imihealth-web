@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { XCircle } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Error de autenticación | IMI Health",
+  description: "El enlace de autenticación es inválido o expiró.",
+};
 
 export default function AuthErrorPage() {
   return (
