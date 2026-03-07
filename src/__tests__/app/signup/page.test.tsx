@@ -29,7 +29,7 @@ describe('SignupPage', () => {
   it('renders the welcome heading', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     render(await SignupPage())
-    expect(screen.getByRole('heading', { name: 'Unite a IMI' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Unite a IMI Health' })).toBeInTheDocument()
   })
 
   it('redirects to /dashboard when user is already authenticated', async () => {

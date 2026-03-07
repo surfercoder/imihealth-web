@@ -25,7 +25,7 @@ export async function AppHeader({ doctorName }: AppHeaderProps) {
         <div className="flex items-center gap-2">
           {doctorName && (
             <span className="text-sm text-foreground/60 hidden sm:block">
-              {doctorName}
+              {t("nav.greeting", { name: doctorName })}
             </span>
           )}
           <form action={logout}>

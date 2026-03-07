@@ -12,6 +12,7 @@
     "noContent": "No content"
   },
   "nav": {
+    "greeting": "Hello, {name}",
     "logout": "Log out",
     "signIn": "Sign in",
     "signUp": "Sign up",
@@ -343,7 +344,7 @@
     "register": "Sign up"
   },
   "signupPage": {
-    "title": "Join IMI",
+    "title": "Join IMI Health",
     "subtitle": "Create your doctor account to get started"
   },
   "signupForm": {
@@ -357,6 +358,9 @@
     "emailPlaceholder": "doctor@hospital.com",
     "phone": "Phone",
     "phonePlaceholder": "E.g.: +54 11 1234-5678",
+    "phoneSearchCountry": "Search country…",
+    "phoneNoCountry": "No country found.",
+    "phoneFormat": "Format: {format}",
     "matricula": "Medical license",
     "matriculaPlaceholder": "E.g.: 123456",
     "specialty": "Specialty",

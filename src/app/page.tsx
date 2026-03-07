@@ -39,9 +39,6 @@ export default async function LandingPage() {
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center">
           <div className="mx-auto max-w-2xl">
-            <div className="mb-6 inline-flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-2xl font-bold shadow-lg shadow-primary/30">
-              IMI
-            </div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               {t("heroTitle")}
             </h1>

@@ -12,6 +12,7 @@
     "noContent": "Sin contenido"
   },
   "nav": {
+    "greeting": "Hola, {name}",
     "logout": "Cerrar sesión",
     "signIn": "Iniciar sesion",
     "signUp": "Registrarse",
@@ -343,7 +344,7 @@
     "register": "Registrarse"
   },
   "signupPage": {
-    "title": "Unite a IMI",
+    "title": "Unite a IMI Health",
     "subtitle": "Creá tu cuenta de médico para comenzar"
   },
   "signupForm": {
@@ -357,6 +358,9 @@
     "emailPlaceholder": "doctor@hospital.com",
     "phone": "Teléfono",
     "phonePlaceholder": "Ej: +54 11 1234-5678",
+    "phoneSearchCountry": "Buscar país…",
+    "phoneNoCountry": "No se encontró el país.",
+    "phoneFormat": "Formato: {format}",
     "matricula": "Matrícula",
     "matriculaPlaceholder": "Ej: 123456",
     "specialty": "Especialidad",

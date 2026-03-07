@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockFormAction = jest.fn()
@@ -75,13 +75,13 @@ describe('SignupForm — default state', () => {
     await user.type(screen.getByLabelText('Nombre completo'), 'Dr. Juan Pérez')
     await user.type(screen.getByLabelText('Correo electrónico'), 'doctor@hospital.com')
     await user.type(screen.getByLabelText('Matrícula'), '123456')
-    await user.type(screen.getByLabelText('Teléfono'), '+54 11 1234-5678')
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '5551234567' } })
     await user.click(screen.getByRole('combobox', { name: /especialidad/i }))
     await user.click(screen.getByRole('option', { name: 'Cardiología' }))
     await user.type(screen.getByLabelText('Contraseña'), 'password123')
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'password123')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
-    expect(mockStartTransition).toHaveBeenCalled()
+    await waitFor(() => expect(mockStartTransition).toHaveBeenCalled())
   })
 
   it('renders the loading spinner when isPending is true', () => {

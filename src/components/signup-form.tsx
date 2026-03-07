@@ -3,6 +3,7 @@
 import { useState, useActionState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,13 +35,39 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { signup } from "@/actions/auth";
-import { createSignupSchema, ESPECIALIDADES } from "@/schemas/auth";
-import type { SignupFormValues } from "@/types/auth";
+import { ESPECIALIDADES } from "@/schemas/auth";
 import { Loader2, CheckCircle2, ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { SignatureField } from "@/components/signature-field";
 import { useTranslations } from "next-intl";
+import {
+  PhoneInput,
+  type PhoneInputValue,
+  type CountryCode,
+  COUNTRIES,
+  detectCountryFromLocale,
+} from "@/components/ui/phone-input";
+
+const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [CountryCode, ...CountryCode[]];
+
+const phoneObjectSchema = z.object({
+  countryCode: z.enum(COUNTRY_CODES),
+  subscriber: z.string(),
+  e164: z.string(),
+});
+
+type ClientSignupFormValues = {
+  name?: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  dni?: string;
+  matricula: string;
+  phone: PhoneInputValue;
+  especialidad: string;
+  firmaDigital?: string;
+};
 
 function SpecialtyCombobox({ field, open, onOpenChange }: {
   field: { value: string; onChange: (value: string) => void };
@@ -136,24 +163,47 @@ export function SignupForm() {
   const [isPending, startTransition] = useTransition();
   const [especialidadOpen, setEspecialidadOpen] = useState(false);
 
-  const form = useForm<SignupFormValues>({
-    resolver: zodResolver(createSignupSchema({
-      emailRequired: v("emailRequired"),
-      emailInvalid: v("emailInvalid"),
-      passwordRequired: v("passwordRequired"),
-      passwordMin: v("passwordMin"),
-      confirmPasswordRequired: v("confirmPasswordRequired"),
-      passwordsMismatch: v("passwordsMismatch"),
-      nameMin: v("nameMin"),
-      dniRequired: v("dniRequired"),
-      dniFormat: v("dniFormat"),
-      matriculaRequired: v("matriculaRequired"),
-      matriculaFormat: v("matriculaFormat"),
-      phoneRequired: v("phoneRequired"),
-      phoneInvalid: v("phoneInvalid"),
-      specialtyRequired: v("specialtyRequired"),
-      specialtyInvalid: v("specialtyInvalid"),
-    })),
+  const defaultCountry = detectCountryFromLocale();
+
+  const clientSchema = z
+    .object({
+      name: z.string().min(2, v("nameMin")).optional(),
+      email: z.string().min(1, v("emailRequired")).email(v("emailInvalid")),
+      password: z.string().min(8, v("passwordMin")),
+      confirmPassword: z.string().min(1, v("confirmPasswordRequired")),
+      dni: z
+        .string()
+        .min(1, v("dniRequired"))
+        .regex(/^\d{7,8}$/, v("dniFormat"))
+        .optional(),
+      matricula: z
+        .string()
+        .min(1, v("matriculaRequired"))
+        .regex(/^\d+$/, v("matriculaFormat")),
+      phone: phoneObjectSchema.refine(
+        (val) => {
+          const country = COUNTRIES.find((c) => c.code === val.countryCode);
+          if (!country) return false;
+          const digits = val.subscriber.replace(/\D/g, "");
+          return country.subscriberRegex.test(digits);
+        },
+        { message: v("phoneInvalid") }
+      ),
+      especialidad: z
+        .string()
+        .min(1, v("specialtyRequired"))
+        .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val), {
+          message: v("specialtyInvalid"),
+        }),
+      firmaDigital: z.string().optional(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: v("passwordsMismatch"),
+      path: ["confirmPassword"],
+    });
+
+  const form = useForm<ClientSignupFormValues>({
+    resolver: zodResolver(clientSchema),
     defaultValues: {
       name: undefined,
       email: "",
@@ -161,13 +211,17 @@ export function SignupForm() {
       confirmPassword: "",
       dni: undefined,
       matricula: "",
-      phone: "",
+      phone: {
+        countryCode: defaultCountry.code,
+        subscriber: "",
+        e164: "",
+      },
       especialidad: "",
       firmaDigital: undefined,
     },
   });
 
-  function onSubmit(values: SignupFormValues) {
+  function onSubmit(values: ClientSignupFormValues) {
     const formData = new FormData();
     /* v8 ignore next */
     formData.set("name", values.name ?? "");
@@ -177,7 +231,7 @@ export function SignupForm() {
     /* v8 ignore next */
     formData.set("dni", values.dni ?? "");
     formData.set("matricula", values.matricula);
-    formData.set("phone", values.phone);
+    formData.set("phone", values.phone.e164);
     formData.set("especialidad", values.especialidad);
     /* v8 ignore next */
     formData.set("firmaDigital", values.firmaDigital ?? "");
@@ -249,7 +303,7 @@ export function SignupForm() {
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="pb-5">
                     <FormLabel>{t("email")}</FormLabel>
                     <FormControl>
                       <Input
@@ -267,22 +321,29 @@ export function SignupForm() {
               <FormField
                 control={form.control}
                 name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("phone")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        inputMode="tel"
-                        placeholder={t("phonePlaceholder")}
-                        autoComplete="tel"
-                        {...field}
-                        value={safeValue(field.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedCountry =
+                    COUNTRIES.find((c) => c.code === field.value.countryCode) ?? defaultCountry;
+                  return (
+                    <FormItem>
+                      <FormLabel>{t("phone")}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          disabled={isPending}
+                          searchPlaceholder={t("phoneSearchCountry")}
+                          noCountryFound={t("phoneNoCountry")}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        {t("phoneFormat", { format: selectedCountry.formatHint })}
+                      </p>
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Row 3: Matrícula | Especialidad */}
