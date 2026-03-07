@@ -34,7 +34,6 @@ export async function login(
     return { error: error.message };
   }
 
-  revalidatePath("/", "layout");
   redirect("/?welcome=true");
 }
 
@@ -71,6 +70,7 @@ export async function signup(
     options: {
       emailRedirectTo: `${origin}/auth/confirm`,
       data: {
+        name: parsed.data.name ?? "",
         matricula: parsed.data.matricula,
         phone: parsed.data.phone,
         especialidad: parsed.data.especialidad,

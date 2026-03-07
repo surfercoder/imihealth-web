@@ -41,7 +41,7 @@ export default async function Home() {
 
   const { data: patientsRaw } = await supabase
     .from("patients")
-    .select(`id, name, email, phone, dob, created_at, informes(created_at, status)`)
+    .select(`id, name, dni, email, phone, dob, created_at, informes(created_at, status)`)
     .eq("doctor_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -53,6 +53,7 @@ export default async function Home() {
     return {
       id: p.id,
       name: p.name,
+      dni: p.dni,
       email: p.email,
       phone: p.phone,
       dob: p.dob,

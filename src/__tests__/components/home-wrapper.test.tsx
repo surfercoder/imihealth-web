@@ -1,10 +1,9 @@
+/**
+ * @jest-environment jsdom
+ * @jest-environment-options {"url": "http://localhost/"}
+ */
 import '@testing-library/jest-dom'
 import { render, screen, act } from '@testing-library/react'
-
-const mockGet = jest.fn()
-jest.mock('next/navigation', () => ({
-  useSearchParams: () => ({ get: mockGet }),
-}))
 
 jest.mock('@/components/welcome-screen', () => ({
   WelcomeScreen: ({ userName, onDone }: { userName?: string; onDone: () => void }) => (
@@ -24,10 +23,11 @@ describe('HomeWrapper', () => {
 
   afterEach(() => {
     jest.restoreAllMocks()
+    // Reset URL back to base
+    window.history.pushState({}, '', '/')
   })
 
   it('renders children', () => {
-    mockGet.mockReturnValue(null)
     render(
       <HomeWrapper>
         <div data-testid="child">Hello</div>
@@ -37,7 +37,6 @@ describe('HomeWrapper', () => {
   })
 
   it('does not show WelcomeScreen when welcome param is absent', () => {
-    mockGet.mockReturnValue(null)
     render(
       <HomeWrapper>
         <div>Hello</div>
@@ -47,7 +46,7 @@ describe('HomeWrapper', () => {
   })
 
   it('shows WelcomeScreen and replaces history when welcome=true', () => {
-    mockGet.mockReturnValue('true')
+    window.history.pushState({}, '', '/?welcome=true')
     render(
       <HomeWrapper userName="Dr. Test">
         <div>Hello</div>
@@ -58,7 +57,7 @@ describe('HomeWrapper', () => {
   })
 
   it('hides WelcomeScreen when onDone is called', () => {
-    mockGet.mockReturnValue('true')
+    window.history.pushState({}, '', '/?welcome=true')
     render(
       <HomeWrapper>
         <div>Hello</div>

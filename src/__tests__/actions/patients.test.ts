@@ -430,6 +430,7 @@ describe('updatePatient', () => {
 
     const fd = new FormData()
     fd.set('name', 'Juan')
+    fd.set('dni', '12345678')
     fd.set('dob', '1990-01-01')
     fd.set('phone', '+549')
     fd.set('email', 'juan@email.com')
@@ -449,6 +450,7 @@ describe('updatePatient', () => {
 
     const fd = new FormData()
     fd.set('name', '  Juan  ')
+    fd.set('dni', ' 12345678 ')
     fd.set('dob', '1990-01-01')
     fd.set('phone', ' +549 ')
     fd.set('email', ' juan@email.com ')
@@ -477,6 +479,7 @@ describe('updatePatient', () => {
 
     const fd = new FormData()
     fd.set('name', 'Juan')
+    fd.set('dni', '12345678')
     fd.set('dob', '')
     fd.set('phone', '+549')
     fd.set('email', '')

@@ -205,7 +205,7 @@ export async function generateInformePDF({
     const sigImgHeight = 44;
     const sigImgWidth = sigBoxWidth - 16;
 
-    let imgDrawY = separatorY - sigImgHeight - 6;
+    let infoY = separatorY - 6;
 
     if (doctor.firmaDigital) {
       try {
@@ -218,61 +218,51 @@ export async function generateInformePDF({
         const sigDrawX = sigBoxX + 8 + (sigImgWidth - sigDims.width) / 2;
         page.drawImage(sigImage, {
           x: sigDrawX,
-          y: imgDrawY,
+          y: infoY - sigDims.height,
           width: sigDims.width,
           height: sigDims.height,
         });
+        infoY -= sigDims.height + 8;
       } catch {
-        imgDrawY = separatorY - 6;
+        infoY -= 0;
       }
-    } else {
-      imgDrawY = separatorY - 6;
     }
 
-    const underlineY = imgDrawY - 4;
-    page.drawLine({
-      start: { x: sigBoxX + 8, y: underlineY },
-      end: { x: sigBoxX + sigBoxWidth - 8, y: underlineY },
-      thickness: 0.5,
-      color: rgb(0.5, 0.5, 0.55),
-    });
-
-    let infoY = underlineY - 11;
     if (doctor.name) {
       const cleanName = sanitizeForPdf(doctor.name);
+      const nameWidth = helveticaBold.widthOfTextAtSize(cleanName, 9);
       page.drawText(cleanName, {
-        x: sigBoxX + 8,
+        x: sigBoxX + (sigBoxWidth - nameWidth) / 2,
         y: infoY,
         font: helveticaBold,
-        size: 8,
+        size: 9,
         color: rgb(0.1, 0.1, 0.15),
+      });
+      infoY -= 12;
+    }
+    if (doctor.especialidad) {
+      const cleanEsp = sanitizeForPdf(doctor.especialidad);
+      const espWidth = helvetica.widthOfTextAtSize(cleanEsp, 8);
+      page.drawText(cleanEsp, {
+        x: sigBoxX + (sigBoxWidth - espWidth) / 2,
+        y: infoY,
+        font: helvetica,
+        size: 8,
+        color: rgb(0.35, 0.35, 0.4),
       });
       infoY -= 11;
     }
     if (doctor.matricula) {
       const cleanMatricula = sanitizeForPdf(`Mat. ${doctor.matricula}`);
+      const matWidth = helvetica.widthOfTextAtSize(cleanMatricula, 8);
       page.drawText(cleanMatricula, {
-        x: sigBoxX + 8,
+        x: sigBoxX + (sigBoxWidth - matWidth) / 2,
         y: infoY,
         font: helvetica,
-        size: 7.5,
+        size: 8,
         color: rgb(0.35, 0.35, 0.4),
       });
       infoY -= 10;
-    }
-    if (doctor.especialidad) {
-      const cleanEsp = sanitizeForPdf(doctor.especialidad);
-      const espLines = wrapText(cleanEsp, sigBoxWidth - 16, helvetica, 7);
-      for (const espLine of espLines) {
-        page.drawText(espLine, {
-          x: sigBoxX + 8,
-          y: infoY,
-          font: helvetica,
-          size: 7,
-          color: rgb(0.4, 0.4, 0.5),
-        });
-        infoY -= 9;
-      }
     }
   }
 
@@ -282,6 +272,7 @@ export async function generateInformePDF({
 
 interface GenerateCertificadoPDFOptions {
   patientName: string;
+  patientDni?: string | null;
   patientDob?: string | null;
   date: string;
   diagnosis?: string | null;
@@ -292,6 +283,7 @@ interface GenerateCertificadoPDFOptions {
 
 export async function generateCertificadoPDF({
   patientName,
+  patientDni,
   patientDob,
   date,
   diagnosis,
@@ -386,9 +378,15 @@ export async function generateCertificadoPDF({
 
   drawText("DATOS DEL PACIENTE", margin + 12, y - 14, helveticaBold, 8, mutedText);
   drawText(patientName, margin + 12, y - 27, helveticaBold, 13, darkText);
+  let patientInfoY = y - 39;
+  if (patientDni) {
+    const dniClean = sanitizeForPdf(`DNI: ${patientDni}`);
+    drawText(dniClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
+    patientInfoY -= 12;
+  }
   if (patientDob) {
     const dobClean = sanitizeForPdf(`Fecha de nacimiento: ${patientDob}`);
-    drawText(dobClean, margin + 12, y - 41, helvetica, 9, mutedText);
+    drawText(dobClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
   }
 
   y -= 72;
@@ -460,7 +458,7 @@ export async function generateCertificadoPDF({
     y -= 6;
   }
 
-  y -= 20;
+  y -= 40;
 
   const sigBlockY = y;
   page.drawLine({
@@ -470,7 +468,7 @@ export async function generateCertificadoPDF({
     color: rgb(0.8, 0.8, 0.85),
   });
 
-  y -= 14;
+  y -= 16;
   drawText(
     "Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.",
     margin,
@@ -483,10 +481,10 @@ export async function generateCertificadoPDF({
   if (doctor) {
     const sigBoxWidth = 180;
     const sigBoxX = pageWidth - margin - sigBoxWidth;
-    const sigImgHeight = 44;
+    const sigImgHeight = 50;
     const sigImgWidth = sigBoxWidth - 16;
 
-    let imgDrawY = sigBlockY - sigImgHeight - 6;
+    let infoY = sigBlockY - 8;
 
     if (doctor.firmaDigital) {
       try {
@@ -499,43 +497,51 @@ export async function generateCertificadoPDF({
         const sigDrawX = sigBoxX + 8 + (sigImgWidth - sigDims.width) / 2;
         page.drawImage(sigImage, {
           x: sigDrawX,
-          y: imgDrawY,
+          y: infoY - sigDims.height,
           width: sigDims.width,
           height: sigDims.height,
         });
+        infoY -= sigDims.height + 8;
       } catch {
-        imgDrawY = sigBlockY - 6;
+        infoY -= 0;
       }
-    } else {
-      imgDrawY = sigBlockY - 6;
     }
 
-    const underlineY = imgDrawY - 4;
-    page.drawLine({
-      start: { x: sigBoxX + 8, y: underlineY },
-      end: { x: sigBoxX + sigBoxWidth - 8, y: underlineY },
-      thickness: 0.5,
-      color: rgb(0.5, 0.5, 0.55),
-    });
-
-    let infoY = underlineY - 11;
     if (doctor.name) {
       const cleanName = sanitizeForPdf(doctor.name);
-      page.drawText(cleanName, { x: sigBoxX + 8, y: infoY, font: helveticaBold, size: 8, color: darkText });
+      const nameWidth = helveticaBold.widthOfTextAtSize(cleanName, 9);
+      page.drawText(cleanName, {
+        x: sigBoxX + (sigBoxWidth - nameWidth) / 2,
+        y: infoY,
+        font: helveticaBold,
+        size: 9,
+        color: darkText,
+      });
+      infoY -= 12;
+    }
+    if (doctor.especialidad) {
+      const cleanEsp = sanitizeForPdf(doctor.especialidad);
+      const espWidth = helvetica.widthOfTextAtSize(cleanEsp, 8);
+      page.drawText(cleanEsp, {
+        x: sigBoxX + (sigBoxWidth - espWidth) / 2,
+        y: infoY,
+        font: helvetica,
+        size: 8,
+        color: mutedText,
+      });
       infoY -= 11;
     }
     if (doctor.matricula) {
       const cleanMatricula = sanitizeForPdf(`Mat. ${doctor.matricula}`);
-      page.drawText(cleanMatricula, { x: sigBoxX + 8, y: infoY, font: helvetica, size: 7.5, color: mutedText });
+      const matWidth = helvetica.widthOfTextAtSize(cleanMatricula, 8);
+      page.drawText(cleanMatricula, {
+        x: sigBoxX + (sigBoxWidth - matWidth) / 2,
+        y: infoY,
+        font: helvetica,
+        size: 8,
+        color: mutedText,
+      });
       infoY -= 10;
-    }
-    if (doctor.especialidad) {
-      const cleanEsp = sanitizeForPdf(doctor.especialidad);
-      const espLines = wrapText(cleanEsp, sigBoxWidth - 16, helvetica, 7);
-      for (const espLine of espLines) {
-        page.drawText(espLine, { x: sigBoxX + 8, y: infoY, font: helvetica, size: 7, color: rgb(0.4, 0.4, 0.5) });
-        infoY -= 9;
-      }
     }
   }
 

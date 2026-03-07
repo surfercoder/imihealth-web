@@ -74,23 +74,23 @@ describe('WelcomeScreen', () => {
     expect(overlay).toHaveClass('ws-overlay')
   })
 
-  it('does not call onDone before 4200ms', () => {
+  it('does not call onDone before 6200ms', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
 
     act(() => {
-      jest.advanceTimersByTime(4199)
+      jest.advanceTimersByTime(6199)
     })
 
     expect(onDone).not.toHaveBeenCalled()
   })
 
-  it('calls onDone after 4200ms', () => {
+  it('calls onDone after 6200ms', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
 
     act(() => {
-      jest.advanceTimersByTime(4200)
+      jest.advanceTimersByTime(6200)
     })
 
     expect(onDone).toHaveBeenCalledTimes(1)

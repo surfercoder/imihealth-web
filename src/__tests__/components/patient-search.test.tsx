@@ -24,11 +24,12 @@ import { searchPatients } from '@/actions/patients'
 const mockSearchPatients = searchPatients as jest.MockedFunction<typeof searchPatients>
 
 const makeResult = (overrides: Partial<{
-  id: string; name: string; email: string | null; phone: string;
+  id: string; name: string; dni: string; email: string | null; phone: string;
   informe_count: number; last_informe_at: string | null; match_type: 'patient' | 'report'
 }> = {}) => ({
   id: 'p-1',
   name: 'Juan Pérez',
+  dni: '12345678',
   email: 'juan@email.com',
   phone: '+5491112345678',
   informe_count: 3,

@@ -79,7 +79,6 @@ describe('login', () => {
     fd.set('email', 'doctor@hospital.com')
     fd.set('password', 'secret')
     await login(null, fd)
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/', 'layout')
     expect(mockRedirect).toHaveBeenCalledWith('/?welcome=true')
   })
 })
@@ -151,7 +150,7 @@ describe('signup', () => {
       expect.objectContaining({
         options: expect.objectContaining({
           emailRedirectTo: 'http://localhost:3001/auth/confirm',
-          data: { matricula: '123456', phone: '+54 11 1234-5678', especialidad: 'Cardiología' },
+          data: { name: '', matricula: '123456', phone: '+54 11 1234-5678', especialidad: 'Cardiología' },
         }),
       })
     )

@@ -1,8 +1,9 @@
 "use client";
+"use no memo";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -20,13 +21,29 @@ import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createPatient, createInforme } from "@/actions/informes";
 import { useTranslations } from "next-intl";
+import {
+  PhoneInput,
+  type PhoneInputValue,
+  type CountryCode,
+  COUNTRIES,
+  detectCountryFromLocale,
+} from "@/components/ui/phone-input";
 
 type PatientFormValues = {
   name: string;
+  dni: string;
   dob: string;
-  phone: string;
+  phone: PhoneInputValue;
   email?: string;
 };
+
+const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [CountryCode, ...CountryCode[]];
+
+const phoneObjectSchema = z.object({
+  countryCode: z.enum(COUNTRY_CODES),
+  subscriber: z.string(),
+  e164: z.string(),
+});
 
 export function NuevoInformeDialog() {
   const t = useTranslations("nuevoInformeDialog");
@@ -35,20 +52,46 @@ export function NuevoInformeDialog() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const defaultCountry = detectCountryFromLocale();
+
   const patientSchema = z.object({
     name: z.string().min(2, t("validation.nameTooShort")),
+    dni: z
+      .string()
+      .min(1, t("validation.dniRequired"))
+      .regex(/^\d{7,8}$/, t("validation.dniInvalid")),
     dob: z.string().min(1, t("validation.dobRequired")),
-    phone: z.string().min(6, t("validation.phoneInvalid")),
-    email: z.string().email(t("validation.emailInvalid")).optional().or(z.literal("")),
+    phone: phoneObjectSchema.refine(
+      (val) => {
+        const country = COUNTRIES.find((c) => c.code === val.countryCode);
+        if (!country) return false;
+        const digits = val.subscriber.replace(/\D/g, "");
+        return country.subscriberRegex.test(digits);
+      },
+      { message: t("validation.phoneInvalid") }
+    ),
+    email: z
+      .string()
+      .email(t("validation.emailInvalid"))
+      .optional()
+      .or(z.literal("")),
   });
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
+    defaultValues: {
+      phone: {
+        countryCode: defaultCountry.code,
+        subscriber: "",
+        e164: "",
+      },
+    },
   });
 
   const onSubmit = async (values: PatientFormValues) => {
@@ -57,7 +100,8 @@ export function NuevoInformeDialog() {
 
     const formData = new FormData();
     formData.append("name", values.name);
-    formData.append("phone", values.phone);
+    formData.append("dni", values.dni);
+    formData.append("phone", values.phone.e164);
     formData.append("dob", values.dob);
     if (values.email) formData.append("email", values.email);
 
@@ -84,17 +128,19 @@ export function NuevoInformeDialog() {
     router.push(`/informes/${informeResult.data.id}/grabar`);
   };
 
+  const handleOpenChange = useCallback(
+    (v: boolean) => {
+      setOpen(v);
+      if (!v) {
+        reset();
+        setError(null);
+      }
+    },
+    [reset]
+  );
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        setOpen(v);
-        if (!v) {
-          reset();
-          setError(null);
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="size-4 mr-1.5" />
@@ -104,9 +150,7 @@ export function NuevoInformeDialog() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
-          <DialogDescription>
-            {t("description")}
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -125,6 +169,22 @@ export function NuevoInformeDialog() {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="dni">
+              {t("dni")} <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="dni"
+              type="text"
+              inputMode="numeric"
+              placeholder={t("dniPlaceholder")}
+              {...register("dni")}
+            />
+            {errors.dni && (
+              <p className="text-xs text-destructive">{errors.dni.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="dob">
               {t("dob")} <span className="text-destructive">*</span>
             </Label>
@@ -135,21 +195,38 @@ export function NuevoInformeDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="phone">
+            <Label htmlFor="phone-input">
               {t("phone")} <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder={t("phonePlaceholder")}
-              {...register("phone")}
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => {
+                const selectedCountry =
+                  COUNTRIES.find((c) => c.code === field.value.countryCode) ?? defaultCountry;
+                return (
+                  <>
+                    <PhoneInput
+                      id="phone-input"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      disabled={isLoading}
+                      searchPlaceholder={t("phoneSearchCountry")}
+                      noCountryFound={t("phoneNoCountry")}
+                    />
+                    {errors.phone && (
+                      <p className="text-xs text-destructive">
+                        {errors.phone.message ?? errors.phone.subscriber?.message}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {t("phoneHint")} {t("phoneFormat", { format: selectedCountry.formatHint })}
+                    </p>
+                  </>
+                );
+              }}
             />
-            {errors.phone && (
-              <p className="text-xs text-destructive">{errors.phone.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {t("phoneHint")}
-            </p>
           </div>
 
           <div className="space-y-1.5">

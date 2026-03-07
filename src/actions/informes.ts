@@ -17,6 +17,7 @@ export async function createPatient(formData: FormData) {
   if (!user) return { error: "No autenticado" };
 
   const name = formData.get("name") as string;
+  const dni = formData.get("dni") as string;
   const dob = formData.get("dob") as string;
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
@@ -26,6 +27,7 @@ export async function createPatient(formData: FormData) {
     .insert({
       doctor_id: user.id,
       name: name.trim(),
+      dni: dni.trim(),
       dob: dob || null,
       phone: phone.trim(),
       email: email?.trim() || null,
@@ -566,7 +568,7 @@ export async function generateAndSaveCertificado(
 
   try {
     const patient = (
-      informeData as { patients: { name: string; phone: string; dob?: string | null } }
+      informeData as { patients: { name: string; phone: string; dni?: string | null; dob?: string | null } }
     ).patients;
 
     const date = new Date(informeData.created_at).toLocaleDateString("es-AR", {
@@ -585,6 +587,7 @@ export async function generateAndSaveCertificado(
 
     const certBytes = await generateCertificadoPDF({
       patientName: patient.name,
+      patientDni: patient.dni ?? null,
       patientDob,
       date,
       diagnosis: options.diagnosis ?? null,

@@ -16,8 +16,23 @@ jest.mock('@/actions/informes', () => ({
 
 import { NuevoInformeDialog } from '@/components/nuevo-informe-dialog'
 
+const originalLanguages = navigator.languages
+
 describe('NuevoInformeDialog', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    Object.defineProperty(navigator, 'languages', {
+      value: ['es-AR'],
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(navigator, 'languages', {
+      value: originalLanguages,
+      configurable: true,
+    })
+  })
 
   it('renders the trigger button', () => {
     render(<NuevoInformeDialog />)
@@ -38,6 +53,7 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     expect(screen.getByLabelText(/Nombre completo/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/DNI/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Fecha de nacimiento/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Teléfono/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument()
@@ -58,6 +74,7 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
     await user.type(screen.getByLabelText(/Teléfono/i), '123')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
@@ -66,13 +83,31 @@ describe('NuevoInformeDialog', () => {
     })
   })
 
+  it('shows phone validation error for invalid email (valid AR phone)', async () => {
+    const user = userEvent.setup()
+    render(<NuevoInformeDialog />)
+    await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
+    await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
+    await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
+    // Valid AR subscriber: 9 + 3-digit area + 7-digit number = 11 digits
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
+    await user.type(screen.getByLabelText(/Email/i), 'not-an-email')
+    await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Email inválido')).toBeInTheDocument()
+    })
+  })
+
   it('shows email validation error for invalid email', async () => {
     const user = userEvent.setup()
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    // Valid AR subscriber: 9 + 3-digit area + 7-digit number = 11 digits
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.type(screen.getByLabelText(/Email/i), 'not-an-email')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
@@ -86,8 +121,10 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    // Valid AR subscriber: 9 + 3-digit area + 7-digit number = 11 digits
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al crear el paciente')).toBeInTheDocument()
@@ -100,8 +137,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al crear el paciente')).toBeInTheDocument()
@@ -115,8 +153,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al crear el informe')).toBeInTheDocument()
@@ -130,8 +169,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al crear el informe')).toBeInTheDocument()
@@ -145,8 +185,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/informes/i-1/grabar')
@@ -170,8 +211,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Some error')).toBeInTheDocument()
@@ -188,8 +230,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(screen.getByText('Some error')).toBeInTheDocument()
@@ -207,8 +250,9 @@ describe('NuevoInformeDialog', () => {
     render(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
-    await user.type(screen.getByLabelText(/Teléfono/i), '+54911234567')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.type(screen.getByLabelText(/Email/i), 'juan@email.com')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
@@ -217,6 +261,8 @@ describe('NuevoInformeDialog', () => {
       )
       const fd: FormData = mockCreatePatient.mock.calls[0][0]
       expect(fd.get('email')).toBe('juan@email.com')
+      expect(fd.get('dni')).toBe('30123456')
+      expect(fd.get('phone')).toBe('+5492616886005')
     })
   })
 })

@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { WelcomeScreen } from "./welcome-screen";
 
 export function WelcomeOverlay({ userName }: { userName?: string }) {
-  const searchParams = useSearchParams();
-  const isWelcome = searchParams.get("welcome") === "true";
   const [showWelcome, setShowWelcome] = useState(() => {
-    if (isWelcome && typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "true") {
       window.history.replaceState(null, "", "/");
+      return true;
     }
-    return isWelcome;
+    return false;
   });
 
   if (!showWelcome) return null;

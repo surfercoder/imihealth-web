@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 export interface PatientWithStats {
   id: string;
   name: string;
+  dni: string;
   email: string | null;
   phone: string;
   dob: string;
@@ -18,6 +19,7 @@ export interface PatientWithStats {
 export interface PatientSearchResult {
   id: string;
   name: string;
+  dni: string;
   email: string | null;
   phone: string;
   informe_count: number;
@@ -42,7 +44,7 @@ export async function searchPatients(query: string): Promise<{
   // Search patients by name/email/phone using ilike (fast, handles partial matches well)
   const patientSearchPromise = supabase
     .from("patients")
-    .select(`id, name, email, phone, informes(count, created_at, status)`)
+    .select(`id, name, dni, email, phone, informes(count, created_at, status)`)
     .eq("doctor_id", user.id)
     .or(
       `name.ilike.%${trimmed}%,email.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`
@@ -52,7 +54,7 @@ export async function searchPatients(query: string): Promise<{
   // Search by report content (keyword in informe_doctor, informe_paciente, transcript)
   const reportSearchPromise = supabase
     .from("informes")
-    .select(`patient_id, created_at, status, patients!inner(id, name, email, phone)`)
+    .select(`patient_id, created_at, status, patients!inner(id, name, dni, email, phone)`)
     .eq("doctor_id", user.id)
     .or(
       `informe_doctor.ilike.%${trimmed}%,informe_paciente.ilike.%${trimmed}%,transcript.ilike.%${trimmed}%`
@@ -81,6 +83,7 @@ export async function searchPatients(query: string): Promise<{
       results.push({
         id: p.id,
         name: p.name,
+        dni: p.dni,
         email: p.email,
         phone: p.phone,
         informe_count: informes.length,
@@ -96,6 +99,7 @@ export async function searchPatients(query: string): Promise<{
       const patient = informe.patients as unknown as {
         id: string;
         name: string;
+        dni: string;
         email: string | null;
         phone: string;
       };
@@ -105,6 +109,7 @@ export async function searchPatients(query: string): Promise<{
       results.push({
         id: patient.id,
         name: patient.name,
+        dni: patient.dni,
         email: patient.email,
         phone: patient.phone,
         informe_count: 0,
@@ -129,7 +134,7 @@ export async function getPatients(): Promise<{
 
   const { data, error } = await supabase
     .from("patients")
-    .select(`id, name, email, phone, dob, created_at, informes(created_at, status)`)
+    .select(`id, name, dni, email, phone, dob, created_at, informes(created_at, status)`)
     .eq("doctor_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -143,6 +148,7 @@ export async function getPatients(): Promise<{
     return {
       id: p.id,
       name: p.name,
+      dni: p.dni,
       email: p.email,
       phone: p.phone,
       dob: p.dob,
@@ -160,6 +166,7 @@ export async function getPatient(patientId: string): Promise<{
   data?: {
     id: string;
     name: string;
+    dni: string;
     email: string | null;
     phone: string;
     dob: string;
@@ -183,7 +190,7 @@ export async function getPatient(patientId: string): Promise<{
   const { data, error } = await supabase
     .from("patients")
     .select(
-      `id, name, email, phone, dob, created_at,
+      `id, name, dni, email, phone, dob, created_at,
        informes(id, status, created_at, informe_doctor, informe_paciente)`
     )
     .eq("id", patientId)
@@ -208,6 +215,7 @@ export async function getPatient(patientId: string): Promise<{
     data: {
       id: data.id,
       name: data.name,
+      dni: data.dni,
       email: data.email,
       phone: data.phone,
       dob: data.dob,
@@ -228,6 +236,7 @@ export async function updatePatient(
   if (!user) return { error: "No autenticado" };
 
   const name = formData.get("name") as string;
+  const dni = formData.get("dni") as string;
   const dob = formData.get("dob") as string;
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
@@ -236,6 +245,7 @@ export async function updatePatient(
     .from("patients")
     .update({
       name: name.trim(),
+      dni: dni.trim(),
       dob: dob || undefined,
       phone: phone.trim(),
       email: email?.trim() || null,

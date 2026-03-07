@@ -16,6 +16,7 @@ import type { PatientWithStats } from '@/actions/patients'
 const makePatient = (overrides: Partial<PatientWithStats> = {}): PatientWithStats => ({
   id: 'p-1',
   name: 'Juan Pérez',
+  dni: '12345678',
   email: 'juan@email.com',
   phone: '+54911234567',
   dob: '1990-01-01',
