@@ -68,6 +68,10 @@ jest.mock('@/components/informe-editor', () => ({
   ),
 }))
 
+jest.mock('@/components/app-header', () => ({
+  AppHeader: () => <div data-testid="app-header" />,
+}))
+
 jest.mock('@/components/consent-section', () => ({
   ConsentSection: ({ initialConsentAt }: { initialConsentAt: string | null }) => (
     <div data-testid="consent-section">

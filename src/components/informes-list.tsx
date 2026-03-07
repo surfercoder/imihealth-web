@@ -39,7 +39,7 @@ const statusIcons = {
 const statusClasses: Record<string, string> = {
   recording: "text-destructive bg-destructive/10 border-destructive/20",
   processing: "text-primary bg-primary/10 border-primary/20",
-  completed: "text-accent bg-accent/10 border-accent/20",
+  completed: "text-emerald-600 bg-emerald-50 border-emerald-200",
   error: "text-destructive bg-destructive/10 border-destructive/20",
 };
 
@@ -85,7 +85,7 @@ export function InformesList({ informes }: InformesListProps) {
           <Link
             key={informe.id}
             href={href}
-            className="group flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-accent hover:shadow-md"
+            className="group flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <User className="size-5" />
@@ -125,7 +125,7 @@ export function InformesList({ informes }: InformesListProps) {
               </div>
             </div>
 
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all group-hover:text-accent group-hover:translate-x-0.5" />
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all group-hover:text-primary group-hover:translate-x-0.5" />
           </Link>
         );
       })}

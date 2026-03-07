@@ -27,7 +27,7 @@ export function CopyToClipboardButton({ text }: CopyToClipboardButtonProps) {
       className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
       title="Copiar al portapapeles"
     >
-      {copied ? <Check className="size-3.5 text-accent" /> : <Copy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
     </Button>
   );
 }

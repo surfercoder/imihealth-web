@@ -56,7 +56,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
 
       <div
         className="ws-overlay fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6"
-        style={{ backgroundColor: "#061729" }}
+        style={{ backgroundColor: "#0F172A" }}
       >
         {/* Image centered at natural size, edges faded into background via mask */}
         <div

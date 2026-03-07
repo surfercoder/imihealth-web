@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { NewInformeForPatientButton } from "@/components/new-informe-for-patient-button";
 import { DeleteInformeButton } from "@/components/delete-informe-button";
+import { AppHeader } from "@/components/app-header";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -50,7 +51,7 @@ const statusIcons = {
 const statusClasses: Record<string, string> = {
   recording: "text-destructive bg-destructive/10 border-destructive/20",
   processing: "text-primary bg-primary/10 border-primary/20",
-  completed: "text-accent bg-accent/10 border-accent/20",
+  completed: "text-emerald-600 bg-emerald-50 border-emerald-200",
   error: "text-destructive bg-destructive/10 border-destructive/20",
 };
 
@@ -63,7 +64,10 @@ export default async function PatientPage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const t = await getTranslations();
+  const [t, { data: doctor }] = await Promise.all([
+    getTranslations(),
+    supabase.from("doctors").select("name").eq("id", user.id).single(),
+  ]);
 
   const { data: patient, error } = await supabase
     .from("patients")
@@ -113,11 +117,13 @@ export default async function PatientPage({ params }: Props) {
   const completedCount = informes.filter((i) => i.status === "completed").length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-6">
+    <div className="flex min-h-screen flex-col bg-background pt-14">
+      <AppHeader doctorName={doctor?.name} />
+
+      <div className="border-b border-border/40">
+        <div className="mx-auto flex h-11 max-w-5xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/">
+            <Link href="/dashboard">
               <ArrowLeft className="size-4 mr-1.5" />
               {t("nav.patients")}
             </Link>
@@ -128,7 +134,7 @@ export default async function PatientPage({ params }: Props) {
             <NewInformeForPatientButton patientId={patient.id} />
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
         {/* Patient card */}
@@ -173,7 +179,7 @@ export default async function PatientPage({ params }: Props) {
             )}
 
             <div className="flex items-center gap-2.5">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                 <CheckCircle2 className="size-4" />
               </div>
               <div>
@@ -233,7 +239,7 @@ export default async function PatientPage({ params }: Props) {
                 return (
                   <div
                     key={informe.id}
-                    className="group relative flex items-start gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-accent hover:shadow-md"
+                    className="group relative flex items-start gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
                   >
                     <Link href={href} className="absolute inset-0 rounded-xl" aria-label={`${t("nav.report")} ${date}`} />
 

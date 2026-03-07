@@ -18,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
 import { regeneratePdf } from "@/actions/informes";
 import { generateInformePDF } from "@/lib/pdf";
 import { WhatsAppButton } from "@/components/whatsapp-button";
@@ -58,7 +59,7 @@ function PatientCard({ patient, dobFormatted, patientAge, yearsOldLabel }: {
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <User className="size-5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -74,7 +75,7 @@ function PatientCard({ patient, dobFormatted, patientAge, yearsOldLabel }: {
                 {dobFormatted}{patientAge !== null && ` (${patientAge} ${yearsOldLabel})`}
               </span>
             )}
-            {patient.email && <span>{patient.email}</span>}
+            {patient.email && <span className="flex items-center gap-1.5">{patient.email}</span>}
           </div>
         </div>
       </div>
@@ -126,7 +127,10 @@ export default async function InformePage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const t = await getTranslations();
+  const [t, { data: doctor }] = await Promise.all([
+    getTranslations(),
+    supabase.from("doctors").select("name").eq("id", user.id).single(),
+  ]);
   const locale = await getLocale();
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 
@@ -247,9 +251,11 @@ export default async function InformePage({ params }: Props) {
   const whatsappPhone = patient.phone.replace(/\D/g, "");
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-6">
+    <div className="flex min-h-screen flex-col bg-background pt-14">
+      <AppHeader doctorName={doctor?.name} />
+
+      <div className="border-b border-border/40">
+        <div className="mx-auto flex h-11 max-w-5xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/patients/${patient.id}`}>
               <ArrowLeft className="size-4 mr-1.5" />
@@ -263,7 +269,7 @@ export default async function InformePage({ params }: Props) {
             {statusLabel}
           </Badge>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">

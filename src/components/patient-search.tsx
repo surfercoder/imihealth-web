@@ -166,7 +166,7 @@ export function PatientSearch({
                           {patient.name}
                         </span>
                         {patient.match_type === "report" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent border border-accent/20 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
                             <FileText className="size-2.5" />
                             {t("inReport")}
                           </span>

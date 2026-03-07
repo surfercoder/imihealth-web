@@ -29,7 +29,7 @@ export function TranscriptDialog({ dialog, patientName }: TranscriptDialogProps)
             {t("doctor")}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <User className="size-3" />
             </span>
             {patientName ?? t("patient")}
@@ -56,7 +56,7 @@ export function TranscriptDialog({ dialog, patientName }: TranscriptDialogProps)
                   "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
                   isDoctor
                     ? "bg-primary/15 text-primary"
-                    : "bg-accent/15 text-accent"
+                    : "bg-emerald-100 text-emerald-600"
                 )}
               >
                 {isDoctor ? (
@@ -80,7 +80,7 @@ export function TranscriptDialog({ dialog, patientName }: TranscriptDialogProps)
                     "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
                     isDoctor
                       ? "rounded-tl-sm bg-primary/10 text-card-foreground border border-primary/15"
-                      : "rounded-tr-sm bg-accent/10 text-card-foreground border border-accent/15"
+                      : "rounded-tr-sm bg-emerald-50 text-card-foreground border border-emerald-200"
                   )}
                 >
                   {turn.text}

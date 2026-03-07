@@ -24,6 +24,10 @@ jest.mock('@/utils/supabase/server', () => ({
   ),
 }))
 
+jest.mock('@/components/app-header', () => ({
+  AppHeader: () => <div data-testid="app-header" />,
+}))
+
 jest.mock('next/link', () => {
   const MockLink = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>

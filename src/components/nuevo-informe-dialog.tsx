@@ -251,7 +251,7 @@ export function NuevoInformeDialog() {
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
-              variant="destructive"
+              variant="outline"
               className="flex-1"
               onClick={() => setOpen(false)}
               disabled={isLoading}

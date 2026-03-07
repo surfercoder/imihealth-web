@@ -11,6 +11,9 @@ jest.mock('@/utils/supabase/server', () => ({
 jest.mock('@/components/forgot-password-form', () => ({
   ForgotPasswordForm: () => <div data-testid="forgot-password-form" />,
 }))
+jest.mock('@/components/public-header', () => ({
+  PublicHeader: () => <div data-testid="public-header" />,
+}))
 
 import ForgotPasswordPage from '@/app/forgot-password/page'
 
@@ -29,9 +32,9 @@ describe('ForgotPasswordPage', () => {
     expect(screen.getByRole('heading', { name: 'Restablecer contraseña' })).toBeInTheDocument()
   })
 
-  it('redirects to / when user is already authenticated', async () => {
+  it('redirects to /dashboard when user is already authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
-    await ForgotPasswordPage()
-    expect(mockRedirect).toHaveBeenCalledWith('/')
+    try { await ForgotPasswordPage() } catch { /* redirect throws */ }
+    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
   })
 })

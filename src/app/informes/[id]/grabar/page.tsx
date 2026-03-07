@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, Calendar } from "lucide-react";
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
+import { AppHeader } from "@/components/app-header";
 
 export const metadata: Metadata = {
   title: "Grabar informe | IMI",
@@ -25,7 +26,10 @@ export default async function GrabarPage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const t = await getTranslations();
+  const [t, { data: doctor }] = await Promise.all([
+    getTranslations(),
+    supabase.from("doctors").select("name").eq("id", user.id).single(),
+  ]);
   const locale = await getLocale();
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 
@@ -70,9 +74,11 @@ export default async function GrabarPage({ params }: Props) {
     : null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-6">
+    <div className="flex min-h-screen flex-col bg-background pt-14">
+      <AppHeader doctorName={doctor?.name} />
+
+      <div className="border-b border-border/40">
+        <div className="mx-auto flex h-11 max-w-3xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild className="text-foreground hover:text-foreground">
             <Link href={`/patients/${patient.id}`}>
               <ArrowLeft className="size-4 mr-1.5" />
@@ -83,7 +89,7 @@ export default async function GrabarPage({ params }: Props) {
             {t("grabarPage.newConsult")}
           </span>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <div className="mb-8">
@@ -97,7 +103,7 @@ export default async function GrabarPage({ params }: Props) {
 
         <div className="mb-8 rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <User className="size-5" />
             </div>
             <div className="flex-1 min-w-0">

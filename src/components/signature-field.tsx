@@ -54,7 +54,7 @@ export function SignatureField({ onChange, error }: SignatureFieldProps) {
       >
         <SignatureCanvas
           ref={sigRef}
-          penColor="#1a1733"
+          penColor="#1E293B"
           backgroundColor="white"
           canvasProps={{
             className: "absolute inset-0 w-full h-full",

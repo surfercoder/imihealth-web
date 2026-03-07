@@ -11,6 +11,9 @@ jest.mock('@/utils/supabase/server', () => ({
 jest.mock('@/components/signup-form', () => ({
   SignupForm: () => <div data-testid="signup-form" />,
 }))
+jest.mock('@/components/public-header', () => ({
+  PublicHeader: () => <div data-testid="public-header" />,
+}))
 
 import SignupPage from '@/app/signup/page'
 
@@ -29,9 +32,9 @@ describe('SignupPage', () => {
     expect(screen.getByRole('heading', { name: 'Unite a IMI' })).toBeInTheDocument()
   })
 
-  it('redirects to / when user is already authenticated', async () => {
+  it('redirects to /dashboard when user is already authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
-    await SignupPage()
-    expect(mockRedirect).toHaveBeenCalledWith('/')
+    try { await SignupPage() } catch { /* redirect throws */ }
+    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
   })
 })

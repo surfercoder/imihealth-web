@@ -11,6 +11,12 @@ jest.mock('@/utils/supabase/server', () => ({
 jest.mock('@/components/login-form', () => ({
   LoginForm: () => <div data-testid="login-form" />,
 }))
+jest.mock('next-intl/server', () => ({
+  getTranslations: jest.fn(() => Promise.resolve((key: string) => key)),
+}))
+jest.mock('@/components/public-header', () => ({
+  PublicHeader: () => <div data-testid="public-header">IMI Health</div>,
+}))
 
 import LoginPage from '@/app/login/page'
 
@@ -23,15 +29,15 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('login-form')).toBeInTheDocument()
   })
 
-  it('renders the welcome heading', async () => {
+  it('renders the title translation key', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     render(await LoginPage())
-    expect(screen.getByRole('heading', { name: 'Bienvenido de nuevo' })).toBeInTheDocument()
+    expect(screen.getByText('title')).toBeInTheDocument()
   })
 
-  it('redirects to / when user is already authenticated', async () => {
+  it('redirects to /dashboard when user is already authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
-    await LoginPage()
-    expect(mockRedirect).toHaveBeenCalledWith('/')
+    try { await LoginPage() } catch { /* redirect throws */ }
+    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
   })
 })

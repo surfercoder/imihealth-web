@@ -3,7 +3,7 @@ import { ForgotPasswordForm } from "@/components/forgot-password-form";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { PublicHeader } from "@/components/public-header";
 
 export const metadata: Metadata = {
   title: "Recuperar contraseña | IMI",
@@ -17,17 +17,15 @@ export default async function ForgotPasswordPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   const t = await getTranslations("forgotPasswordPage");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 pt-20">
+      <PublicHeader />
       <div className="w-full max-w-sm">
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher />
-        </div>
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-xl font-bold shadow-lg shadow-primary/30">
             IMI

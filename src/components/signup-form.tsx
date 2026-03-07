@@ -69,10 +69,10 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
         </FormControl>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command className="bg-white text-[#1a1733]">
-          <CommandInput placeholder={t("searchSpecialty")} className="text-[#1a1733] placeholder:text-[#4a4868]" />
+        <Command className="bg-white text-card-foreground">
+          <CommandInput placeholder={t("searchSpecialty")} className="text-card-foreground placeholder:text-muted-foreground" />
           <CommandList id="especialidad-listbox">
-            <CommandEmpty className="text-[#4a4868]">
+            <CommandEmpty className="text-muted-foreground">
               {t("specialtyNotFound")}
             </CommandEmpty>
             <CommandGroup>
@@ -80,7 +80,7 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
                 <CommandItem
                   key={esp}
                   value={esp}
-                  className="text-[#1a1733] data-[selected=true]:bg-[#f0f0f8] data-[selected=true]:text-[#1a1733]"
+                  className="text-card-foreground data-[selected=true]:bg-muted data-[selected=true]:text-card-foreground"
                   onSelect={(val) => {
                     field.onChange(val);
                     onOpenChange(false);
@@ -108,7 +108,7 @@ function SignupSuccess() {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+        <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 className="size-6" />
         </div>
         <div>

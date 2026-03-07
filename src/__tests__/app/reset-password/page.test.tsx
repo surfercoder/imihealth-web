@@ -11,6 +11,9 @@ jest.mock('@/utils/supabase/server', () => ({
 jest.mock('@/components/reset-password-form', () => ({
   ResetPasswordForm: () => <div data-testid="reset-password-form" />,
 }))
+jest.mock('@/components/app-header', () => ({
+  AppHeader: () => <div data-testid="app-header" />,
+}))
 
 import ResetPasswordPage from '@/app/reset-password/page'
 
@@ -31,7 +34,7 @@ describe('ResetPasswordPage', () => {
 
   it('redirects to /login when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    await ResetPasswordPage()
+    try { await ResetPasswordPage() } catch { /* redirect throws */ }
     expect(mockRedirect).toHaveBeenCalledWith('/login')
   })
 })

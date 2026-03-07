@@ -82,7 +82,7 @@ describe('PatientsList — with patients', () => {
     const { container } = render(
       <PatientsList patients={[makePatient({ last_informe_status: 'completed', last_informe_at: '2025-01-15T10:30:00Z' })]} />
     )
-    const statusSpan = container.querySelector('.text-accent')
+    const statusSpan = container.querySelector('.text-emerald-600')
     expect(statusSpan).toBeInTheDocument()
   })
 

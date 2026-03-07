@@ -13,6 +13,8 @@
   },
   "nav": {
     "logout": "Log out",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
     "patients": "Patients",
     "report": "Report"
   },
@@ -303,6 +305,25 @@
     "message": "Hello {patientName}, we are sending you your medical report from today's consultation.\n\nYou can download it here: {pdfUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
     "successTitle": "WhatsApp opened",
     "successMessage": "WhatsApp was opened to send the report to {patientName}."
+  },
+  "landing": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "heroTitle": "AI-Powered Medical Consultation Reports",
+    "heroSubtitle": "Record your consultations, and let artificial intelligence generate detailed medical and patient reports automatically. Save time and improve documentation quality.",
+    "getStarted": "Get started free",
+    "featuresTitle": "Everything you need for better medical documentation",
+    "feature1Title": "Voice Recording",
+    "feature1Desc": "Simply record your consultation and our AI handles the rest. No typing required.",
+    "feature2Title": "Dual Reports",
+    "feature2Desc": "Automatically generates both a detailed medical report and a patient-friendly summary.",
+    "feature3Title": "Patient Consent",
+    "feature3Desc": "Built-in digital consent workflow so patients can review and approve their reports.",
+    "feature4Title": "WhatsApp Delivery",
+    "feature4Desc": "Send patient reports directly via WhatsApp with a single click.",
+    "ctaTitle": "Ready to transform your practice?",
+    "ctaSubtitle": "Join doctors who are saving hours every week on medical documentation.",
+    "copyright": "\u00a9 {year} IMI Health. All rights reserved."
   },
   "loginPage": {
     "title": "Welcome back",

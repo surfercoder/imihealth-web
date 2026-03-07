@@ -11,7 +11,7 @@ interface PatientsListProps {
 }
 
 const statusColors: Record<string, string> = {
-  completed: "text-accent",
+  completed: "text-emerald-600",
   processing: "text-primary",
   recording: "text-destructive",
   error: "text-destructive",
@@ -54,7 +54,7 @@ export function PatientsList({ patients }: PatientsListProps) {
           <Link
             key={patient.id}
             href={`/patients/${patient.id}`}
-            className="group flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-accent hover:shadow-md"
+            className="group flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <User className="size-5" />
@@ -85,7 +85,7 @@ export function PatientsList({ patients }: PatientsListProps) {
               </div>
             </div>
 
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all group-hover:text-accent group-hover:translate-x-0.5" />
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all group-hover:text-primary group-hover:translate-x-0.5" />
           </Link>
         );
       })}

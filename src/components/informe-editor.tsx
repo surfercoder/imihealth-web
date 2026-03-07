@@ -230,8 +230,8 @@ export function InformeEditor({
         </div>
 
         <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-          <div className="flex items-center gap-3 border-b bg-accent/5 px-5 py-4">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <div className="flex items-center gap-3 border-b bg-emerald-50/50 px-5 py-4">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
               <MessageCircle className="size-4" />
             </div>
             <div className="flex-1">
@@ -246,7 +246,7 @@ export function InformeEditor({
                 value={pacienteText}
                 onChange={(e) => setEditedPaciente(e.target.value)}
                 disabled={isLoading}
-                className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-accent/50 font-mono"
+                className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-emerald-500/50 font-mono"
                 placeholder={t("patientReportPlaceholder")}
               />
             ) : (

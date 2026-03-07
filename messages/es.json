@@ -13,6 +13,8 @@
   },
   "nav": {
     "logout": "Cerrar sesión",
+    "signIn": "Iniciar sesion",
+    "signUp": "Registrarse",
     "patients": "Pacientes",
     "report": "Informe"
   },
@@ -303,6 +305,25 @@
     "message": "Hola {patientName}, le enviamos su informe médico de la consulta de hoy.\n\nPuede descargarlo aquí: {pdfUrl}\n\nAnte cualquier duda, no dude en contactarnos.",
     "successTitle": "WhatsApp abierto",
     "successMessage": "Se abrió WhatsApp para enviar el informe a {patientName}."
+  },
+  "landing": {
+    "signIn": "Iniciar sesion",
+    "signUp": "Registrarse",
+    "heroTitle": "Informes Medicos con Inteligencia Artificial",
+    "heroSubtitle": "Grabe sus consultas y deje que la inteligencia artificial genere informes medicos detallados y resumenes para el paciente de forma automatica. Ahorre tiempo y mejore la calidad de su documentacion.",
+    "getStarted": "Comenzar gratis",
+    "featuresTitle": "Todo lo que necesita para una mejor documentacion medica",
+    "feature1Title": "Grabacion de voz",
+    "feature1Desc": "Simplemente grabe su consulta y nuestra IA se encarga del resto. Sin necesidad de tipear.",
+    "feature2Title": "Doble informe",
+    "feature2Desc": "Genera automaticamente un informe medico detallado y un resumen amigable para el paciente.",
+    "feature3Title": "Consentimiento del paciente",
+    "feature3Desc": "Flujo de consentimiento digital integrado para que los pacientes revisen y aprueben sus informes.",
+    "feature4Title": "Envio por WhatsApp",
+    "feature4Desc": "Envie los informes del paciente directamente por WhatsApp con un solo clic.",
+    "ctaTitle": "Listo para transformar su practica?",
+    "ctaSubtitle": "Unase a los medicos que ahorran horas cada semana en documentacion medica.",
+    "copyright": "\u00a9 {year} IMI Health. Todos los derechos reservados."
   },
   "loginPage": {
     "title": "Bienvenido de nuevo",

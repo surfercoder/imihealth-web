@@ -42,80 +42,53 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-
-  /* IMI Brand Palette */
-  --color-brand-violet: #2C2754;
-  --color-brand-coral: #FF6047;
-  --color-brand-blue: #5877C6;
-  --color-brand-teal: #59C3C3;
-  --color-brand-gray: #EBEBEB;
 }
-
-/* ─── IMI Design System ─────────────────────────────────────────────────────
-   Background  : #2C2754  deep violet  — page background (dark)
-   Card/Popover: #FFFFFF  white        — content containers (light, dark text)
-   Primary     : #5877C6  royal blue   — buttons, links, focus
-   Accent      : #59C3C3  teal         — success, hover highlights
-   Coral       : #FF6047  coral/orange — recording, destructive, key accents
-   Muted       : #EBEBEB  light gray   — subtle backgrounds inside cards
-   ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --radius: 0.625rem;
 
-  /* Page surface — deep violet stays as the backdrop */
-  --background: #2C2754;
-  --foreground: #EBEBEB;
+  --background: #ffffff;
+  --foreground: #020817;
 
-  /* Cards — white with near-black text for strong legibility */
   --card: #ffffff;
-  --card-foreground: #1a1733;
+  --card-foreground: #020817;
 
-  /* Popovers / dropdowns — white */
   --popover: #ffffff;
-  --popover-foreground: #1a1733;
+  --popover-foreground: #020817;
 
-  /* Primary — royal blue */
-  --primary: #5877C6;
-  --primary-foreground: #ffffff;
+  --primary: #0f172a;
+  --primary-foreground: #f8fafc;
 
-  /* Secondary — light gray surface (inside cards) */
-  --secondary: #EBEBEB;
-  --secondary-foreground: #1a1733;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
 
-  /* Muted — very light gray for subtle fills */
-  --muted: #f4f4f6;
-  --muted-foreground: #4a4868;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
 
-  /* Accent — teal for success & hover states */
-  --accent: #59C3C3;
-  --accent-foreground: #ffffff;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
 
-  /* Destructive / Coral — errors, recording, key highlights */
-  --destructive: #FF6047;
-  --destructive-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
 
-  /* Borders & inputs — visible on white cards */
-  --border: #c8c8dc;
-  --input: #f0f0f8;
-  --ring: #5877C6;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #020817;
 
-  /* Charts */
-  --chart-1: #5877C6;
-  --chart-2: #59C3C3;
-  --chart-3: #FF6047;
-  --chart-4: #a89fc4;
-  --chart-5: #7a6faa;
+  --chart-1: #e76e50;
+  --chart-2: #2a9d90;
+  --chart-3: #274754;
+  --chart-4: #e8c468;
+  --chart-5: #f4a462;
 
-  /* Sidebar */
-  --sidebar: #231f47;
-  --sidebar-foreground: #EBEBEB;
-  --sidebar-primary: #5877C6;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #59C3C3;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(235, 235, 235, 0.1);
-  --sidebar-ring: #5877C6;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #3f3f46;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #3b82f6;
 }
 
 @layer base {

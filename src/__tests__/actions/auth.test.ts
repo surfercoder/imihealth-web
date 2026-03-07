@@ -79,7 +79,7 @@ describe('login', () => {
     fd.set('email', 'doctor@hospital.com')
     fd.set('password', 'secret')
     await login(null, fd)
-    expect(mockRedirect).toHaveBeenCalledWith('/?welcome=true')
+    expect(mockRedirect).toHaveBeenCalledWith('/dashboard?welcome=true')
   })
 })
 
@@ -286,18 +286,18 @@ describe('resetPassword', () => {
     fd.set('confirmPassword', 'newpassword')
     await resetPassword(null, fd)
     expect(mockRevalidatePath).toHaveBeenCalledWith('/', 'layout')
-    expect(mockRedirect).toHaveBeenCalledWith('/')
+    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
   })
 })
 
 describe('logout', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('calls signOut, revalidates, and redirects to /login', async () => {
+  it('calls signOut, revalidates, and redirects to /', async () => {
     mockSignOut.mockResolvedValue({})
     await logout()
     expect(mockSignOut).toHaveBeenCalled()
     expect(mockRevalidatePath).toHaveBeenCalledWith('/', 'layout')
-    expect(mockRedirect).toHaveBeenCalledWith('/login')
+    expect(mockRedirect).toHaveBeenCalledWith('/')
   })
 })

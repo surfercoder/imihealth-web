@@ -63,7 +63,7 @@ export function ConsentSection({
         <div
           className={cn(
             "flex size-8 items-center justify-center rounded-lg transition-colors",
-            consented ? "bg-accent text-white" : "bg-muted text-muted-foreground"
+            consented ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"
           )}
         >
           <ShieldCheck className="size-4" />
@@ -77,7 +77,7 @@ export function ConsentSection({
           </p>
         </div>
         {consented && (
-          <span className="text-xs font-medium text-white bg-accent rounded-full px-2.5 py-0.5">
+          <span className="text-xs font-medium text-white bg-emerald-600 rounded-full px-2.5 py-0.5">
             {t("confirmed")}
           </span>
         )}
@@ -130,7 +130,7 @@ export function ConsentSection({
         )}
 
         {consented ? (
-          <div className="flex items-start gap-2.5 rounded-lg bg-accent px-4 py-3">
+          <div className="flex items-start gap-2.5 rounded-lg bg-emerald-600 px-4 py-3">
             <ShieldCheck className="size-4 text-white shrink-0 mt-0.5" />
             <p className="text-sm text-white font-medium leading-relaxed">
               {t("consentConfirmedMessage", { firstName })}
@@ -147,13 +147,13 @@ export function ConsentSection({
               className={cn(
                 "flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200",
                 checked
-                  ? "border-accent/40 bg-accent/8 hover:bg-accent/12"
+                  ? "border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
                   : "border-border bg-muted/40 hover:bg-muted/70"
               )}
             >
               <span className="mt-0.5 shrink-0">
                 {checked ? (
-                  <CheckSquare className="size-5 text-accent" />
+                  <CheckSquare className="size-5 text-emerald-600" />
                 ) : (
                   <Square className="size-5 text-muted-foreground" />
                 )}
@@ -173,7 +173,7 @@ export function ConsentSection({
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-semibold transition-all duration-200",
                 checked && !isPending
-                  ? "border-accent bg-accent text-white hover:bg-accent/90 cursor-pointer shadow-sm"
+                  ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-sm"
                   : "border-border bg-muted/40 text-muted-foreground cursor-not-allowed opacity-60"
               )}
             >

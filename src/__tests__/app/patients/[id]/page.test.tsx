@@ -24,6 +24,10 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }))
 
+jest.mock('@/components/app-header', () => ({
+  AppHeader: () => <div data-testid="app-header" />,
+}))
+
 jest.mock('next/link', () => {
   const MockLink = ({ children, href, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children: React.ReactNode; href: string }) => (
     <a href={href} {...rest}>{children}</a>
@@ -263,7 +267,7 @@ describe('PatientPage', () => {
     setupMocks(basePatient)
     render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
     const backLink = screen.getByRole('link', { name: /Pacientes/ })
-    expect(backLink).toHaveAttribute('href', '/')
+    expect(backLink).toHaveAttribute('href', '/dashboard')
   })
 
   it('renders singular "consulta" when there is exactly 1 informe', async () => {

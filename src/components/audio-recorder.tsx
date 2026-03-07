@@ -91,7 +91,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
         isActive && "border-destructive/50 bg-destructive/5",
         isPaused && "border-primary/40 bg-primary/5",
         phase === "idle" && "border-dashed border-border bg-muted",
-        phase === "done" && "border-accent/50 bg-accent/5",
+        phase === "done" && "border-emerald-300 bg-emerald-50",
         phase === "error" && "border-destructive/50 bg-destructive/5",
         isProcessing && "border-primary/40 bg-primary/5"
       )}
@@ -109,7 +109,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
           isActive && "bg-destructive/15 text-destructive",
           isPaused && "bg-primary/10 text-primary",
           phase === "idle" && "bg-secondary text-muted-foreground",
-          phase === "done" && "bg-accent/15 text-accent",
+          phase === "done" && "bg-emerald-100 text-emerald-600",
           phase === "error" && "bg-destructive/15 text-destructive",
           isProcessing && "bg-primary/10 text-primary"
         )}
@@ -166,7 +166,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
         )}
         {phase === "done" && (
           <>
-            <p className="text-base font-medium text-accent">{t("stateDone")}</p>
+            <p className="text-base font-medium text-emerald-600">{t("stateDone")}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t("stateRedirecting")}</p>
           </>
         )}

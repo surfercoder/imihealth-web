@@ -34,7 +34,7 @@ export async function login(
     return { error: error.message };
   }
 
-  redirect("/?welcome=true");
+  redirect("/dashboard?welcome=true");
 }
 
 export async function signup(
@@ -146,12 +146,12 @@ export async function resetPassword(
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
-  redirect("/login");
+  redirect("/");
 }
