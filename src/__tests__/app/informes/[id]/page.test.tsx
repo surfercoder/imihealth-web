@@ -340,33 +340,6 @@ describe('InformePage', () => {
     )
   })
 
-  it('passes consentAt to generateInformePDF when patient_consent_at is set', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks({ ...completedInforme, patient_consent_at: '2025-01-20T14:00:00Z' })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
-    expect(mockGenerateInformePDF).toHaveBeenCalledWith(
-      expect.objectContaining({
-        consentAt: expect.any(String),
-      })
-    )
-    const callArgs = mockGenerateInformePDF.mock.calls[0][0]
-    expect(callArgs.consentAt).not.toBeNull()
-  })
-
-  it('renders InformeEditor patientConsentAt when patient_consent_at is set', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks({ ...completedInforme, patient_consent_at: '2025-01-20T14:00:00Z' })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
-    expect(screen.getByTestId('consent-at')).toBeInTheDocument()
-  })
-
-  it('renders ConsentSection initialConsentAt when patient_consent_at is set', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks({ ...completedInforme, patient_consent_at: '2025-01-20T14:00:00Z' })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
-    expect(screen.getByTestId('initial-consent-at')).toBeInTheDocument()
-  })
-
   it('renders transcript_dialog count and TranscriptDialog component', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const dialog = [

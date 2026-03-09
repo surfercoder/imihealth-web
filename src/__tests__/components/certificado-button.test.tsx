@@ -21,6 +21,7 @@ import { CertificadoButton } from '@/components/certificado-button'
 const defaultProps = {
   informeId: 'inf-1',
   patientName: 'Juan Pérez',
+  phone: '5492611234567',
 }
 
 describe('CertificadoButton', () => {
@@ -97,6 +98,38 @@ describe('CertificadoButton', () => {
     const downloadLink = screen.getByRole('link', { name: /Descargar certificado/i })
     expect(downloadLink).toHaveAttribute('href', 'https://example.com/cert.pdf')
     expect(downloadLink).toHaveAttribute('target', '_blank')
+  })
+
+  it('shows WhatsApp button in success view', async () => {
+    mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
+    await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    })
+  })
+
+  it('opens WhatsApp with correct URL when WhatsApp button is clicked', async () => {
+    jest.spyOn(window, 'open').mockImplementation(() => null)
+    mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
+    await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
+    expect(window.open).toHaveBeenCalledTimes(1)
+    const [url, target, features] = (window.open as jest.Mock).mock.calls[0]
+    expect(url).toContain('https://wa.me/5492611234567')
+    expect(url).toContain(encodeURIComponent('Juan Pérez'))
+    expect(url).toContain(encodeURIComponent('https://example.com/cert.pdf'))
+    expect(target).toBe('_blank')
+    expect(features).toBe('noopener,noreferrer')
+    jest.restoreAllMocks()
   })
 
   it('shows error toast when generation returns error', async () => {

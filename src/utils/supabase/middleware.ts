@@ -3,19 +3,6 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie") ?? "";
-  if (cookieHeader.length > 4096) {
-    const clearResponse = NextResponse.redirect(
-      new URL("/login", request.url)
-    );
-    request.cookies.getAll().forEach(({ name }) => {
-      if (name.startsWith("sb-")) {
-        clearResponse.cookies.delete(name);
-      }
-    });
-    return clearResponse;
-  }
-
   const requestHeaders = new Headers(request.headers);
 
   const origin = requestHeaders.get("origin");
@@ -28,6 +15,23 @@ export async function updateSession(request: NextRequest) {
       }
     } catch {
     }
+  }
+
+  // Guard against oversized cookie headers (e.g. corrupted Supabase auth tokens)
+  const cookieHeader = request.headers.get("cookie") || "";
+  if (cookieHeader.length > 4096) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    const response = NextResponse.redirect(url);
+    // Delete all sb- prefixed cookies
+    const cookies = cookieHeader.split(";").map((c) => c.trim());
+    for (const cookie of cookies) {
+      const name = cookie.split("=")[0];
+      if (name.startsWith("sb-")) {
+        response.cookies.set(name, "", { maxAge: 0 });
+      }
+    }
+    return response;
   }
 
   let supabaseResponse = NextResponse.next({

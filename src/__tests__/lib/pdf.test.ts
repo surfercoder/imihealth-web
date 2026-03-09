@@ -157,10 +157,9 @@ describe('generateInformePDF', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('renders consent section when consentAt is provided', async () => {
+  it('generates PDF with all base options', async () => {
     const result = await generateInformePDF({
       ...baseOptions,
-      consentAt: '15 de enero de 2025, 10:30',
     })
     expect(result).toBeInstanceOf(Uint8Array)
     expect(result.length).toBeGreaterThan(0)

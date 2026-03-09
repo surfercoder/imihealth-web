@@ -66,41 +66,22 @@ describe('InformeEditor', () => {
     expect(noContentElements.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('passes consent text to copy button when consent data is provided', () => {
+  it('passes consent text to copy button when patientName is provided', () => {
     render(
       <InformeEditor
         {...defaultProps}
-        patientConsent={true}
-        patientConsentAt="2025-01-15"
         patientName="Juan Pérez"
       />
     )
     const copyBtns = screen.getAllByTestId('copy-btn')
     const doctorCopyBtn = copyBtns[0]
-    expect(doctorCopyBtn.getAttribute('data-text')).toContain('CONSENTIMIENTO DEL PACIENTE')
     expect(doctorCopyBtn.getAttribute('data-text')).toContain('Juan Pérez')
   })
 
-  it('passes plain doctor text to copy button when consent data is incomplete', () => {
+  it('passes plain doctor text to copy button when patientName is not provided', () => {
     render(
       <InformeEditor
         {...defaultProps}
-        patientConsent={true}
-        patientConsentAt={null}
-        patientName="Juan Pérez"
-      />
-    )
-    const copyBtns = screen.getAllByTestId('copy-btn')
-    expect(copyBtns[0].getAttribute('data-text')).toBe('Doctor report text')
-  })
-
-  it('passes plain doctor text when patientConsent is false', () => {
-    render(
-      <InformeEditor
-        {...defaultProps}
-        patientConsent={false}
-        patientConsentAt="2025-01-15"
-        patientName="Juan Pérez"
       />
     )
     const copyBtns = screen.getAllByTestId('copy-btn')
@@ -154,7 +135,7 @@ describe('InformeEditor', () => {
     await user.click(screen.getByRole('button', { name: /Editar informes/i }))
     const textareas = screen.getAllByRole('textbox')
     await user.type(textareas[0], ' extra')
-    expect(screen.getByText('Tienes cambios sin guardar')).toBeInTheDocument()
+    expect(screen.getByText('Tenés cambios sin guardar')).toBeInTheDocument()
   })
 
   it('shows unsaved changes when patient textarea is modified', async () => {
@@ -163,14 +144,14 @@ describe('InformeEditor', () => {
     await user.click(screen.getByRole('button', { name: /Editar informes/i }))
     const textareas = screen.getAllByRole('textbox')
     await user.type(textareas[1], ' modified')
-    expect(screen.getByText('Tienes cambios sin guardar')).toBeInTheDocument()
+    expect(screen.getByText('Tenés cambios sin guardar')).toBeInTheDocument()
   })
 
   it('does not show unsaved changes when text is unchanged', async () => {
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.queryByText('Tienes cambios sin guardar')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tenés cambios sin guardar')).not.toBeInTheDocument()
   })
 
   // --- Cancel ---

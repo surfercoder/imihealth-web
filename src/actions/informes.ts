@@ -21,6 +21,7 @@ export async function createPatient(formData: FormData) {
   const dob = formData.get("dob") as string;
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
+  const affiliateNumber = formData.get("affiliateNumber") as string;
 
   const { data, error } = await supabase
     .from("patients")
@@ -31,6 +32,7 @@ export async function createPatient(formData: FormData) {
       dob: dob || null,
       phone: phone.trim(),
       email: email?.trim() || null,
+      affiliate_number: affiliateNumber?.trim() || null,
     })
     .select()
     .single();
@@ -506,7 +508,6 @@ export async function recordPatientConsent(informeId: string) {
         year: "numeric",
       }),
       content: informeData.informe_paciente,
-      consentAt,
       doctor: doctorDataConsent
         ? {
             name: doctorDataConsent.name,

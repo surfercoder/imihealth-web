@@ -24,7 +24,6 @@ import { generateInformePDF } from "@/lib/pdf";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { CertificadoButton } from "@/components/certificado-button";
 import { TranscriptDialog, type DialogTurn } from "@/components/transcript-dialog";
-import { ConsentSection } from "@/components/consent-section";
 import { InformeEditor } from "@/components/informe-editor";
 
 interface Props {
@@ -46,7 +45,7 @@ const statusIcons = {
 };
 
 export const metadata: Metadata = {
-  title: "Informe | IMI",
+  title: "Informe | IMI Health",
   description: "Detalle del informe médico",
 };
 
@@ -113,7 +112,7 @@ function InformeActions({ pdfSignedUrl, whatsappPhone, patientName, informeId }:
           </Button>
         </form>
       )}
-      <CertificadoButton informeId={informeId} patientName={patientName} />
+      <CertificadoButton informeId={informeId} patientName={patientName} phone={whatsappPhone} />
     </div>
   );
 }
@@ -205,15 +204,6 @@ export default async function InformePage({ params }: Props) {
           year: "numeric",
         }),
         content: informe.informe_paciente,
-        consentAt: informe.patient_consent_at
-          ? new Date(informe.patient_consent_at).toLocaleString("es-AR", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : null,
         doctor: doctorData
           ? {
               name: doctorData.name,
@@ -326,18 +316,6 @@ export default async function InformePage({ params }: Props) {
             informeDoctor={informe.informe_doctor || ""}
             informePaciente={informe.informe_paciente || ""}
             hasTranscript={!!informe.transcript}
-            patientConsent={informe.patient_consent ?? false}
-            patientConsentAt={
-              informe.patient_consent_at
-                ? new Date(informe.patient_consent_at).toLocaleString(dateLocale, {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : null
-            }
             patientName={patient.name}
           />
         )}
@@ -368,26 +346,6 @@ export default async function InformePage({ params }: Props) {
           </details>
         )}
 
-        {informe.status === "completed" && informe.informe_paciente && (
-          <ConsentSection
-            informeId={id}
-            dialog={(informe.transcript_dialog as DialogTurn[]) ?? []}
-            patientName={patient.name}
-            informePaciente={informe.informe_paciente}
-            initialConsent={informe.patient_consent ?? false}
-            initialConsentAt={
-              informe.patient_consent_at
-                ? new Date(informe.patient_consent_at).toLocaleString(dateLocale, {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : null
-            }
-          />
-        )}
       </main>
     </div>
   );

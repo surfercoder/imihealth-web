@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IMI",
-  description: "Aplicación web IMI",
+  title: "IMI Health",
+  description: "Aplicación web IMI Health",
 };
 
 export default async function RootLayout({

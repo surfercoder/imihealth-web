@@ -6,8 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { PublicHeader } from "@/components/public-header";
 
 export const metadata: Metadata = {
-  title: "Recuperar contraseña | IMI",
-  description: "Recuperar contraseña de IMI",
+  title: "Recuperar contraseña | IMI Health",
+  description: "Recuperar contraseña de IMI Health",
 };
 
 export default async function ForgotPasswordPage() {

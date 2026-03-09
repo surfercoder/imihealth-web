@@ -6,8 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { PublicHeader } from "@/components/public-header";
 
 export const metadata: Metadata = {
-  title: "Crear cuenta | IMI",
-  description: "Crear una cuenta en IMI",
+  title: "Crear cuenta | IMI Health",
+  description: "Crear una cuenta en IMI Health",
 };
 
 export default async function SignupPage() {

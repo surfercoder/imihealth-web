@@ -35,6 +35,7 @@ type PatientFormValues = {
   dob: string;
   phone: PhoneInputValue;
   email?: string;
+  affiliateNumber?: string;
 };
 
 const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [CountryCode, ...CountryCode[]];
@@ -75,6 +76,7 @@ export function NuevoInformeDialog() {
       .email(t("validation.emailInvalid"))
       .optional()
       .or(z.literal("")),
+    affiliateNumber: z.string().optional().or(z.literal("")),
   });
 
   const {
@@ -104,6 +106,7 @@ export function NuevoInformeDialog() {
     formData.append("phone", values.phone.e164);
     formData.append("dob", values.dob);
     if (values.email) formData.append("email", values.email);
+    if (values.affiliateNumber) formData.append("affiliateNumber", values.affiliateNumber);
 
     const patientResult = await createPatient(formData);
     if (patientResult.error || !patientResult.data) {
@@ -240,6 +243,16 @@ export function NuevoInformeDialog() {
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email.message}</p>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="affiliateNumber">{t("affiliateNumber")}</Label>
+            <Input
+              id="affiliateNumber"
+              type="text"
+              placeholder={t("affiliateNumberPlaceholder")}
+              {...register("affiliateNumber")}
+            />
           </div>
 
           {error && (

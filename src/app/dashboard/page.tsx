@@ -12,8 +12,8 @@ import type { PatientWithStats } from "@/actions/patients";
 import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
-  title: "Inicio | IMI",
-  description: "Panel principal de IMI",
+  title: "Inicio | IMI Health",
+  description: "Panel principal de IMI Health",
 };
 
 export default async function DashboardPage() {

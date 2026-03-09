@@ -71,6 +71,7 @@ export async function signup(
       emailRedirectTo: `${origin}/auth/confirm`,
       data: {
         name: parsed.data.name ?? "",
+        dni: parsed.data.dni,
         matricula: parsed.data.matricula,
         phone: parsed.data.phone,
         especialidad: parsed.data.especialidad,

@@ -29,7 +29,7 @@ describe('InformesList — empty state', () => {
   it('renders empty state message when no informes', () => {
     render(<InformesList informes={[]} />)
     expect(screen.getByText('Sin informes aún')).toBeInTheDocument()
-    expect(screen.getByText('Cree un nuevo informe para comenzar una consulta.')).toBeInTheDocument()
+    expect(screen.getByText('Creá un nuevo informe para comenzar una consulta.')).toBeInTheDocument()
   })
 })
 

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useReducer, useActionState, useTransition, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import ReCAPTCHA from "react-google-recaptcha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -35,8 +38,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { signup } from "@/actions/auth";
+import { verifyCaptchaToken } from "@/actions/verify-captcha";
 import { ESPECIALIDADES } from "@/schemas/auth";
-import { Loader2, CheckCircle2, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronsUpDown, Check, ArrowLeft, ScrollText, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { SignatureField } from "@/components/signature-field";
@@ -130,6 +134,342 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
   );
 }
 
+// --- Terms step state & reducer ---
+
+interface TermsState {
+  hasScrolledToBottom: boolean;
+  consentChecked: boolean;
+  captchaToken: string | null;
+  captchaStatus: "idle" | "success" | "error" | "expired";
+  captchaError: string | null;
+  isVerifying: boolean;
+}
+
+type TermsAction =
+  | { type: "SCROLL_TO_BOTTOM" }
+  | { type: "SET_CONSENT"; value: boolean }
+  | { type: "CAPTCHA_SUCCESS"; token: string }
+  | { type: "CAPTCHA_ERROR" }
+  | { type: "CAPTCHA_EXPIRE" }
+  | { type: "VERIFY_START" }
+  | { type: "VERIFY_FAILED"; error: string };
+
+const termsInitialState: TermsState = {
+  hasScrolledToBottom: false,
+  consentChecked: false,
+  captchaToken: null,
+  captchaStatus: "idle",
+  captchaError: null,
+  isVerifying: false,
+};
+
+function termsReducer(state: TermsState, action: TermsAction): TermsState {
+  switch (action.type) {
+    case "SCROLL_TO_BOTTOM":
+      return { ...state, hasScrolledToBottom: true };
+    case "SET_CONSENT":
+      if (!action.value) {
+        return { ...state, consentChecked: false, captchaToken: null, captchaStatus: "idle", captchaError: null };
+      }
+      return { ...state, consentChecked: true };
+    case "CAPTCHA_SUCCESS":
+      return { ...state, captchaToken: action.token, captchaStatus: "success", captchaError: null };
+    case "CAPTCHA_ERROR":
+      return { ...state, captchaToken: null, captchaStatus: "error", captchaError: null };
+    case "CAPTCHA_EXPIRE":
+      return { ...state, captchaToken: null, captchaStatus: "expired", captchaError: null };
+    case "VERIFY_START":
+      return { ...state, isVerifying: true, captchaError: null };
+    case "VERIFY_FAILED":
+      return { ...state, isVerifying: false, captchaToken: null, captchaStatus: "idle", captchaError: action.error };
+    default:
+      return state;
+  }
+}
+
+// --- TermsContent sub-component ---
+
+function TermsContent() {
+  const t = useTranslations("signupTerms");
+  const terms = useTranslations("signupTerms.terms");
+  return (
+    <>
+      <h2 className="text-base font-bold text-foreground">{terms("title")}</h2>
+      <p className="text-xs text-muted-foreground">{t("termsLastUpdated")}</p>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s1Title")}</h3>
+        <p>{terms("s1p1")}</p>
+        <p>{terms("s1p2")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s2Title")}</h3>
+        <p>{terms("s2p1")}</p>
+        <p>{terms("s2p2")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s3Title")}</h3>
+        <p>{terms("s3p1")}</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>{terms("s3li1")}</li>
+          <li>{terms("s3li2")}</li>
+          <li>{terms("s3li3")}</li>
+          <li>{terms("s3li4")}</li>
+          <li>{terms("s3li5")}</li>
+          <li>{terms("s3li6")}</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s4Title")}</h3>
+        <p>{terms("s4p1")}</p>
+        <p>{terms("s4p2")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s5Title")}</h3>
+        <p>{terms("s5p1")}</p>
+        <p>{terms("s5p2")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s6Title")}</h3>
+        <p>{terms("s6p1")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s7Title")}</h3>
+        <p>{terms("s7p1")}</p>
+        <p>{terms("s7p2")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s8Title")}</h3>
+        <p>{terms("s8p1")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s9Title")}</h3>
+        <p>{terms("s9p1")}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">{terms("s10Title")}</h3>
+        <p>
+          {terms("s10p1")}{" "}
+          <span className="font-medium text-primary">{terms("s10email")}</span>{" "}
+          {terms("s10p2")}
+        </p>
+      </section>
+
+      <div className="h-4" aria-hidden />
+    </>
+  );
+}
+
+// --- TermsStep sub-component ---
+
+interface TermsStepProps {
+  onBack: () => void;
+  onVerified: (token: string) => void;
+  serverError?: string | null;
+  isPending: boolean;
+}
+
+function TermsStep({ onBack, onVerified, serverError, isPending }: TermsStepProps) {
+  const t = useTranslations("signupTerms");
+  const tForm = useTranslations("signupForm");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const [state, dispatch] = useReducer(termsReducer, termsInitialState);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || state.hasScrolledToBottom) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 16) {
+      dispatch({ type: "SCROLL_TO_BOTTOM" });
+    }
+  }, [state.hasScrolledToBottom]);
+
+  const handleConsentChange = (checked: boolean | "indeterminate") => {
+    const value = checked === true;
+    dispatch({ type: "SET_CONSENT", value });
+    if (!value) recaptchaRef.current?.reset();
+  };
+
+  const handleContinue = async () => {
+    if (!state.captchaToken) return;
+    dispatch({ type: "VERIFY_START" });
+    let result: Awaited<ReturnType<typeof verifyCaptchaToken>> | null = null;
+    try {
+      result = await verifyCaptchaToken(state.captchaToken);
+    } catch {
+      // handled below
+    }
+    if (result === null) {
+      recaptchaRef.current?.reset();
+      dispatch({ type: "VERIFY_FAILED", error: "Error inesperado. Intentá de nuevo." });
+      return;
+    }
+    if (result.success) {
+      onVerified(state.captchaToken);
+    } else {
+      recaptchaRef.current?.reset();
+      dispatch({ type: "VERIFY_FAILED", error: result.error ?? "Verificación fallida. Intentá de nuevo." });
+    }
+  };
+
+  const captchaDisplayError =
+    state.captchaStatus === "error"
+      ? t("captchaError")
+      : state.captchaStatus === "expired"
+      ? t("captchaExpired")
+      : state.captchaError ?? null;
+
+  const canContinue =
+    state.consentChecked &&
+    state.captchaStatus === "success" &&
+    state.captchaToken !== null &&
+    !state.isVerifying &&
+    !isPending;
+
+  return (
+    <div className="space-y-5">
+      {/* Amber notice */}
+      <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+        <ScrollText className="size-4 mt-0.5 shrink-0" />
+        <span>{t("description")}</span>
+      </div>
+
+      {/* Scrollable terms box */}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="h-72 overflow-y-auto rounded-xl border border-border bg-muted/30 px-5 py-4 text-sm text-muted-foreground space-y-5 scroll-smooth"
+        >
+          <TermsContent />
+        </div>
+        {!state.hasScrolledToBottom && (
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 rounded-b-xl bg-gradient-to-t from-muted/80 to-transparent"
+            aria-hidden
+          />
+        )}
+      </div>
+
+      {!state.hasScrolledToBottom && (
+        <p className="text-center text-xs text-muted-foreground">{t("scrollPrompt")}</p>
+      )}
+
+      {/* Consent checkbox */}
+      <div
+        className={cn(
+          "flex items-start gap-3 rounded-xl border p-4 transition-all",
+          state.hasScrolledToBottom
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-border bg-muted/30 opacity-50 select-none"
+        )}
+      >
+        <Checkbox
+          id="terms-consent"
+          checked={state.consentChecked}
+          onCheckedChange={handleConsentChange}
+          disabled={!state.hasScrolledToBottom}
+          className="mt-0.5"
+        />
+        <Label
+          htmlFor="terms-consent"
+          className={cn(
+            "text-sm leading-snug",
+            state.hasScrolledToBottom ? "cursor-pointer text-foreground" : "cursor-not-allowed text-muted-foreground"
+          )}
+        >
+          {t("acceptLabel")}
+        </Label>
+      </div>
+
+      {/* reCAPTCHA — shown after consent is checked */}
+      {state.consentChecked && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
+            <p className="text-sm font-medium">{t("captchaTitle")}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("captchaSubtitle")}</p>
+          <div className="flex items-center justify-start">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+              onChange={(token) => {
+                if (token) dispatch({ type: "CAPTCHA_SUCCESS", token });
+              }}
+              onErrored={() => dispatch({ type: "CAPTCHA_ERROR" })}
+              onExpired={() => dispatch({ type: "CAPTCHA_EXPIRE" })}
+            />
+          </div>
+          {captchaDisplayError && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <span>⚠</span> {captchaDisplayError}
+            </p>
+          )}
+          {state.captchaStatus === "success" && !captchaDisplayError && (
+            <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium">
+              <CheckCircle2 className="size-3.5" />
+              {t("captchaVerified")}
+            </div>
+          )}
+        </div>
+      )}
+
+      {canContinue && (
+        <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium">
+          <CheckCircle2 className="size-4" />
+          {t("allDone")}
+        </div>
+      )}
+
+      {serverError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {serverError}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBack}
+          disabled={state.isVerifying || isPending}
+          className="sm:flex-1"
+        >
+          <ArrowLeft className="mr-2 size-4" />
+          {t("back")}
+        </Button>
+        <Button
+          type="button"
+          disabled={!canContinue}
+          onClick={handleContinue}
+          className="sm:flex-1"
+        >
+          {state.isVerifying || isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              {t("verifying")}
+            </>
+          ) : (
+            tForm("submit")
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- Success screen ---
+
 function SignupSuccess() {
   const t = useTranslations("signupForm");
   return (
@@ -156,11 +496,16 @@ function SignupSuccess() {
 /* v8 ignore next 2 */
 const safeValue = (v: string | undefined | null): string => v ?? "";
 
-export function SignupForm() {
+// --- Registration step (step 1) ---
+
+interface RegistrationStepProps {
+  onSubmit: (values: ClientSignupFormValues) => void;
+  isPending: boolean;
+}
+
+function RegistrationStep({ onSubmit, isPending }: RegistrationStepProps) {
   const t = useTranslations("signupForm");
   const v = useTranslations("validation");
-  const [state, formAction] = useActionState(signup, null);
-  const [isPending, startTransition] = useTransition();
   const [especialidadOpen, setEspecialidadOpen] = useState(false);
 
   const defaultCountry = detectCountryFromLocale();
@@ -220,27 +565,6 @@ export function SignupForm() {
       firmaDigital: undefined,
     },
   });
-
-  function onSubmit(values: ClientSignupFormValues) {
-    const formData = new FormData();
-    /* v8 ignore next */
-    formData.set("name", values.name ?? "");
-    formData.set("email", values.email);
-    formData.set("password", values.password);
-    formData.set("confirmPassword", values.confirmPassword);
-    /* v8 ignore next */
-    formData.set("dni", values.dni ?? "");
-    formData.set("matricula", values.matricula);
-    formData.set("phone", values.phone.e164);
-    formData.set("especialidad", values.especialidad);
-    /* v8 ignore next */
-    formData.set("firmaDigital", values.firmaDigital ?? "");
-    startTransition(() => formAction(formData));
-  }
-
-  if (state?.success) {
-    return <SignupSuccess />;
-  }
 
   return (
     <Card>
@@ -445,20 +769,8 @@ export function SignupForm() {
               />
             </div>
 
-            {state?.error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {state.error}
-              </p>
-            )}
             <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  {t("creating")}
-                </>
-              ) : (
-                t("submit")
-              )}
+              {t("submit")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               {t("hasAccount")}{" "}
@@ -474,4 +786,67 @@ export function SignupForm() {
       </CardContent>
     </Card>
   );
+}
+
+// --- Main SignupForm ---
+
+export function SignupForm() {
+  const tTerms = useTranslations("signupTerms");
+  const [state, formAction] = useActionState(signup, null);
+  const [isPending, startTransition] = useTransition();
+  const [step, setStep] = useState<1 | 2>(1);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+
+  function onStep1Submit(values: ClientSignupFormValues) {
+    const formData = new FormData();
+    /* v8 ignore next */
+    formData.set("name", values.name ?? "");
+    formData.set("email", values.email);
+    formData.set("password", values.password);
+    formData.set("confirmPassword", values.confirmPassword);
+    /* v8 ignore next */
+    formData.set("dni", values.dni ?? "");
+    formData.set("matricula", values.matricula);
+    formData.set("phone", values.phone.e164);
+    formData.set("especialidad", values.especialidad);
+    /* v8 ignore next */
+    formData.set("firmaDigital", values.firmaDigital ?? "");
+    setPendingFormData(formData);
+    setStep(2);
+  }
+
+  function onCaptchaVerified() {
+    if (!pendingFormData) return;
+    startTransition(() => formAction(pendingFormData));
+  }
+
+  if (state?.success) {
+    return <SignupSuccess />;
+  }
+
+  if (step === 2) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {tTerms("stepBadge")}
+            </span>
+          </div>
+          <CardTitle className="text-xl">{tTerms("title")}</CardTitle>
+          <CardDescription>{tTerms("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TermsStep
+            onBack={() => setStep(1)}
+            onVerified={onCaptchaVerified}
+            serverError={state?.error}
+            isPending={isPending}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <RegistrationStep onSubmit={onStep1Submit} isPending={isPending} />;
 }

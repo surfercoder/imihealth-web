@@ -63,13 +63,8 @@ describe('SignupForm — default state', () => {
     expect(link).toHaveAttribute('href', '/login')
   })
 
-  it('renders server error message when state has error', () => {
+  it('renders server error message on step 2 when state has error', async () => {
     mockState = { error: 'Email already registered' }
-    render(<SignupForm />)
-    expect(screen.getByText('Email already registered')).toBeInTheDocument()
-  })
-
-  it('calls startTransition when form is submitted with valid data', async () => {
     const user = userEvent.setup()
     render(<SignupForm />)
     await user.type(screen.getByLabelText('Nombre completo'), 'Dr. Juan Pérez')
@@ -81,13 +76,28 @@ describe('SignupForm — default state', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'password123')
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'password123')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
-    await waitFor(() => expect(mockStartTransition).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByText('Email already registered')).toBeInTheDocument())
   })
 
-  it('renders the loading spinner when isPending is true', () => {
+  it('navigates to step 2 when form is submitted with valid data', async () => {
+    const user = userEvent.setup()
+    render(<SignupForm />)
+    await user.type(screen.getByLabelText('Nombre completo'), 'Dr. Juan Pérez')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'doctor@hospital.com')
+    await user.type(screen.getByLabelText('Matrícula'), '123456')
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '5551234567' } })
+    await user.click(screen.getByRole('combobox', { name: /especialidad/i }))
+    await user.click(screen.getByRole('option', { name: 'Cardiología' }))
+    await user.type(screen.getByLabelText('Contraseña'), 'password123')
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'password123')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(screen.getByText('Términos y Condiciones')).toBeInTheDocument())
+  })
+
+  it('disables the submit button when isPending is true', () => {
     mockIsPending = true
     render(<SignupForm />)
-    expect(screen.getByText('Creando cuenta…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeDisabled()
     mockIsPending = false
   })
 })

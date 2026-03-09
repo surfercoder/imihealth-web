@@ -31,7 +31,7 @@ describe('PatientsList — empty state', () => {
   it('renders empty state message when no patients', () => {
     render(<PatientsList patients={[]} />)
     expect(screen.getByText('Sin pacientes aún')).toBeInTheDocument()
-    expect(screen.getByText('Cree un nuevo informe para registrar su primer paciente.')).toBeInTheDocument()
+    expect(screen.getByText('Creá un nuevo informe para registrar tu primer paciente.')).toBeInTheDocument()
   })
 })
 

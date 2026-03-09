@@ -12,7 +12,6 @@ interface GenerateInformePDFOptions {
   patientPhone: string;
   date: string;
   content: string;
-  consentAt?: string | null;
   doctor?: DoctorSignatureInfo | null;
 }
 
@@ -25,7 +24,6 @@ export async function generateInformePDF({
   patientPhone,
   date,
   content,
-  consentAt,
   doctor,
 }: GenerateInformePDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
@@ -92,7 +90,7 @@ export async function generateInformePDF({
     color: primaryColor,
   });
 
-  drawText("IMI", margin, pageHeight - 40, helveticaBold, 22, rgb(1, 1, 1));
+  drawText("IMI Health", margin, pageHeight - 40, helveticaBold, 22, rgb(1, 1, 1));
   drawText("Informe Médico", margin, pageHeight - 60, helvetica, 12, rgb(0.85, 0.9, 1));
   drawText(date, pageWidth - margin - 80, pageHeight - 50, helvetica, 10, rgb(0.85, 0.9, 1));
 
@@ -138,35 +136,33 @@ export async function generateInformePDF({
 
   y -= 20;
 
-  if (consentAt) {
-    ensureSpace(80);
-    const consentGreen = rgb(0.22, 0.6, 0.56);
-    const consentBg = rgb(0.92, 0.98, 0.97);
+  ensureSpace(80);
+  const consentGreen = rgb(0.22, 0.6, 0.56);
+  const consentBg = rgb(0.92, 0.98, 0.97);
 
-    page.drawRectangle({
-      x: margin,
-      y: y - 54,
-      width: contentWidth,
-      height: 54,
-      color: consentBg,
-      borderColor: consentGreen,
-      borderWidth: 0.8,
-    });
+  page.drawRectangle({
+    x: margin,
+    y: y - 54,
+    width: contentWidth,
+    height: 54,
+    color: consentBg,
+    borderColor: consentGreen,
+    borderWidth: 0.8,
+  });
 
-    drawText("Consentimiento del paciente", margin + 10, y - 14, helveticaBold, 9, consentGreen);
-    const consentLine1 = sanitizeForPdf(
-      `Yo, ${patientName}, confirmo haber leido la transcripcion de la consulta medica`
-    );
-    const consentLine2 = sanitizeForPdf(
-      `y doy mi consentimiento de que el contenido es correcto y refleja lo conversado.`
-    );
-    drawText(consentLine1, margin + 10, y - 27, helvetica, 8, rgb(0.15, 0.15, 0.15));
-    drawText(consentLine2, margin + 10, y - 38, helvetica, 8, rgb(0.15, 0.15, 0.15));
-    const consentDateClean = sanitizeForPdf(`Fecha de consentimiento: ${consentAt}`);
-    drawText(consentDateClean, margin + 10, y - 50, helvetica, 7.5, rgb(0.4, 0.4, 0.45));
+  drawText("Consentimiento informado", margin + 10, y - 14, helveticaBold, 9, consentGreen);
+  const consentLine1 = sanitizeForPdf(
+    `El/la paciente ${patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health`
+  );
+  const consentLine2 = sanitizeForPdf(
+    `y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.`
+  );
+  drawText(consentLine1, margin + 10, y - 27, helvetica, 8, rgb(0.15, 0.15, 0.15));
+  drawText(consentLine2, margin + 10, y - 38, helvetica, 8, rgb(0.15, 0.15, 0.15));
+  const consentDateClean = sanitizeForPdf(`Fecha de consulta: ${date}`);
+  drawText(consentDateClean, margin + 10, y - 50, helvetica, 7.5, rgb(0.4, 0.4, 0.45));
 
-    y -= 74;
-  }
+  y -= 74;
 
   const sigBlockHeight = doctor ? 110 : 50;
   ensureSpace(sigBlockHeight);
@@ -182,7 +178,7 @@ export async function generateInformePDF({
 
   y -= 20;
   drawText(
-    "Este informe fue generado automaticamente por IMI.",
+    "Este informe fue generado automaticamente por IMI Health.",
     margin,
     y,
     helvetica,
@@ -346,7 +342,7 @@ export async function generateCertificadoPDF({
     color: primaryColor,
   });
 
-  drawText("IMI", margin, pageHeight - 32, helveticaBold, 20, rgb(1, 1, 1));
+  drawText("IMI Health", margin, pageHeight - 32, helveticaBold, 20, rgb(1, 1, 1));
   drawText("Certificado Médico", margin, pageHeight - 50, helvetica, 11, rgb(0.85, 0.9, 1));
   drawText(date, pageWidth - margin - 80, pageHeight - 46, helvetica, 9, rgb(0.85, 0.9, 1));
 
@@ -368,9 +364,9 @@ export async function generateCertificadoPDF({
 
   page.drawRectangle({
     x: margin,
-    y: y - 52,
+    y: y - 64,
     width: contentWidth,
-    height: 52,
+    height: 64,
     color: lightGray,
     borderColor: rgb(0.88, 0.88, 0.92),
     borderWidth: 1,
@@ -389,7 +385,7 @@ export async function generateCertificadoPDF({
     drawText(dobClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
   }
 
-  y -= 72;
+  y -= 84;
 
   const bodyText = (() => {
     const doctorName = doctor?.name ? sanitizeForPdf(doctor.name) : "el/la profesional firmante";
@@ -409,28 +405,29 @@ export async function generateCertificadoPDF({
   y -= 10;
 
   if (daysOff && daysOff > 0) {
-    page.drawRectangle({
-      x: margin,
-      y: y - 48,
-      width: contentWidth,
-      height: 48,
-      color: rgb(0.9, 0.94, 0.99),
-      borderColor: primaryColor,
-      borderWidth: 0.8,
-    });
-
     const daysText = daysOff === 1
       ? sanitizeForPdf(`Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.`)
       : sanitizeForPdf(`Por tal motivo, se indica reposo domiciliario por ${daysOff} (${daysOff}) dias a partir de la fecha indicada.`);
 
     const daysLines = wrapText(daysText, contentWidth - 24, helvetica, 10);
+    const daysBoxHeight = 16 + daysLines.length * 14 + 14;
+    page.drawRectangle({
+      x: margin,
+      y: y - daysBoxHeight,
+      width: contentWidth,
+      height: daysBoxHeight,
+      color: rgb(0.9, 0.94, 0.99),
+      borderColor: primaryColor,
+      borderWidth: 0.8,
+    });
+
     let daysY = y - 16;
     for (const line of daysLines) {
       drawText(line, margin + 12, daysY, helvetica, 10, primaryColor);
       daysY -= 14;
     }
 
-    y -= 66;
+    y -= daysBoxHeight + 18;
   }
 
   if (diagnosis) {
@@ -484,7 +481,7 @@ export async function generateCertificadoPDF({
     const sigImgHeight = 50;
     const sigImgWidth = sigBoxWidth - 16;
 
-    let infoY = sigBlockY - 8;
+    let infoY = sigBlockY - 36;
 
     if (doctor.firmaDigital) {
       try {

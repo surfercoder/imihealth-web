@@ -79,7 +79,7 @@ describe('NuevoInformeDialog', () => {
     await user.type(screen.getByLabelText(/Teléfono/i), '123')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
-      expect(screen.getByText('Ingrese un número de teléfono válido')).toBeInTheDocument()
+      expect(screen.getByText('Ingresá un número de teléfono válido')).toBeInTheDocument()
     })
   })
 

@@ -9,7 +9,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 
 export const metadata: Metadata = {
-  title: "Grabar informe | IMI",
+  title: "Grabar informe | IMI Health",
   description: "Grabar un nuevo informe médico",
 };
 

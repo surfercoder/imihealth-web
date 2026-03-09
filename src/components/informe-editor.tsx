@@ -60,8 +60,6 @@ interface InformeEditorProps {
   informeDoctor: string;
   informePaciente: string;
   hasTranscript: boolean;
-  patientConsent?: boolean;
-  patientConsentAt?: string | null;
   patientName?: string;
 }
 
@@ -70,8 +68,6 @@ export function InformeEditor({
   informeDoctor,
   informePaciente,
   hasTranscript,
-  patientConsent,
-  patientConsentAt,
   patientName,
 }: InformeEditorProps) {
   const t = useTranslations("informeEditor");
@@ -205,8 +201,8 @@ export function InformeEditor({
             {!isEditing && (
             <CopyToClipboardButton
               text={
-                patientConsent && patientConsentAt && patientName
-                  ? `${doctorText}\n\n---\n${t("consentLabel")}\n${t("consentText", { patientName, patientConsentAt })}`
+                patientName
+                  ? `${doctorText}\n\n---\n${t("consentLabel")}\n${t("consentTextImplicit", { patientName })}`
                   : doctorText
               }
             />

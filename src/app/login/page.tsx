@@ -6,8 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { PublicHeader } from "@/components/public-header";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión | IMI",
-  description: "Iniciar sesión en IMI",
+  title: "Iniciar sesión | IMI Health",
+  description: "Iniciar sesión en IMI Health",
 };
 
 export default async function LoginPage() {

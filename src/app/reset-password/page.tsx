@@ -6,8 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 
 export const metadata: Metadata = {
-  title: "Restablecer contraseña | IMI",
-  description: "Restablecer contraseña de IMI",
+  title: "Restablecer contraseña | IMI Health",
+  description: "Restablecer contraseña de IMI Health",
 };
 
 export default async function ResetPasswordPage() {

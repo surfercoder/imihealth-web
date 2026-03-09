@@ -2,7 +2,8 @@
 
 import { useReducer, useTransition } from "react";
 import { toast } from "sonner";
-import { Award, Download, Loader2 } from "lucide-react";
+import { Award, Download, Loader2, MessageCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +22,7 @@ import { generateAndSaveCertificado } from "@/actions/informes";
 interface CertificadoButtonProps {
   informeId: string;
   patientName: string;
+  phone: string;
 }
 
 type State = {
@@ -63,9 +65,22 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function CertificadoButton({ informeId, patientName }: CertificadoButtonProps) {
+export function CertificadoButton({ informeId, patientName, phone }: CertificadoButtonProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("whatsappCertButton");
+
+  function handleSendWhatsApp() {
+    if (!state.certUrl) return;
+    const message = encodeURIComponent(
+      t("message", { patientName, certUrl: state.certUrl })
+    );
+    const url = `https://wa.me/${phone}?text=${message}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.success(t("successTitle"), {
+      description: t("successMessage", { patientName }),
+    });
+  }
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
@@ -123,6 +138,13 @@ export function CertificadoButton({ informeId, patientName }: CertificadoButtonP
                 <Download className="size-4 mr-1.5" />
                 Descargar certificado
               </a>
+            </Button>
+            <Button
+              className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white"
+              onClick={handleSendWhatsApp}
+            >
+              <MessageCircle className="size-4 mr-1.5" />
+              {t("label")}
             </Button>
             <Button
               variant="outline"
