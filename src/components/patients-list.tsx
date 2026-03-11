@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { User, Phone, FileText, Clock, ChevronRight, Users } from "lucide-react";
+import { User, Phone, FileText, Clock, ChevronRight, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PatientWithStats } from "@/actions/patients";
 import { useTranslations, useLocale } from "next-intl";
 
 interface PatientsListProps {
   patients: PatientWithStats[];
+  searchQuery?: string;
+  isLoading?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -17,9 +19,17 @@ const statusColors: Record<string, string> = {
   error: "text-destructive",
 };
 
-export function PatientsList({ patients }: PatientsListProps) {
+export function PatientsList({ patients, isLoading }: PatientsListProps) {
   const t = useTranslations("patientsList");
   const locale = useLocale();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (patients.length === 0) {
     return (

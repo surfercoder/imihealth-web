@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { FileText, CheckCircle2, Clock, AlertCircle, Users } from "lucide-react";
 import { NuevoInformeDialog } from "@/components/nuevo-informe-dialog";
-import { PatientsList } from "@/components/patients-list";
-import { PatientSearch } from "@/components/patient-search";
+import { DashboardPatientsSection } from "@/components/dashboard-patients-section";
 import { HomeWrapper } from "@/components/home-wrapper";
 import { AppHeader } from "@/components/app-header";
 import type { PatientWithStats } from "@/actions/patients";
@@ -16,7 +15,14 @@ export const metadata: Metadata = {
   description: "Panel principal de IMI Health",
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const params = await searchParams;
+  const showWelcome = params.welcome === "true";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,7 +69,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <HomeWrapper userName={doctor?.name}>
+    <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
       <div className="flex min-h-screen flex-col bg-background pt-14">
         <AppHeader doctorName={doctor?.name} />
 
@@ -137,12 +143,9 @@ export default async function DashboardPage() {
 
           <Separator className="mb-6" />
 
-          <div className="mb-4 flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <h2 className="text-base font-semibold text-foreground shrink-0">{t("home.patientsTitle")}</h2>
-            <PatientSearch className="flex-1 min-w-0" />
-          </div>
-
-          <PatientsList patients={allPatients} />
+          <h2 className="mb-4 text-base font-semibold text-foreground">{t("home.patientsTitle")}</h2>
+          
+          <DashboardPatientsSection patients={allPatients} />
         </main>
 
         <footer className="border-t border-border/60">

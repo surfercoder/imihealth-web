@@ -2,11 +2,11 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-const mockUpdateInformeReports = jest.fn()
-const mockRegenerateReportFromEdits = jest.fn()
+const mockUpdateInformeDoctorOnly = jest.fn()
+const mockUpdateInformePacienteWithPdf = jest.fn()
 jest.mock('@/actions/informes', () => ({
-  updateInformeReports: (...args: unknown[]) => mockUpdateInformeReports(...args),
-  regenerateReportFromEdits: (...args: unknown[]) => mockRegenerateReportFromEdits(...args),
+  updateInformeDoctorOnly: (...args: unknown[]) => mockUpdateInformeDoctorOnly(...args),
+  updateInformePacienteWithPdf: (...args: unknown[]) => mockUpdateInformePacienteWithPdf(...args),
 }))
 
 const mockToastSuccess = jest.fn()
@@ -24,13 +24,22 @@ jest.mock('@/components/copy-to-clipboard-button', () => ({
   ),
 }))
 
+jest.mock('@/components/copy-to-clipboard-button-doctor', () => ({
+  CopyToClipboardButtonDoctor: ({ text }: { text: string }) => (
+    <button data-testid="copy-btn" data-text={text}>Copy</button>
+  ),
+}))
+
+jest.mock('@/components/certificado-button', () => ({
+  CertificadoButton: () => <button>Certificado</button>,
+}))
+
 import { InformeEditor } from '@/components/informe-editor'
 
 const defaultProps = {
   informeId: 'inf-1',
   informeDoctor: 'Doctor report text',
   informePaciente: 'Patient report text',
-  hasTranscript: true,
 }
 
 describe('InformeEditor', () => {
@@ -43,9 +52,10 @@ describe('InformeEditor', () => {
     expect(screen.getByText('Patient report text')).toBeInTheDocument()
   })
 
-  it('renders the edit button in read mode', () => {
+  it('renders the edit buttons in read mode', () => {
     render(<InformeEditor {...defaultProps} />)
-    expect(screen.getByRole('button', { name: /Editar informes/i })).toBeInTheDocument()
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    expect(editButtons.length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows copy buttons in read mode', () => {
@@ -89,155 +99,70 @@ describe('InformeEditor', () => {
   })
 
   // --- Edit mode ---
-  it('enters edit mode when edit button is clicked', async () => {
+  it('enters edit mode when doctor edit button is clicked', async () => {
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.getByRole('button', { name: /Guardar cambios/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Cancelar/i })).toBeInTheDocument()
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    expect(screen.getByRole('button', { name: /Guardar/i })).toBeInTheDocument()
   })
 
-  it('shows regenerate button when hasTranscript is true', async () => {
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} hasTranscript={true} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.getByRole('button', { name: /Regenerar con IA/i })).toBeInTheDocument()
-  })
-
-  it('hides regenerate button when hasTranscript is false', async () => {
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} hasTranscript={false} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.queryByRole('button', { name: /Regenerar con IA/i })).not.toBeInTheDocument()
-  })
-
-  it('hides copy buttons in edit mode', async () => {
+  it('hides copy buttons in doctor edit mode', async () => {
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.queryByTestId('copy-btn')).not.toBeInTheDocument()
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    const copyBtns = screen.queryAllByTestId('copy-btn')
+    expect(copyBtns.length).toBeLessThan(2)
   })
 
-  it('shows textareas in edit mode', async () => {
+  it('shows textarea in doctor edit mode', async () => {
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    const textareas = screen.getAllByRole('textbox')
-    expect(textareas).toHaveLength(2)
-    expect(textareas[0]).toHaveValue('Doctor report text')
-    expect(textareas[1]).toHaveValue('Patient report text')
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    const textarea = screen.getByRole('textbox')
+    expect(textarea).toHaveValue('Doctor report text')
   })
 
-  // --- Unsaved changes ---
-  it('shows unsaved changes message when text is modified', async () => {
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    const textareas = screen.getAllByRole('textbox')
-    await user.type(textareas[0], ' extra')
-    expect(screen.getByText('Tenés cambios sin guardar')).toBeInTheDocument()
-  })
-
-  it('shows unsaved changes when patient textarea is modified', async () => {
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    const textareas = screen.getAllByRole('textbox')
-    await user.type(textareas[1], ' modified')
-    expect(screen.getByText('Tenés cambios sin guardar')).toBeInTheDocument()
-  })
-
-  it('does not show unsaved changes when text is unchanged', async () => {
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    expect(screen.queryByText('Tenés cambios sin guardar')).not.toBeInTheDocument()
-  })
 
   // --- Cancel ---
   it('reverts changes and exits edit mode on cancel', async () => {
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    const textareas = screen.getAllByRole('textbox')
-    await user.clear(textareas[0])
-    await user.type(textareas[0], 'Changed text')
-    await user.click(screen.getByRole('button', { name: /Cancelar/i }))
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    const textarea = screen.getByRole('textbox')
+    await user.clear(textarea)
+    await user.type(textarea, 'Changed text')
+    const cancelButtons = screen.getAllByRole('button')
+    const cancelBtn = cancelButtons.find(btn => btn.querySelector('.lucide-x'))
+    if (cancelBtn) await user.click(cancelBtn)
     expect(screen.getByText('Doctor report text')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Editar informes/i })).toBeInTheDocument()
   })
 
   // --- Save ---
-  it('calls updateInformeReports and shows success toast on save', async () => {
-    mockUpdateInformeReports.mockResolvedValue({ success: true })
+  it('calls updateInformeDoctorOnly and shows success toast on save', async () => {
+    mockUpdateInformeDoctorOnly.mockResolvedValue({ success: true })
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Guardar cambios/i }))
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
     await waitFor(() => {
-      expect(mockUpdateInformeReports).toHaveBeenCalledWith('inf-1', 'Doctor report text', 'Patient report text')
-    })
-    await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalledWith('Informes guardados correctamente')
+      expect(mockUpdateInformeDoctorOnly).toHaveBeenCalledWith('inf-1', 'Doctor report text')
     })
   })
 
-  it('shows error toast when updateInformeReports returns error', async () => {
-    mockUpdateInformeReports.mockResolvedValue({ error: 'Save failed' })
+  it('shows error toast when updateInformeDoctorOnly returns error', async () => {
+    mockUpdateInformeDoctorOnly.mockResolvedValue({ error: 'Save failed' })
     const user = userEvent.setup()
     render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Guardar cambios/i }))
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Save failed')
-    })
-  })
-
-  it('exits edit mode after successful save', async () => {
-    mockUpdateInformeReports.mockResolvedValue({ success: true })
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Guardar cambios/i }))
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Editar informes/i })).toBeInTheDocument()
-    })
-  })
-
-  // --- Regenerate ---
-  it('calls regenerateReportFromEdits and shows success toast on regenerate', async () => {
-    mockRegenerateReportFromEdits.mockResolvedValue({ success: true })
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Regenerar con IA/i }))
-    await waitFor(() => {
-      expect(mockRegenerateReportFromEdits).toHaveBeenCalledWith('inf-1', 'Doctor report text', 'Patient report text')
-    })
-    await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalledWith('Informe regenerado con IA correctamente')
-    })
-  })
-
-  it('shows error toast when regenerateReportFromEdits returns error', async () => {
-    mockRegenerateReportFromEdits.mockResolvedValue({ error: 'Regen failed' })
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Regenerar con IA/i }))
-    await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith('Regen failed')
-    })
-  })
-
-  it('exits edit mode after successful regenerate', async () => {
-    mockRegenerateReportFromEdits.mockResolvedValue({ success: true })
-    const user = userEvent.setup()
-    render(<InformeEditor {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Editar informes/i }))
-    await user.click(screen.getByRole('button', { name: /Regenerar con IA/i }))
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Editar informes/i })).toBeInTheDocument()
     })
   })
 

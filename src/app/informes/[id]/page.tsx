@@ -12,19 +12,20 @@ import {
   Phone,
   Calendar,
   FileText,
-  Download,
   Clock,
   AlertCircle,
   Loader2,
+  Mail,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
-import { regeneratePdf } from "@/actions/informes";
 import { generateInformePDF } from "@/lib/pdf";
-import { WhatsAppButton } from "@/components/whatsapp-button";
-import { CertificadoButton } from "@/components/certificado-button";
 import { TranscriptDialog, type DialogTurn } from "@/components/transcript-dialog";
+import { TranscriptMonologue } from "@/components/transcript-monologue";
 import { InformeEditor } from "@/components/informe-editor";
+import { WhatsAppButton } from "@/components/whatsapp-button";
+import { regeneratePdf } from "@/actions/informes";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -74,7 +75,12 @@ function PatientCard({ patient, dobFormatted, patientAge, yearsOldLabel }: {
                 {dobFormatted}{patientAge !== null && ` (${patientAge} ${yearsOldLabel})`}
               </span>
             )}
-            {patient.email && <span className="flex items-center gap-1.5">{patient.email}</span>}
+            {patient.email && (
+              <span className="flex items-center gap-1.5">
+                <Mail className="size-3.5" />
+                {patient.email}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -82,40 +88,6 @@ function PatientCard({ patient, dobFormatted, patientAge, yearsOldLabel }: {
   );
 }
 
-function InformeActions({ pdfSignedUrl, whatsappPhone, patientName, informeId }: {
-  pdfSignedUrl: string | null;
-  whatsappPhone: string;
-  patientName: string;
-  informeId: string;
-}) {
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {pdfSignedUrl ? (
-        <>
-          <Button variant="outline" size="sm" asChild>
-            <a href={pdfSignedUrl} target="_blank" rel="noopener noreferrer">
-              <Download className="size-4 mr-1.5" />
-              PDF
-            </a>
-          </Button>
-          <WhatsAppButton
-            phone={whatsappPhone}
-            patientName={patientName}
-            pdfUrl={pdfSignedUrl}
-          />
-        </>
-      ) : (
-        <form action={regeneratePdf.bind(null, informeId)}>
-          <Button variant="outline" size="sm" type="submit">
-            <Download className="size-4 mr-1.5" />
-            Generar PDF
-          </Button>
-        </form>
-      )}
-      <CertificadoButton informeId={informeId} patientName={patientName} phone={whatsappPhone} />
-    </div>
-  );
-}
 
 export default async function InformePage({ params }: Props) {
   const { id } = await params;
@@ -128,7 +100,7 @@ export default async function InformePage({ params }: Props) {
 
   const [t, { data: doctor }] = await Promise.all([
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    supabase.from("doctors").select("name, email, phone").eq("id", user.id).single(),
   ]);
   const locale = await getLocale();
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
@@ -239,6 +211,7 @@ export default async function InformePage({ params }: Props) {
   }
 
   const whatsappPhone = patient.phone.replace(/\D/g, "");
+  const doctorWhatsappPhone = doctor?.phone ? doctor.phone.replace(/\D/g, "") : undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
@@ -272,15 +245,6 @@ export default async function InformePage({ params }: Props) {
               {createdAt}
             </p>
           </div>
-
-          {informe.status === "completed" && (
-            <InformeActions
-              pdfSignedUrl={pdfSignedUrl}
-              whatsappPhone={whatsappPhone}
-              patientName={patient.name}
-              informeId={id}
-            />
-          )}
         </div>
 
         <PatientCard
@@ -315,9 +279,36 @@ export default async function InformePage({ params }: Props) {
             informeId={id}
             informeDoctor={informe.informe_doctor || ""}
             informePaciente={informe.informe_paciente || ""}
-            hasTranscript={!!informe.transcript}
             patientName={patient.name}
+            pdfUrl={pdfSignedUrl}
+            whatsappPhone={whatsappPhone}
+            doctorName={doctor?.name}
+            doctorEmail={doctor?.email}
+            doctorPhone={doctorWhatsappPhone}
           />
+        )}
+
+        {informe.status === "completed" && (
+          <div className="flex items-center gap-3 flex-wrap">
+            {pdfSignedUrl ? (
+              <>
+                <Button asChild size="sm">
+                  <a href={pdfSignedUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="size-4 mr-1.5" />
+                    {t("informePage.viewPdf")}
+                  </a>
+                </Button>
+                <WhatsAppButton phone={whatsappPhone} patientName={patient.name} pdfUrl={pdfSignedUrl} />
+              </>
+            ) : (
+              <form action={async () => { "use server"; await regeneratePdf(id); }}>
+                <Button type="submit" variant="outline" size="sm">
+                  <FileText className="size-4 mr-1.5" />
+                  {t("informePage.generatePdf")}
+                </Button>
+              </form>
+            )}
+          </div>
         )}
 
         {informe.transcript && (
@@ -328,11 +319,15 @@ export default async function InformePage({ params }: Props) {
               <span className="ml-auto text-xs text-muted-foreground">
                 {informe.transcript_dialog
                   ? t("informePage.interventions", { count: (informe.transcript_dialog as DialogTurn[]).length })
+                  : informe.transcript_type === "monologue"
+                  ? t("informePage.monologue")
                   : t("informePage.transcriptFull")}
               </span>
             </summary>
             <div className="border-t px-5 py-6">
-              {informe.transcript_dialog ? (
+              {informe.transcript_type === "monologue" ? (
+                <TranscriptMonologue transcript={informe.transcript} />
+              ) : informe.transcript_dialog ? (
                 <TranscriptDialog
                   dialog={informe.transcript_dialog as DialogTurn[]}
                   patientName={patient.name}

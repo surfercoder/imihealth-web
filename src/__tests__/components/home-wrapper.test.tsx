@@ -45,21 +45,18 @@ describe('HomeWrapper', () => {
     expect(screen.queryByTestId('welcome-screen')).not.toBeInTheDocument()
   })
 
-  it('shows WelcomeScreen and replaces history when welcome=true', () => {
-    window.history.pushState({}, '', '/?welcome=true')
+  it('shows WelcomeScreen when showWelcome prop is true', () => {
     render(
-      <HomeWrapper userName="Dr. Test">
+      <HomeWrapper userName="Dr. Test" showWelcome>
         <div>Hello</div>
       </HomeWrapper>
     )
     expect(screen.getByTestId('welcome-screen')).toBeInTheDocument()
-    expect(window.history.replaceState).toHaveBeenCalledWith(null, '', '/')
   })
 
   it('hides WelcomeScreen when onDone is called', () => {
-    window.history.pushState({}, '', '/?welcome=true')
     render(
-      <HomeWrapper>
+      <HomeWrapper showWelcome>
         <div>Hello</div>
       </HomeWrapper>
     )

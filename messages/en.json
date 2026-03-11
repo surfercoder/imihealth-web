@@ -78,7 +78,7 @@
     "reports": "reports"
   },
   "patientSearch": {
-    "placeholder": "Search by name, phone, email or diagnosis…",
+    "placeholder": "Search by name, DNI, phone, or medical report…",
     "noResults": "No results for \"{query}\"",
     "noResultsHint": "Try another name, phone or diagnosis",
     "clearSearch": "Clear search",
@@ -193,6 +193,7 @@
     "transcript": "Consultation transcript",
     "transcriptFull": "View full text",
     "interventions": "{count} turns",
+    "monologue": "Doctor's narration",
     "yearsOld": "years old"
   },
   "grabarPage": {
@@ -248,7 +249,8 @@
     "medicalReportPlaceholder": "Medical report...",
     "patientReportPlaceholder": "Patient report...",
     "noContent": "No content",
-    "saveSuccess": "Reports saved successfully",
+    "saveSuccess": "Report saved successfully",
+    "saveSuccessPdf": "Patient report saved and PDF regenerated successfully",
     "regenerateSuccess": "Report regenerated with AI successfully",
     "consentLabel": "PATIENT CONSENT",
     "consentText": "{patientName} confirmed having read the report and gave consent on {patientConsentAt}.",
@@ -275,6 +277,10 @@
     "doctor": "Doctor",
     "patient": "Patient",
     "interventions": "{count} turns"
+  },
+  "transcriptMonologue": {
+    "doctorNarration": "Doctor's narration",
+    "monologue": "Monologue"
   },
   "deleteInforme": {
     "srLabel": "Delete report",
@@ -307,14 +313,28 @@
   "whatsappButton": {
     "label": "Send via WhatsApp",
     "message": "Hello {patientName}, we are sending you your medical report from today's consultation.\n\nYou can download it here: {pdfUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
-    "successTitle": "WhatsApp opened",
-    "successMessage": "WhatsApp was opened to send the report to {patientName}."
+    "successTitle": "WhatsApp sent",
+    "successMessage": "The report was sent via WhatsApp to {patientName}.",
+    "errorTitle": "WhatsApp error",
+    "errorMessage": "An unexpected error occurred"
+  },
+  "emailButton": {
+    "subject": "Medical Report - {doctorName}",
+    "successTitle": "Email sent",
+    "successMessage": "The medical report was sent via email to {doctorName}."
+  },
+  "doctorWhatsappButton": {
+    "message": "Medical report from Dr. {doctorName}:\n\n{reportContent}",
+    "successTitle": "WhatsApp sent",
+    "successMessage": "The report was sent via WhatsApp to {doctorName}."
   },
   "whatsappCertButton": {
     "label": "Send certificate via WhatsApp",
     "message": "Hello {patientName}, we are sending you your medical certificate.\n\nYou can download it here: {certUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
-    "successTitle": "WhatsApp opened",
-    "successMessage": "WhatsApp was opened to send the certificate to {patientName}."
+    "successTitle": "WhatsApp sent",
+    "successMessage": "The certificate was sent via WhatsApp to {patientName}.",
+    "errorTitle": "WhatsApp error",
+    "errorMessage": "An unexpected error occurred"
   },
   "landing": {
     "signIn": "Sign in",

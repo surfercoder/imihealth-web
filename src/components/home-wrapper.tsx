@@ -1,17 +1,26 @@
 "use client";
 
-import { WelcomeOverlay } from "./welcome-overlay";
+import { useState } from "react";
+import { WelcomeScreen } from "./welcome-screen";
 
-interface HomeWrapperProps {
+export interface HomeWrapperProps {
   children: React.ReactNode;
   userName?: string;
+  showWelcome?: boolean;
 }
 
-export function HomeWrapper({ children, userName }: HomeWrapperProps) {
+export function HomeWrapper({ children, userName, showWelcome: initialShowWelcome = false }: HomeWrapperProps) {
+  const [showWelcome, setShowWelcome] = useState(initialShowWelcome);
+
   return (
     <>
       {children}
-      <WelcomeOverlay userName={userName} />
+      {showWelcome && (
+        <WelcomeScreen
+          userName={userName}
+          onDone={() => setShowWelcome(false)}
+        />
+      )}
     </>
   );
 }

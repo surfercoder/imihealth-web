@@ -11,11 +11,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-interface CopyToClipboardButtonProps {
+interface CopyToClipboardButtonDoctorProps {
   text: string;
 }
 
-export function CopyToClipboardButton({ text }: CopyToClipboardButtonProps) {
+export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDoctorProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -33,10 +33,9 @@ export function CopyToClipboardButton({ text }: CopyToClipboardButtonProps) {
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            title="Copiar al portapapeles"
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5 text-emerald-600" />}
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

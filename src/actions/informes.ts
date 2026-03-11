@@ -86,22 +86,26 @@ export async function processInformeFromTranscript(
       messages: [
         {
           role: "user",
-          content: `Eres un asistente médico experto. Basándote en la siguiente transcripción de una consulta médica, genera DOS informes separados Y un diálogo estructurado.
+          content: `Eres un asistente médico experto. Basándote en la siguiente transcripción de una consulta médica, genera DOS informes separados.
 
 TRANSCRIPCIÓN:
 ${transcript}
 
 ---
 
+IMPORTANTE: Primero determina si esta es una CONVERSACIÓN (diálogo entre doctor y paciente) o un MONÓLOGO (solo el doctor hablando sobre el caso del paciente).
+
 Genera la respuesta en el siguiente formato JSON exacto (sin markdown, solo JSON puro):
 {
+  "transcript_type": "dialog" o "monologue",
   "informe_doctor": "...",
   "informe_paciente": "...",
-  "dialog": [
-    { "speaker": "doctor", "text": "..." },
-    { "speaker": "paciente", "text": "..." }
-  ]
+  "dialog": [...]
 }
+
+TIPO DE TRANSCRIPCIÓN (transcript_type):
+- "dialog": Si hay dos personas conversando (doctor haciendo preguntas y paciente respondiendo)
+- "monologue": Si solo el doctor está hablando, narrando el caso del paciente
 
 INFORME PARA EL DOCTOR (informe_doctor):
 - Detallado y técnico
@@ -117,11 +121,12 @@ INFORME PARA EL PACIENTE (informe_paciente):
 - Formato claro con secciones usando saltos de línea
 
 DIÁLOGO ESTRUCTURADO (dialog):
-- Divide la transcripción en turnos de habla individuales
-- Infiere quién habla basándote en el contexto: el doctor hace preguntas médicas, da diagnósticos y prescripciones; el paciente describe síntomas y responde preguntas
-- Cada elemento del array tiene "speaker" ("doctor" o "paciente") y "text" (lo que dijo)
-- Mantén el texto original sin modificaciones, solo segméntalo por turnos
-- Si no puedes determinar el hablante con certeza, asigna "doctor" o "paciente" según el contexto más probable`,
+- SOLO si transcript_type es "dialog":
+  - Divide la transcripción en turnos de habla individuales
+  - Infiere quién habla basándote en el contexto: el doctor hace preguntas médicas, da diagnósticos y prescripciones; el paciente describe síntomas y responde preguntas
+  - Cada elemento del array tiene "speaker" ("doctor" o "paciente") y "text" (lo que dijo)
+  - Mantén el texto original sin modificaciones, solo segméntalo por turnos
+- Si transcript_type es "monologue": deja el array "dialog" vacío []`,
         },
       ],
     });
@@ -134,12 +139,14 @@ DIÁLOGO ESTRUCTURADO (dialog):
     let informeDoctor = "";
     let informePaciente = "";
     let transcriptDialog: Array<{ speaker: "doctor" | "paciente"; text: string }> | null = null;
+    let transcriptType: "dialog" | "monologue" = "dialog";
 
     const jsonMatch = reportsText.match(/\{[\s\S]*\}/);
     try {
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : reportsText);
       informeDoctor = parsed.informe_doctor || "";
       informePaciente = parsed.informe_paciente || "";
+      transcriptType = parsed.transcript_type === "monologue" ? "monologue" : "dialog";
       if (Array.isArray(parsed.dialog) && parsed.dialog.length > 0) {
         transcriptDialog = parsed.dialog;
       }
@@ -186,19 +193,36 @@ DIÁLOGO ESTRUCTURADO (dialog):
       }
     }
 
+    const finalUpdate: Record<string, unknown> = {
+      status: "completed",
+      informe_doctor: informeDoctor,
+      informe_paciente: informePaciente,
+      pdf_path: pdfPath,
+      transcript_dialog: transcriptDialog,
+      transcript_type: transcriptType,
+    };
+
+    // Clear audio_path in the same update (legal compliance)
+    if (audioPath) {
+      finalUpdate.audio_path = null;
+    }
+
     const { error: updateError } = await supabase
       .from("informes")
-      .update({
-        status: "completed",
-        informe_doctor: informeDoctor,
-        informe_paciente: informePaciente,
-        pdf_path: pdfPath,
-        transcript_dialog: transcriptDialog,
-      })
+      .update(finalUpdate)
       .eq("id", informeId)
       .eq("doctor_id", user.id);
 
     if (updateError) throw new Error(updateError.message);
+
+    // Delete audio file from storage after reports are generated (legal compliance)
+    if (audioPath) {
+      try {
+        await supabase.storage.from("audio-recordings").remove([audioPath]);
+      } catch {
+        // Storage deletion is best-effort; the audio_path has already been nullified in the DB
+      }
+    }
 
     revalidatePath("/");
     revalidatePath(`/informes/${informeId}`);
@@ -299,6 +323,101 @@ export async function regeneratePdf(informeId: string) {
   revalidatePath(`/informes/${informeId}`);
 }
 
+export async function updateInformeDoctorOnly(
+  informeId: string,
+  informeDoctor: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error: updateError } = await supabase
+    .from("informes")
+    .update({ informe_doctor: informeDoctor })
+    .eq("id", informeId)
+    .eq("doctor_id", user.id);
+
+  if (updateError) return { error: updateError.message };
+
+  revalidatePath(`/informes/${informeId}`);
+  return { success: true };
+}
+
+export async function updateInformePacienteWithPdf(
+  informeId: string,
+  informePaciente: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: informeData, error: fetchError } = await supabase
+    .from("informes")
+    .select("*, patients(*)")
+    .eq("id", informeId)
+    .eq("doctor_id", user.id)
+    .single();
+
+  if (fetchError || !informeData) return { error: "Informe no encontrado" };
+
+  const { data: doctorData } = await supabase
+    .from("doctors")
+    .select("name, matricula, especialidad, firma_digital")
+    .eq("id", user.id)
+    .single();
+
+  let pdfPath: string | null = informeData.pdf_path ?? null;
+
+  if (informePaciente) {
+    try {
+      const patient = (informeData as { patients: { name: string; phone: string } }).patients;
+      const pdfBytes = await generateInformePDF({
+        patientName: patient.name,
+        patientPhone: patient.phone,
+        date: new Date(informeData.created_at).toLocaleDateString("es-AR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        }),
+        content: informePaciente,
+        doctor: doctorData
+          ? {
+              name: doctorData.name,
+              matricula: doctorData.matricula,
+              especialidad: doctorData.especialidad,
+              firmaDigital: doctorData.firma_digital,
+            }
+          : null,
+      });
+
+      const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
+      const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      const { error: uploadError } = await supabase.storage
+        .from("informes-pdf")
+        .upload(pdfFileName, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+      if (!uploadError) pdfPath = pdfFileName;
+    } catch (pdfError) {
+      console.error("Error regenerando PDF:", pdfError);
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("informes")
+    .update({ informe_paciente: informePaciente, pdf_path: pdfPath })
+    .eq("id", informeId)
+    .eq("doctor_id", user.id);
+
+  if (updateError) return { error: updateError.message };
+
+  revalidatePath(`/informes/${informeId}`);
+  return { success: true };
+}
+
 export async function updateInformeReports(
   informeId: string,
   informeDoctor: string,
@@ -375,8 +494,8 @@ export async function updateInformeReports(
 
 export async function regenerateReportFromEdits(
   informeId: string,
-  informeDoctorEdited: string,
-  informePacienteEdited: string
+  editedDoctor: string,
+  editedPaciente: string
 ) {
   const supabase = await createClient();
   const {
@@ -386,7 +505,7 @@ export async function regenerateReportFromEdits(
 
   const { data: informeData, error: fetchError } = await supabase
     .from("informes")
-    .select("*, patients(*)")
+    .select("id, transcript")
     .eq("id", informeId)
     .eq("doctor_id", user.id)
     .single();
@@ -395,62 +514,50 @@ export async function regenerateReportFromEdits(
   if (!informeData.transcript) return { error: "No hay transcripción disponible" };
 
   try {
-    const reportsResponse = await anthropic.messages.create({
+    const response = await anthropic.messages.create({
       model: "claude-opus-4-5",
       max_tokens: 8192,
       messages: [
         {
           role: "user",
-          content: `Eres un asistente médico experto. Basándote en la siguiente transcripción de una consulta médica y en las correcciones/adiciones que el doctor ya realizó manualmente sobre los informes, genera versiones mejoradas y completas de ambos informes incorporando esas correcciones.
+          content: `Eres un asistente médico experto. El doctor ha editado los informes generados previamente. Basándote en la transcripción original y las ediciones del doctor, regenera ambos informes incorporando los cambios.
 
 TRANSCRIPCIÓN ORIGINAL:
 ${informeData.transcript}
 
----
+INFORME DOCTOR (editado):
+${editedDoctor}
 
-INFORME MÉDICO (borrador con correcciones del doctor):
-${informeDoctorEdited}
+INFORME PACIENTE (editado):
+${editedPaciente}
 
----
-
-INFORME PARA EL PACIENTE (borrador con correcciones del doctor):
-${informePacienteEdited}
-
----
-
-Genera la respuesta en el siguiente formato JSON exacto (sin markdown, solo JSON puro):
+Genera la respuesta en formato JSON exacto (sin markdown, solo JSON puro):
 {
   "informe_doctor": "...",
   "informe_paciente": "..."
 }
 
-INSTRUCCIONES:
-- Mantén TODAS las correcciones, adiciones y modificaciones que el doctor realizó en los borradores
-- Completa o mejora cualquier sección que falte o esté incompleta, usando la transcripción como fuente
-- El informe_doctor debe ser detallado y técnico con terminología médica apropiada
-- El informe_paciente debe ser en lenguaje simple, amigable y sin jerga médica compleja
-- Formato estructurado con secciones claras usando saltos de línea`,
+Mantén las ediciones del doctor como base, mejorando coherencia y formato.`,
         },
       ],
     });
 
-    const reportsText =
-      reportsResponse.content[0].type === "text" ? reportsResponse.content[0].text : "{}";
+    const responseText =
+      response.content[0].type === "text" ? response.content[0].text : "{}";
 
-    let newInformeDoctor = informeDoctorEdited;
-    let newInformePaciente = informePacienteEdited;
+    let finalDoctor = editedDoctor;
+    let finalPaciente = editedPaciente;
 
-    const jsonMatch = reportsText.match(/\{[\s\S]*\}/);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     try {
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : reportsText);
-      if (parsed.informe_doctor) newInformeDoctor = parsed.informe_doctor;
-      if (parsed.informe_paciente) newInformePaciente = parsed.informe_paciente;
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+      if (parsed.informe_doctor) finalDoctor = parsed.informe_doctor;
+      if (parsed.informe_paciente) finalPaciente = parsed.informe_paciente;
     } catch {
-      // fall back to edited versions
+      // Fall back to edited versions
     }
 
-    const result = await updateInformeReports(informeId, newInformeDoctor, newInformePaciente);
-    return result;
+    return await updateInformeReports(informeId, finalDoctor, finalPaciente);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
     return { error: message };

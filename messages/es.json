@@ -78,7 +78,7 @@
     "reports": "informes"
   },
   "patientSearch": {
-    "placeholder": "Buscar por nombre, teléfono, email o diagnóstico…",
+    "placeholder": "Buscar por nombre, DNI, teléfono o informe médico…",
     "noResults": "Sin resultados para \"{query}\"",
     "noResultsHint": "Intentá con otro nombre, teléfono o diagnóstico",
     "clearSearch": "Limpiar búsqueda",
@@ -193,6 +193,7 @@
     "transcript": "Transcripción de la consulta",
     "transcriptFull": "Ver texto completo",
     "interventions": "{count} intervenciones",
+    "monologue": "Narración del doctor",
     "yearsOld": "años"
   },
   "grabarPage": {
@@ -248,7 +249,8 @@
     "medicalReportPlaceholder": "Informe médico...",
     "patientReportPlaceholder": "Informe para el paciente...",
     "noContent": "Sin contenido",
-    "saveSuccess": "Informes guardados correctamente",
+    "saveSuccess": "Informe guardado correctamente",
+    "saveSuccessPdf": "Informe del paciente guardado y PDF regenerado correctamente",
     "regenerateSuccess": "Informe regenerado con IA correctamente",
     "consentLabel": "CONSENTIMIENTO DEL PACIENTE",
     "consentText": "{patientName} confirmó haber leído el informe y prestó su consentimiento el {patientConsentAt}.",
@@ -275,6 +277,10 @@
     "doctor": "Doctor",
     "patient": "Paciente",
     "interventions": "{count} intervenciones"
+  },
+  "transcriptMonologue": {
+    "doctorNarration": "Narración del doctor",
+    "monologue": "Monólogo"
   },
   "deleteInforme": {
     "srLabel": "Eliminar informe",
@@ -307,14 +313,28 @@
   "whatsappButton": {
     "label": "Enviar por WhatsApp",
     "message": "Hola {patientName}, le enviamos su informe médico de la consulta de hoy.\n\nPuede descargarlo aquí: {pdfUrl}\n\nAnte cualquier duda, no dude en contactarnos.",
-    "successTitle": "WhatsApp abierto",
-    "successMessage": "Se abrió WhatsApp para enviar el informe a {patientName}."
+    "successTitle": "WhatsApp enviado",
+    "successMessage": "El informe fue enviado por WhatsApp a {patientName}.",
+    "errorTitle": "Error al enviar WhatsApp",
+    "errorMessage": "Ocurrió un error inesperado"
+  },
+  "emailButton": {
+    "subject": "Informe médico - {doctorName}",
+    "successTitle": "Email enviado",
+    "successMessage": "El informe médico fue enviado por email a {doctorName}."
+  },
+  "doctorWhatsappButton": {
+    "message": "Informe médico del Dr./Dra. {doctorName}:\n\n{reportContent}",
+    "successTitle": "WhatsApp enviado",
+    "successMessage": "El informe fue enviado por WhatsApp a {doctorName}."
   },
   "whatsappCertButton": {
     "label": "Enviar certificado por WhatsApp",
     "message": "Hola {patientName}, le enviamos su certificado médico.\n\nPuede descargarlo aquí: {certUrl}\n\nAnte cualquier duda, no dude en contactarnos.",
-    "successTitle": "WhatsApp abierto",
-    "successMessage": "Se abrió WhatsApp para enviar el certificado a {patientName}."
+    "successTitle": "WhatsApp enviado",
+    "successMessage": "El certificado fue enviado por WhatsApp a {patientName}.",
+    "errorTitle": "Error al enviar WhatsApp",
+    "errorMessage": "Ocurrió un error inesperado"
   },
   "landing": {
     "signIn": "Iniciar sesión",

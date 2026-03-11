@@ -130,9 +130,6 @@ export default async function PatientPage({ params }: Props) {
           </Button>
           <Separator orientation="vertical" className="h-5" />
           <span className="text-sm font-medium truncate text-foreground">{patient.name}</span>
-          <div className="ml-auto flex items-center gap-2">
-            <NewInformeForPatientButton patientId={patient.id} />
-          </div>
         </div>
       </div>
 
@@ -150,6 +147,9 @@ export default async function PatientPage({ params }: Props) {
                   {patientAge} {t("patientPage.yearsOld")} · {dobFormatted}
                 </p>
               )}
+            </div>
+            <div className="shrink-0">
+              <NewInformeForPatientButton patientId={patient.id} />
             </div>
           </div>
 

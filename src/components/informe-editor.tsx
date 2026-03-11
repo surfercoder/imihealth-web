@@ -1,13 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Stethoscope, MessageCircle, Pencil, X, Save, Sparkles, Loader2 } from "lucide-react";
+import { Stethoscope, MessageCircle, Pencil, X, Save, Loader2, Eye, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyToClipboardButton } from "@/components/copy-to-clipboard-button";
-import { updateInformeReports, regenerateReportFromEdits } from "@/actions/informes";
+import { CopyToClipboardButtonDoctor } from "@/components/copy-to-clipboard-button-doctor";
+import { CertificadoButton } from "@/components/certificado-button";
+import { updateInformeDoctorOnly, updateInformePacienteWithPdf } from "@/actions/informes";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function MarkdownDisplay({ text }: { text: string }) {
   const lines = text.split("\n");
@@ -55,203 +63,492 @@ function MarkdownDisplay({ text }: { text: string }) {
   );
 }
 
+function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; patientName: string; pdfUrl: string }) {
+  const t = useTranslations("whatsappButton");
+  const locale = useLocale();
+  const [isSending, setIsSending] = useState(false);
+
+  const templateName = locale === "en" ? "patient_report_en" : "patient_report_es";
+  const languageCode = locale === "en" ? "en" : "es_AR";
+
+  const handleSend = async () => {
+    setIsSending(true);
+    let data: { success?: boolean; error?: string } | null = null;
+    try {
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: phone,
+          templateName,
+          languageCode,
+          parameters: [patientName, pdfUrl],
+        }),
+      });
+      data = await response.json();
+    } catch {
+      toast.error(t("errorTitle"), {
+        description: t("errorMessage"),
+      });
+    }
+    if (data?.success) {
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { patientName }),
+      });
+    } else if (data) {
+      toast.error(t("errorTitle"), {
+        description: data.error ?? t("errorMessage"),
+      });
+    }
+    setIsSending(false);
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSend}
+            disabled={isSending}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+          >
+            {isSending ? (
+              <Loader2 className="size-3.5 animate-spin text-emerald-600" />
+            ) : (
+              <MessageCircle className="size-3.5 text-emerald-600" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Enviar por WhatsApp</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function CertificadoIconButton({ informeId, patientName, phone }: { informeId: string; patientName: string; phone: string }) {
+  return (
+    <CertificadoButton informeId={informeId} patientName={patientName} phone={phone} iconOnly />
+  );
+}
+
+function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
+  const handleView = () => {
+    window.open(pdfUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleView}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+          >
+            <Eye className="size-3.5 text-emerald-600" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Ver PDF</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function EmailIconButton({ email, doctorName, reportContent }: { email: string; doctorName: string; reportContent: string }) {
+  const t = useTranslations("emailButton");
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSend = async () => {
+    setIsSending(true);
+    let data: { success?: boolean; error?: string } | null = null;
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: t("subject", { doctorName }),
+          text: reportContent,
+        }),
+      });
+      data = await response.json();
+    } catch {
+      toast.error("Error al enviar email", {
+        description: "Ocurrió un error inesperado",
+      });
+    }
+    if (data?.success) {
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { doctorName }),
+      });
+    } else if (data) {
+      toast.error("Error al enviar email", {
+        description: data.error ?? "No se pudo enviar el email",
+      });
+    }
+    setIsSending(false);
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSend}
+            disabled={isSending}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            {isSending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Mail className="size-3.5" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Enviar por Email</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function DoctorWhatsAppIconButton({ phone, doctorName, reportContent }: { phone: string; doctorName: string; reportContent: string }) {
+  const t = useTranslations("doctorWhatsappButton");
+
+  const handleSend = () => {
+    const message = encodeURIComponent(
+      t("message", { doctorName, reportContent })
+    );
+    const url = `https://wa.me/${phone}?text=${message}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.success(t("successTitle"), {
+      description: t("successMessage", { doctorName }),
+    });
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSend}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <MessageCircle className="size-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Enviar por WhatsApp</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function DoctorReportCard({
+  informeId,
+  informeDoctor,
+  patientName,
+  doctorName,
+  doctorEmail,
+  doctorPhone,
+}: {
+  informeId: string;
+  informeDoctor: string;
+  patientName?: string;
+  doctorName?: string;
+  doctorEmail?: string;
+  doctorPhone?: string;
+}) {
+  const t = useTranslations("informeEditor");
+  const [isEditing, setIsEditing] = useState(false);
+  const [edited, setEdited] = useState<string | null>(null);
+  const [isSaving, startSaving] = useTransition();
+
+  const doctorText = edited ?? informeDoctor;
+
+  function handleEdit() {
+    setEdited(informeDoctor);
+    setIsEditing(true);
+  }
+
+  function handleCancel() {
+    setEdited(null);
+    setIsEditing(false);
+  }
+
+  function handleSave() {
+    startSaving(async () => {
+      const result = await updateInformeDoctorOnly(informeId, doctorText);
+      if ("error" in result && result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(t("saveSuccess"));
+        setEdited(null);
+        setIsEditing(false);
+      }
+    });
+  }
+
+  const consentText = patientName
+    ? `${doctorText}\n\n---\n${t("consentLabel")}\n${t("consentTextImplicit", { patientName })}`
+    : doctorText;
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+      <div className="flex items-center gap-3 border-b bg-primary/5 px-5 py-4">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Stethoscope className="size-4" />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-sm text-card-foreground">{t("medicalReport")}</p>
+          <p className="text-xs text-muted-foreground">{t("forDoctor")}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {isEditing ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-7">
+                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                {t("save")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving} className="gap-1.5 text-muted-foreground h-7">
+                <X className="size-3.5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
+                      <Pencil className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Editar informe</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {doctorEmail && doctorName && (
+                <EmailIconButton email={doctorEmail} doctorName={doctorName} reportContent={consentText} />
+              )}
+              {doctorPhone && doctorName && (
+                <DoctorWhatsAppIconButton phone={doctorPhone} doctorName={doctorName} reportContent={consentText} />
+              )}
+              <CopyToClipboardButtonDoctor text={consentText} />
+            </>
+          )}
+        </div>
+      </div>
+      <div className="p-5 max-h-[600px] overflow-y-auto">
+        {isEditing ? (
+          <Textarea
+            value={doctorText}
+            onChange={(e) => setEdited(e.target.value)}
+            disabled={isSaving}
+            className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-primary/50 font-mono"
+            placeholder={t("medicalReportPlaceholder")}
+          />
+        ) : (
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">
+            {doctorText || t("noContent")}
+            {doctorText && patientName && (
+              <>
+                {"\n\n---\n"}
+                <div className="mt-4 pt-4 border-t border-border/40">
+                  <p className="font-semibold">{t("consentLabel")}</p>
+                  <p className="mt-1">{t("consentTextImplicit", { patientName })}</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PatientReportCard({
+  informeId,
+  informePaciente,
+  patientName,
+  pdfUrl,
+  whatsappPhone,
+}: {
+  informeId: string;
+  informePaciente: string;
+  patientName?: string;
+  pdfUrl?: string | null;
+  whatsappPhone?: string;
+}) {
+  const t = useTranslations("informeEditor");
+  const [isEditing, setIsEditing] = useState(false);
+  const [edited, setEdited] = useState<string | null>(null);
+  const [isSaving, startSaving] = useTransition();
+
+  const pacienteText = edited ?? informePaciente;
+
+  function handleEdit() {
+    setEdited(informePaciente);
+    setIsEditing(true);
+  }
+
+  function handleCancel() {
+    setEdited(null);
+    setIsEditing(false);
+  }
+
+  function handleSave() {
+    startSaving(async () => {
+      const result = await updateInformePacienteWithPdf(informeId, pacienteText);
+      if ("error" in result && result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(t("saveSuccessPdf"));
+        setEdited(null);
+        setIsEditing(false);
+      }
+    });
+  }
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+      <div className="flex items-center gap-3 border-b bg-emerald-50/50 px-5 py-4">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+          <MessageCircle className="size-4" />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-sm text-card-foreground">{t("patientReport")}</p>
+          <p className="text-xs text-muted-foreground">{t("viaWhatsApp")}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {isEditing ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-7">
+                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                {t("save")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving} className="gap-1.5 text-muted-foreground h-7">
+                <X className="size-3.5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50">
+                      <Pencil className="size-3.5 text-emerald-600" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Editar informe</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {pdfUrl && <ViewPdfIconButton pdfUrl={pdfUrl} />}
+              {pdfUrl && whatsappPhone && patientName && (
+                <WhatsAppIconButton phone={whatsappPhone} patientName={patientName} pdfUrl={pdfUrl} />
+              )}
+              {whatsappPhone && patientName && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <CertificadoIconButton informeId={informeId} patientName={patientName} phone={whatsappPhone} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Crear certificado</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <CopyToClipboardButton text={pacienteText} />
+            </>
+          )}
+        </div>
+      </div>
+      <div className="p-5 max-h-[600px] overflow-y-auto">
+        {isEditing ? (
+          <Textarea
+            value={pacienteText}
+            onChange={(e) => setEdited(e.target.value)}
+            disabled={isSaving}
+            className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-emerald-500/50 font-mono"
+            placeholder={t("patientReportPlaceholder")}
+          />
+        ) : (
+          <div className="min-h-[40px]">
+            {pacienteText ? (
+              <>
+                <MarkdownDisplay text={pacienteText} />
+                {patientName && (
+                  <div className="mt-4 pt-4 border-t border-border/40">
+                    <p className="font-semibold text-emerald-700">{t("consentLabel")}</p>
+                    <p className="mt-1 text-sm">{t("consentTextImplicit", { patientName })}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground">{t("noContent")}</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface InformeEditorProps {
   informeId: string;
   informeDoctor: string;
   informePaciente: string;
-  hasTranscript: boolean;
   patientName?: string;
+  pdfUrl?: string | null;
+  whatsappPhone?: string;
+  doctorName?: string;
+  doctorEmail?: string;
+  doctorPhone?: string;
 }
 
 export function InformeEditor({
   informeId,
   informeDoctor,
   informePaciente,
-  hasTranscript,
   patientName,
+  pdfUrl,
+  whatsappPhone,
+  doctorName,
+  doctorEmail,
+  doctorPhone,
 }: InformeEditorProps) {
-  const t = useTranslations("informeEditor");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedDoctor, setEditedDoctor] = useState<string | null>(null);
-  const [editedPaciente, setEditedPaciente] = useState<string | null>(null);
-  const [isSaving, startSaving] = useTransition();
-  const [isRegenerating, startRegenerating] = useTransition();
-
-  const doctorText = editedDoctor ?? informeDoctor;
-  const pacienteText = editedPaciente ?? informePaciente;
-  const isDirty = doctorText !== informeDoctor || pacienteText !== informePaciente;
-
-  function handleEdit() {
-    setEditedDoctor(informeDoctor);
-    setEditedPaciente(informePaciente);
-    setIsEditing(true);
-  }
-
-  function handleCancel() {
-    setEditedDoctor(null);
-    setEditedPaciente(null);
-    setIsEditing(false);
-  }
-
-  function handleSave() {
-    startSaving(async () => {
-      const result = await updateInformeReports(informeId, doctorText, pacienteText);
-      if ("error" in result && result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success(t("saveSuccess"));
-        setEditedDoctor(null);
-        setEditedPaciente(null);
-        setIsEditing(false);
-      }
-    });
-  }
-
-  function handleRegenerate() {
-    startRegenerating(async () => {
-      const result = await regenerateReportFromEdits(informeId, doctorText, pacienteText);
-      if ("error" in result && result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success(t("regenerateSuccess"));
-        setEditedDoctor(null);
-        setEditedPaciente(null);
-        setIsEditing(false);
-      }
-    });
-  }
-
-  const isLoading = isSaving || isRegenerating;
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        {isEditing ? (
-          <>
-            {hasTranscript && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRegenerate}
-                disabled={isLoading}
-                className="gap-1.5"
-              >
-                {isRegenerating ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="size-3.5" />
-                )}
-                {t("regenerate")}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={isLoading}
-              className="gap-1.5"
-            >
-              {isSaving ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Save className="size-3.5" />
-              )}
-              {t("save")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isLoading}
-              className="gap-1.5 text-muted-foreground"
-            >
-              <X className="size-3.5" />
-              {t("cancel")}
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEdit}
-            className="gap-1.5"
-          >
-            <Pencil className="size-3.5" />
-            {t("edit")}
-          </Button>
-        )}
-      </div>
-
-      {isEditing && isDirty && !isSaving && !isRegenerating && (
-        <p className="text-xs text-muted-foreground text-right -mt-2">
-          {t("unsavedChanges")}
-        </p>
-      )}
-
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-          <div className="flex items-center gap-3 border-b bg-primary/5 px-5 py-4">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Stethoscope className="size-4" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm text-card-foreground">{t("medicalReport")}</p>
-              <p className="text-xs text-muted-foreground">{t("forDoctor")}</p>
-            </div>
-            {!isEditing && (
-            <CopyToClipboardButton
-              text={
-                patientName
-                  ? `${doctorText}\n\n---\n${t("consentLabel")}\n${t("consentTextImplicit", { patientName })}`
-                  : doctorText
-              }
-            />
-          )}
-          </div>
-          <div className="p-5">
-            {isEditing ? (
-              <Textarea
-                value={doctorText}
-                onChange={(e) => setEditedDoctor(e.target.value)}
-                disabled={isLoading}
-                className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-primary/50 font-mono"
-                placeholder={t("medicalReportPlaceholder")}
-              />
-            ) : (
-              <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">
-                {doctorText || t("noContent")}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-          <div className="flex items-center gap-3 border-b bg-emerald-50/50 px-5 py-4">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-              <MessageCircle className="size-4" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm text-card-foreground">{t("patientReport")}</p>
-              <p className="text-xs text-muted-foreground">{t("viaWhatsApp")}</p>
-            </div>
-            {!isEditing && <CopyToClipboardButton text={pacienteText} />}
-          </div>
-          <div className="p-5">
-            {isEditing ? (
-              <Textarea
-                value={pacienteText}
-                onChange={(e) => setEditedPaciente(e.target.value)}
-                disabled={isLoading}
-                className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-emerald-500/50 font-mono"
-                placeholder={t("patientReportPlaceholder")}
-              />
-            ) : (
-              <div className="min-h-[40px]">
-                {pacienteText ? <MarkdownDisplay text={pacienteText} /> : <span className="text-sm text-muted-foreground">{t("noContent")}</span>}
-              </div>
-            )}
-          </div>
-        </div>
+        <DoctorReportCard
+          informeId={informeId}
+          informeDoctor={informeDoctor}
+          patientName={patientName}
+          doctorName={doctorName}
+          doctorEmail={doctorEmail}
+          doctorPhone={doctorPhone}
+        />
+        <PatientReportCard
+          informeId={informeId}
+          informePaciente={informePaciente}
+          patientName={patientName}
+          pdfUrl={pdfUrl}
+          whatsappPhone={whatsappPhone}
+        />
       </div>
     </div>
   );

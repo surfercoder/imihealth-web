@@ -41,13 +41,13 @@ export async function searchPatients(query: string): Promise<{
 
   const trimmed = query.trim();
 
-  // Search patients by name/email/phone using ilike (fast, handles partial matches well)
+  // Search patients by name/dni/email/phone using ilike (fast, handles partial matches well)
   const patientSearchPromise = supabase
     .from("patients")
-    .select(`id, name, dni, email, phone, informes(count, created_at, status)`)
+    .select(`id, name, dni, email, phone, informes(created_at)`)
     .eq("doctor_id", user.id)
     .or(
-      `name.ilike.%${trimmed}%,email.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`
+      `name.ilike.%${trimmed}%,dni.ilike.%${trimmed}%,email.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`
     )
     .limit(10);
 
@@ -66,6 +66,13 @@ export async function searchPatients(query: string): Promise<{
     reportSearchPromise,
   ]);
 
+  if (patientResult.error) {
+    console.error("Patient search error:", patientResult.error);
+  }
+  if (reportResult.error) {
+    console.error("Report search error:", reportResult.error);
+  }
+
   const seenIds = new Set<string>();
   const results: PatientSearchResult[] = [];
 
@@ -75,7 +82,7 @@ export async function searchPatients(query: string): Promise<{
       if (seenIds.has(p.id)) continue;
       seenIds.add(p.id);
 
-      const informes = (p.informes as unknown as { created_at: string; status: string }[]) ?? [];
+      const informes = (p.informes as unknown as { created_at: string }[]) ?? [];
       const sorted = informes.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );

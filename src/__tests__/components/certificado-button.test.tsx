@@ -111,8 +111,11 @@ describe('CertificadoButton', () => {
     })
   })
 
-  it('opens WhatsApp with correct URL when WhatsApp button is clicked', async () => {
-    jest.spyOn(window, 'open').mockImplementation(() => null)
+  it('sends WhatsApp via API when WhatsApp button is clicked', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: async () => ({ success: true }),
+    } as Response)
+    global.fetch = mockFetch
     mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
     const user = userEvent.setup()
     render(<CertificadoButton {...defaultProps} />)
@@ -122,14 +125,25 @@ describe('CertificadoButton', () => {
       expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
     })
     await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
-    expect(window.open).toHaveBeenCalledTimes(1)
-    const [url, target, features] = (window.open as jest.Mock).mock.calls[0]
-    expect(url).toContain('https://wa.me/5492611234567')
-    expect(url).toContain(encodeURIComponent('Juan Pérez'))
-    expect(url).toContain(encodeURIComponent('https://example.com/cert.pdf'))
-    expect(target).toBe('_blank')
-    expect(features).toBe('noopener,noreferrer')
-    jest.restoreAllMocks()
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+    const [url, options] = mockFetch.mock.calls[0]
+    expect(url).toBe('/api/send-whatsapp')
+    expect(options).toEqual({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: '5492611234567',
+        templateName: 'patient_certificate_es',
+        languageCode: 'es_AR',
+        parameters: ['Juan Pérez', 'https://example.com/cert.pdf'],
+      }),
+    })
+    await waitFor(() => {
+      expect(mockToastSuccess).toHaveBeenCalled()
+    })
+    delete (global as Record<string, unknown>).fetch
   })
 
   it('shows error toast when generation returns error', async () => {

@@ -1,9 +1,9 @@
 "use client";
 
-import { useReducer, useTransition } from "react";
+import { useReducer, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Award, Download, Loader2, MessageCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { FileText, Download, Loader2, MessageCircle } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +23,7 @@ interface CertificadoButtonProps {
   informeId: string;
   patientName: string;
   phone: string;
+  iconOnly?: boolean;
 }
 
 type State = {
@@ -65,21 +66,48 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function CertificadoButton({ informeId, patientName, phone }: CertificadoButtonProps) {
+export function CertificadoButton({ informeId, patientName, phone, iconOnly = false }: CertificadoButtonProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isPending, startTransition] = useTransition();
+  const [isSendingWA, setIsSendingWA] = useState(false);
   const t = useTranslations("whatsappCertButton");
+  const locale = useLocale();
 
-  function handleSendWhatsApp() {
+  const waTemplateName = locale === "en" ? "patient_certificate_en" : "patient_certificate_es";
+  const waLanguageCode = locale === "en" ? "en" : "es_AR";
+
+  async function handleSendWhatsApp() {
     if (!state.certUrl) return;
-    const message = encodeURIComponent(
-      t("message", { patientName, certUrl: state.certUrl })
-    );
-    const url = `https://wa.me/${phone}?text=${message}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    toast.success(t("successTitle"), {
-      description: t("successMessage", { patientName }),
-    });
+    setIsSendingWA(true);
+    let success = false;
+    let errorMessage = t("errorMessage");
+    try {
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: phone,
+          templateName: waTemplateName,
+          languageCode: waLanguageCode,
+          parameters: [patientName, state.certUrl],
+        }),
+      });
+      const data = (await response.json()) as { success?: boolean; error?: string };
+      success = Boolean(data.success);
+      if (data.error) {
+        errorMessage = data.error;
+      }
+    } catch {
+      success = false;
+    }
+    if (success) {
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { patientName }),
+      });
+    } else {
+      toast.error(t("errorTitle"), { description: errorMessage });
+    }
+    setIsSendingWA(false);
   }
 
   function handleOpenChange(val: boolean) {
@@ -112,10 +140,20 @@ export function CertificadoButton({ informeId, patientName, phone }: Certificado
   return (
     <Dialog open={state.open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Award className="size-4 mr-1.5" />
-          Crear Certificado
-        </Button>
+        {iconOnly ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+          >
+            <FileText className="size-3.5 text-emerald-600" />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm">
+            <FileText className="size-4 mr-1.5" />
+            Crear Certificado
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -128,7 +166,7 @@ export function CertificadoButton({ informeId, patientName, phone }: Certificado
         {state.certUrl ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
-              <Award className="size-7 text-primary" />
+              <FileText className="size-7 text-primary" />
             </div>
             <p className="text-sm text-center text-muted-foreground">
               El certificado fue generado correctamente.
@@ -142,8 +180,13 @@ export function CertificadoButton({ informeId, patientName, phone }: Certificado
             <Button
               className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white"
               onClick={handleSendWhatsApp}
+              disabled={isSendingWA}
             >
-              <MessageCircle className="size-4 mr-1.5" />
+              {isSendingWA ? (
+                <Loader2 className="size-4 mr-1.5 animate-spin" />
+              ) : (
+                <MessageCircle className="size-4 mr-1.5" />
+              )}
               {t("label")}
             </Button>
             <Button
@@ -217,7 +260,7 @@ export function CertificadoButton({ informeId, patientName, phone }: Certificado
                   </>
                 ) : (
                   <>
-                    <Award className="size-4 mr-1.5" />
+                    <FileText className="size-4 mr-1.5" />
                     Generar certificado
                   </>
                 )}

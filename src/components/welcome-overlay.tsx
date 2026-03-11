@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { WelcomeScreen } from "./welcome-screen";
 
-export function WelcomeOverlay({ userName }: { userName?: string }) {
+export function WelcomeOverlay({ userName, showWelcome: initialShowWelcome }: { userName?: string; showWelcome?: boolean }) {
   const [showWelcome, setShowWelcome] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("welcome") === "true") {
-      window.history.replaceState(null, "", "/");
-      return true;
+    const show = initialShowWelcome ?? false;
+    if (show && typeof window !== "undefined") {
+      window.history.replaceState(null, "", window.location.pathname);
     }
-    return false;
+    return show;
   });
 
   if (!showWelcome) return null;
