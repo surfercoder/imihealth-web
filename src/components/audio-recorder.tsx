@@ -161,6 +161,9 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
         {phase === "uploading" && (
           <p className="text-sm text-muted-foreground">{t("stateUploading")}</p>
         )}
+        {phase === "transcribing" && (
+          <p className="text-sm text-muted-foreground">{t("stateTranscribing")}</p>
+        )}
         {phase === "processing" && (
           <p className="text-sm text-muted-foreground">{t("stateProcessing")}</p>
         )}
@@ -191,6 +194,7 @@ async function uploadAndProcess(
   fallbackText: string,
   t: (key: string) => string,
   router: ReturnType<typeof useRouter>,
+  locale: string,
 ) {
   dispatch({ type: "SET_PHASE", phase: "uploading" });
   dispatch({ type: "SET_PROGRESS", progress: 20 });
@@ -210,13 +214,13 @@ async function uploadAndProcess(
     console.warn("Audio upload failed, continuing without it:", uploadErr);
   }
 
-  dispatch({ type: "SET_PROGRESS", progress: 40 });
-  dispatch({ type: "SET_PHASE", phase: "processing" });
+  dispatch({ type: "SET_PROGRESS", progress: 30 });
+  dispatch({ type: "SET_PHASE", phase: "transcribing" });
 
   const transcriptToUse = finalTranscript || fallbackText;
-  dispatch({ type: "SET_PROGRESS", progress: 60 });
+  dispatch({ type: "SET_PROGRESS", progress: 50 });
 
-  const result = await processInformeFromTranscript(informeId, transcriptToUse, audioPath);
+  const result = await processInformeFromTranscript(informeId, transcriptToUse, audioPath, locale);
   dispatch({ type: "SET_PROGRESS", progress: 100 });
 
   if (result.error) {
@@ -452,7 +456,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
     const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
 
     const process = () =>
-      uploadAndProcess(dispatch, chunksRef.current, mimeType, doctorId, informeId, finalTranscript, t("transcriptFallback"), t, router);
+      uploadAndProcess(dispatch, chunksRef.current, mimeType, doctorId, informeId, finalTranscript, t("transcriptFallback"), t, router, locale);
 
     return new Promise<void>((resolve) => {
       /* v8 ignore next 4 */
@@ -470,7 +474,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
         process().then(resolve);
       }
     });
-  }, [stopTimer, informeId, doctorId, router, t]);
+  }, [stopTimer, informeId, doctorId, router, t, locale]);
 
   useEffect(() => {
     return () => {
@@ -486,14 +490,16 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
   }, [stopTimer]);
 
   const { phase, error, duration, transcript, progress } = state;
-  const isProcessing = ["uploading", "processing", "stopped"].includes(phase);
+  const isProcessing = ["uploading", "transcribing", "processing", "stopped"].includes(phase);
   const isActive = phase === "recording";
   const isPaused = phase === "paused";
 
   /* istanbul ignore next */
   const progressLabel =
-    progress < 40
+    progress < 30
       ? t("progressUploading")
+      : progress < 50
+      ? t("progressTranscribing")
       : progress < 80
       ? t("progressAnalyzing")
       : t("progressGenerating");

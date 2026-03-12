@@ -32,8 +32,8 @@ import {
 type PatientFormValues = {
   name: string;
   dni: string;
-  dob: string;
-  phone: PhoneInputValue;
+  dob?: string;
+  phone?: PhoneInputValue;
   email?: string;
   affiliateNumber?: string;
 };
@@ -61,16 +61,19 @@ export function NuevoInformeDialog() {
       .string()
       .min(1, t("validation.dniRequired"))
       .regex(/^\d{7,8}$/, t("validation.dniInvalid")),
-    dob: z.string().min(1, t("validation.dobRequired")),
-    phone: phoneObjectSchema.refine(
-      (val) => {
-        const country = COUNTRIES.find((c) => c.code === val.countryCode);
-        if (!country) return false;
-        const digits = val.subscriber.replace(/\D/g, "");
-        return country.subscriberRegex.test(digits);
-      },
-      { message: t("validation.phoneInvalid") }
-    ),
+    dob: z.string().optional().or(z.literal("")),
+    phone: phoneObjectSchema
+      .refine(
+        (val) => {
+          if (!val.subscriber) return true;
+          const country = COUNTRIES.find((c) => c.code === val.countryCode);
+          if (!country) return false;
+          const digits = val.subscriber.replace(/\D/g, "");
+          return country.subscriberRegex.test(digits);
+        },
+        { message: t("validation.phoneInvalid") }
+      )
+      .optional(),
     email: z
       .string()
       .email(t("validation.emailInvalid"))
@@ -103,8 +106,8 @@ export function NuevoInformeDialog() {
     const formData = new FormData();
     formData.append("name", values.name);
     formData.append("dni", values.dni);
-    formData.append("phone", values.phone.e164);
-    formData.append("dob", values.dob);
+    if (values.dob) formData.append("dob", values.dob);
+    if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
     if (values.email) formData.append("email", values.email);
     if (values.affiliateNumber) formData.append("affiliateNumber", values.affiliateNumber);
 
@@ -189,7 +192,7 @@ export function NuevoInformeDialog() {
 
           <div className="space-y-1.5">
             <Label htmlFor="dob">
-              {t("dob")} <span className="text-destructive">*</span>
+              {t("dob")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
             </Label>
             <Input id="dob" type="date" {...register("dob")} />
             {errors.dob && (
@@ -199,14 +202,14 @@ export function NuevoInformeDialog() {
 
           <div className="space-y-1.5">
             <Label htmlFor="phone-input">
-              {t("phone")} <span className="text-destructive">*</span>
+              {t("phone")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
             </Label>
             <Controller
               name="phone"
               control={control}
               render={({ field }) => {
                 const selectedCountry =
-                  COUNTRIES.find((c) => c.code === field.value.countryCode) ?? defaultCountry;
+                  COUNTRIES.find((c) => c.code === field.value?.countryCode) ?? defaultCountry;
                 return (
                   <>
                     <PhoneInput

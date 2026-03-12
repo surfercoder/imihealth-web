@@ -15,6 +15,7 @@ const config: Config = {
     '^react-signature-canvas$': '<rootDir>/src/__mocks__/react-signature-canvas.tsx',
     '^next-intl/server$': '<rootDir>/src/__mocks__/next-intl-server.ts',
     '^next-intl$': '<rootDir>/src/__mocks__/next-intl.ts',
+    '^assemblyai$': '<rootDir>/src/__mocks__/assemblyai.ts',
   },
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',

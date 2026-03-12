@@ -18,6 +18,9 @@ export async function PublicHeader() {
         <LanguageSwitcher />
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild>
+            <Link href="/manifest">{t("manifest")}</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link href="/login">{t("signIn")}</Link>
           </Button>
           <Button size="sm" asChild>

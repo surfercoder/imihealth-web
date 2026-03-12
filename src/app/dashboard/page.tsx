@@ -80,7 +80,7 @@ export default async function DashboardPage({
                 {t("home.title")}
               </h1>
               <p className="mt-1 text-foreground/60">
-                {t("home.subtitle")}
+                {t("home.subtitle", { name: doctor?.name?.split(" ")[0] ?? "Doctor" })}
               </p>
             </div>
             <NuevoInformeDialog />

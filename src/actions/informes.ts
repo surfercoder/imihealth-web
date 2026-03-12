@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { generateInformePDF, generateCertificadoPDF } from "@/lib/pdf";
 import { revalidatePath } from "next/cache";
+import { transcribeAudio } from "@/lib/transcribe";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -18,8 +19,8 @@ export async function createPatient(formData: FormData) {
 
   const name = formData.get("name") as string;
   const dni = formData.get("dni") as string;
-  const dob = formData.get("dob") as string;
-  const phone = formData.get("phone") as string;
+  const dob = (formData.get("dob") as string) || null;
+  const phone = (formData.get("phone") as string) || null;
   const email = formData.get("email") as string;
   const affiliateNumber = formData.get("affiliateNumber") as string;
 
@@ -29,8 +30,8 @@ export async function createPatient(formData: FormData) {
       doctor_id: user.id,
       name: name.trim(),
       dni: dni.trim(),
-      dob: dob || null,
-      phone: phone.trim(),
+      dob: dob?.trim() || null,
+      phone: phone?.trim() || null,
       email: email?.trim() || null,
       affiliate_number: affiliateNumber?.trim() || null,
     })
@@ -64,8 +65,9 @@ export async function createInforme(patientId: string) {
 
 export async function processInformeFromTranscript(
   informeId: string,
-  transcript: string,
-  audioPath?: string
+  browserTranscript: string,
+  audioPath?: string,
+  language: string = "es"
 ) {
   const supabase = await createClient();
   const {
@@ -75,11 +77,41 @@ export async function processInformeFromTranscript(
 
   await supabase
     .from("informes")
-    .update({ status: "processing", audio_path: audioPath ?? null, transcript })
+    .update({ status: "processing", audio_path: audioPath ?? null })
     .eq("id", informeId)
     .eq("doctor_id", user.id);
 
   try {
+    // Transcribe audio with AssemblyAI for accurate medical transcription
+    let transcript = browserTranscript;
+    if (audioPath) {
+      try {
+        const { data: audioData, error: downloadError } = await supabase.storage
+          .from("audio-recordings")
+          .download(audioPath);
+
+        if (!downloadError && audioData) {
+          const arrayBuffer = await audioData.arrayBuffer();
+          const audioBuffer = Buffer.from(arrayBuffer);
+          const langCode = language === "en" ? "en" : "es";
+          const result = await transcribeAudio(audioBuffer, langCode);
+          if (result.text) {
+            transcript = result.text;
+          }
+        }
+      } catch (transcribeError) {
+        console.warn("AssemblyAI transcription failed, falling back to browser transcript:", transcribeError);
+        // Continue with browser transcript as fallback
+      }
+    }
+
+    // Save transcript to DB
+    await supabase
+      .from("informes")
+      .update({ transcript })
+      .eq("id", informeId)
+      .eq("doctor_id", user.id);
+
     const reportsResponse = await anthropic.messages.create({
       model: "claude-opus-4-5",
       max_tokens: 8192,

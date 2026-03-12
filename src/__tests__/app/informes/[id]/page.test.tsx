@@ -59,11 +59,14 @@ jest.mock('next/link', () => {
 })
 
 jest.mock('@/components/informe-editor', () => ({
-  InformeEditor: ({ informeDoctor, informePaciente, patientConsentAt }: { informeDoctor: string; informePaciente: string; patientConsentAt: string | null }) => (
+  InformeEditor: ({ informeDoctor, informePaciente, patientConsentAt, pdfUrl }: { informeDoctor: string; informePaciente: string; patientConsentAt: string | null; pdfUrl: string | null }) => (
     <div data-testid="informe-editor">
       <p>{informeDoctor || 'Sin contenido'}</p>
       <p>{informePaciente || 'Sin contenido'}</p>
       {patientConsentAt && <p data-testid="consent-at">{patientConsentAt}</p>}
+      {pdfUrl && <a href={pdfUrl} role="link">Descargar PDF</a>}
+      {!pdfUrl && <button>Generar PDF</button>}
+      <button>Enviar por WhatsApp</button>
     </div>
   ),
 }))

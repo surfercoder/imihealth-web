@@ -473,6 +473,9 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
+
     const selectSingleChain = makeChain()
     selectSingleChain.single.mockResolvedValue({ data: null, error: null })
 
@@ -484,6 +487,7 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(selectSingleChain)
       .mockReturnValueOnce(finalUpdateChain)
       .mockReturnValueOnce(errorUpdateChain)
@@ -545,6 +549,9 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
+
     const informeData = {
       id: 'i-1',
       patients: { name: 'Juan Pérez', phone: '+54911234567' },
@@ -557,6 +564,7 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(selectSingleChain)
       .mockReturnValueOnce(finalUpdateChain)
 

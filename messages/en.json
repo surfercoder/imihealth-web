@@ -17,7 +17,9 @@
     "signIn": "Sign in",
     "signUp": "Sign up",
     "patients": "Patients",
-    "report": "Report"
+    "report": "Report",
+    "manifest": "Manifest",
+    "home": "Home"
   },
   "language": {
     "label": "Language",
@@ -27,7 +29,7 @@
   },
   "home": {
     "title": "Dashboard",
-    "subtitle": "Welcome back, Doctor.",
+    "subtitle": "Welcome back, {name}.",
     "stats": {
       "patients": "Patients",
       "totalReports": "Total reports",
@@ -100,6 +102,7 @@
     "phoneFormat": "Format: {format}",
     "phoneSearchCountry": "Search country…",
     "phoneNoCountry": "No country found.",
+    "optional": "optional",
     "email": "Email (optional)",
     "emailPlaceholder": "patient@email.com",
     "affiliateNumber": "Affiliate number (optional)",
@@ -113,7 +116,6 @@
       "nameTooShort": "Name must be at least 2 characters",
       "dniRequired": "ID number is required",
       "dniInvalid": "ID must be 7 or 8 numeric digits",
-      "dobRequired": "Date of birth is required",
       "phoneInvalid": "Please enter a valid phone number",
       "emailInvalid": "Invalid email"
     }
@@ -215,11 +217,13 @@
     "statePaused": "Paused",
     "stateStopped": "Finalizing recording...",
     "stateUploading": "Uploading audio...",
+    "stateTranscribing": "Transcribing audio with AI...",
     "stateProcessing": "Generating reports with AI...",
     "stateDone": "Reports generated!",
     "stateRedirecting": "Redirecting...",
     "stateError": "Processing error",
     "progressUploading": "Uploading recording...",
+    "progressTranscribing": "Transcribing audio with AssemblyAI...",
     "progressAnalyzing": "Analyzing consultation with AI...",
     "progressGenerating": "Generating reports...",
     "liveTranscript": "Live transcription",
@@ -512,5 +516,38 @@
     "phoneInvalid": "Invalid phone number",
     "specialtyRequired": "Specialty is required",
     "specialtyInvalid": "Please select a valid specialty"
+  },
+  "manifest": {
+    "title": "IMI Health Manifest",
+    "subtitle": "The medical report is not a procedure. It is a clinical act.",
+    "description": "It is the synthesis of reasoning, responsibility, and professional experience.",
+    "historyTitle": "For decades, the report was plain text.",
+    "historyDescription": "Variable. Scattered. Underutilized.",
+    "beliefTitle": "We believe it can be better.",
+    "principlesTitle": "We believe the report must:",
+    "principles": [
+      "Be clear.",
+      "Be structured.",
+      "Be secure.",
+      "Be understandable.",
+      "Be useful beyond the moment of issuance."
+    ],
+    "doctorFocusTitle": "The doctor should not waste time on repetitive tasks.",
+    "doctorFocusDescription": "They should focus on thinking, deciding, and caring.",
+    "technologyTitle": "Technology does not replace clinical judgment.",
+    "technologyDescription": "It organizes it. It protects it. It enhances it.",
+    "imiTitle": "An Intelligent Medical Report (IMI Health) does not decide for the doctor.",
+    "imiDescription": "It gives better tools to practice with precision.",
+    "benefitsTitle": "Each report can be:",
+    "benefits": [
+      "Clearer for the patient.",
+      "Safer for the professional.",
+      "More useful for the institution.",
+      "More valuable as clinical data."
+    ],
+    "conclusion1": "IMI Health does not automate medicine.",
+    "conclusion2": "It optimizes its documentary expression.",
+    "finalStatement": "Because the future of medicine is not less human.",
+    "finalConclusion": "It is clearer, safer, and more intelligent."
   }
 }

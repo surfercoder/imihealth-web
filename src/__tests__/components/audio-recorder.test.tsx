@@ -248,7 +248,7 @@ describe('AudioRecorder — stop and process', () => {
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
-    expect(mockProcessInforme).toHaveBeenCalledWith('i-1', expect.any(String), undefined)
+    expect(mockProcessInforme).toHaveBeenCalledWith('i-1', expect.any(String), undefined, 'es')
     jest.useRealTimers()
   })
 

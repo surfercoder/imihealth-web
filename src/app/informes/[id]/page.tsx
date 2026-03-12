@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Loader2,
   Mail,
-  Download,
+  Home,
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
@@ -24,8 +24,6 @@ import { generateInformePDF } from "@/lib/pdf";
 import { TranscriptDialog, type DialogTurn } from "@/components/transcript-dialog";
 import { TranscriptMonologue } from "@/components/transcript-monologue";
 import { InformeEditor } from "@/components/informe-editor";
-import { WhatsAppButton } from "@/components/whatsapp-button";
-import { regeneratePdf } from "@/actions/informes";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -235,7 +233,7 @@ export default async function InformePage({ params }: Props) {
       </div>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
               {t("informePage.title")}
@@ -245,6 +243,12 @@ export default async function InformePage({ params }: Props) {
               {createdAt}
             </p>
           </div>
+          <Button size="sm" asChild className="bg-black text-white hover:bg-black/80">
+            <Link href="/dashboard">
+              <Home className="size-4 mr-1.5" />
+              {t("nav.home")}
+            </Link>
+          </Button>
         </div>
 
         <PatientCard
@@ -286,29 +290,6 @@ export default async function InformePage({ params }: Props) {
             doctorEmail={doctor?.email}
             doctorPhone={doctorWhatsappPhone}
           />
-        )}
-
-        {informe.status === "completed" && (
-          <div className="flex items-center gap-3 flex-wrap">
-            {pdfSignedUrl ? (
-              <>
-                <Button asChild size="sm">
-                  <a href={pdfSignedUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="size-4 mr-1.5" />
-                    {t("informePage.viewPdf")}
-                  </a>
-                </Button>
-                <WhatsAppButton phone={whatsappPhone} patientName={patient.name} pdfUrl={pdfSignedUrl} />
-              </>
-            ) : (
-              <form action={async () => { "use server"; await regeneratePdf(id); }}>
-                <Button type="submit" variant="outline" size="sm">
-                  <FileText className="size-4 mr-1.5" />
-                  {t("informePage.generatePdf")}
-                </Button>
-              </form>
-            )}
-          </div>
         )}
 
         {informe.transcript && (

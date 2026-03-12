@@ -23,6 +23,7 @@ export default async function LandingPage() {
   }
 
   const t = await getTranslations("landing");
+  const tNav = await getTranslations("nav");
 
   const features = [
     { icon: Mic, titleKey: "feature1Title" as const, descKey: "feature1Desc" as const },
@@ -95,6 +96,9 @@ export default async function LandingPage() {
             {t("copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-3">
+            <Link href="/manifest" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
+              {tNav("manifest")}
+            </Link>
             <Link href="/login" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
               {t("signIn")}
             </Link>

@@ -17,7 +17,9 @@
     "signIn": "Iniciar sesión",
     "signUp": "Registrarse",
     "patients": "Pacientes",
-    "report": "Informe"
+    "report": "Informe",
+    "manifest": "Manifiesto",
+    "home": "Inicio"
   },
   "language": {
     "label": "Idioma",
@@ -27,7 +29,7 @@
   },
   "home": {
     "title": "Panel principal",
-    "subtitle": "Bienvenido de nuevo, Doctor.",
+    "subtitle": "Bienvenido de nuevo, {name}.",
     "stats": {
       "patients": "Pacientes",
       "totalReports": "Total informes",
@@ -100,6 +102,7 @@
     "phoneFormat": "Formato: {format}",
     "phoneSearchCountry": "Buscar país…",
     "phoneNoCountry": "No se encontró el país.",
+    "optional": "opcional",
     "email": "Email (opcional)",
     "emailPlaceholder": "paciente@email.com",
     "affiliateNumber": "Número de afiliado (opcional)",
@@ -113,7 +116,6 @@
       "nameTooShort": "El nombre debe tener al menos 2 caracteres",
       "dniRequired": "El DNI es requerido",
       "dniInvalid": "El DNI debe tener 7 u 8 dígitos numéricos",
-      "dobRequired": "La fecha de nacimiento es requerida",
       "phoneInvalid": "Ingresá un número de teléfono válido",
       "emailInvalid": "Email inválido"
     }
@@ -215,11 +217,13 @@
     "statePaused": "En pausa",
     "stateStopped": "Finalizando grabación...",
     "stateUploading": "Subiendo audio...",
+    "stateTranscribing": "Transcribiendo audio con IA...",
     "stateProcessing": "Generando informes con IA...",
     "stateDone": "¡Informes generados!",
     "stateRedirecting": "Redirigiendo...",
     "stateError": "Error al procesar",
     "progressUploading": "Subiendo grabación...",
+    "progressTranscribing": "Transcribiendo audio con AssemblyAI...",
     "progressAnalyzing": "Analizando consulta con IA...",
     "progressGenerating": "Generando informes...",
     "liveTranscript": "Transcripción en tiempo real",
@@ -512,5 +516,38 @@
     "phoneInvalid": "Teléfono inválido",
     "specialtyRequired": "La especialidad es requerida",
     "specialtyInvalid": "Seleccioná una especialidad válida"
+  },
+  "manifest": {
+    "title": "Manifiesto IMI Health",
+    "subtitle": "El informe médico no es un trámite. Es un acto clínico.",
+    "description": "Es la síntesis del razonamiento, la responsabilidad y la experiencia del profesional.",
+    "historyTitle": "Durante décadas, el informe fue texto plano.",
+    "historyDescription": "Variable. Disperso. Subutilizado.",
+    "beliefTitle": "Creemos que puede ser mejor.",
+    "principlesTitle": "Creemos que el informe debe:",
+    "principles": [
+      "Ser claro.",
+      "Ser estructurado.",
+      "Ser seguro.",
+      "Ser comprensible.",
+      "Ser útil más allá del momento de emisión."
+    ],
+    "doctorFocusTitle": "El médico no debe perder tiempo en tareas repetitivas.",
+    "doctorFocusDescription": "Debe concentrarse en pensar, decidir y cuidar.",
+    "technologyTitle": "La tecnología no reemplaza el criterio clínico.",
+    "technologyDescription": "Lo ordena. Lo protege. Lo potencia.",
+    "imiTitle": "Un Informe Médico Inteligente (IMI Health) no decide por el médico.",
+    "imiDescription": "Le da mejores herramientas para ejercer con precisión.",
+    "benefitsTitle": "Cada informe puede ser:",
+    "benefits": [
+      "Más claro para el paciente.",
+      "Más seguro para el profesional.",
+      "Más útil para la institución.",
+      "Más valioso como dato clínico."
+    ],
+    "conclusion1": "IMI Health no automatiza la medicina.",
+    "conclusion2": "Optimiza su expresión documental.",
+    "finalStatement": "Porque el futuro de la medicina no es menos humano.",
+    "finalConclusion": "Es más claro, más seguro y más inteligente."
   }
 }
