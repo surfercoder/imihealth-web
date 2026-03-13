@@ -1,4 +1,4 @@
-
+import * as Sentry from "@sentry/nextjs";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -64,6 +64,13 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Set Sentry user context so errors are tied to the authenticated user
+  if (user) {
+    Sentry.setUser({ id: user.id, email: user.email });
+  } else {
+    Sentry.setUser(null);
+  }
 
   const publicPaths = ["/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest"];
   const isPublicPath =
