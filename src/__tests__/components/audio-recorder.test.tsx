@@ -498,6 +498,43 @@ describe('AudioRecorder — ogg mime type', () => {
   })
 })
 
+describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
+      .mockImplementation((type: string) => type === 'audio/mp4')
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+  })
+
+  afterEach(() => {
+    ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
+      .mockReturnValue(true)
+  })
+
+  it('uses m4a extension when only mp4 is supported', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    mockUpload.mockResolvedValue({ error: null })
+    mockProcessInforme.mockResolvedValue({ success: true })
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.stringContaining('.m4a'),
+      expect.any(Blob),
+      expect.objectContaining({ contentType: 'audio/mp4' })
+    )
+    jest.useRealTimers()
+  })
+})
+
 describe('AudioRecorder — transcript shown while paused', () => {
   beforeEach(() => {
     jest.clearAllMocks()

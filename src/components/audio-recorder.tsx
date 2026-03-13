@@ -204,7 +204,7 @@ async function uploadAndProcess(
 
   try {
     const supabase = createClient();
-    const ext = blob.type.includes("ogg") ? "ogg" : "webm";
+    const ext = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
     const fileName = `${doctorId}/${informeId}/recording.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("audio-recordings")
@@ -379,6 +379,8 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
       ? "audio/webm;codecs=opus"
       : MediaRecorder.isTypeSupported("audio/webm")
       ? "audio/webm"
+      : MediaRecorder.isTypeSupported("audio/mp4")
+      ? "audio/mp4"
       : "audio/ogg";
 
     try {
