@@ -194,4 +194,246 @@ describe('InformeEditor', () => {
     render(<InformeEditor {...defaultProps} informePaciente="*italic* and **bold**" />)
     expect(screen.getByText('italic and bold')).toBeInTheDocument()
   })
+
+  // --- WhatsApp, ViewPdf, Certificado buttons ---
+  it('renders WhatsApp, ViewPdf, and Certificado buttons when pdfUrl, whatsappPhone, and patientName are provided', () => {
+    render(
+      <InformeEditor
+        {...defaultProps}
+        pdfUrl="https://example.com/report.pdf"
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    // WhatsApp button (patient side) has message-circle with emerald
+    const waBtn = allButtons.find(btn => btn.querySelector('.lucide-message-circle.text-emerald-600'))
+    expect(waBtn).toBeTruthy()
+    // ViewPdf button has eye icon
+    const eyeBtn = allButtons.find(btn => btn.querySelector('.lucide-eye'))
+    expect(eyeBtn).toBeTruthy()
+    // Certificado button (mocked)
+    expect(screen.getByText('Certificado')).toBeInTheDocument()
+  })
+
+  it('renders Email and DoctorWhatsApp buttons when doctorEmail, doctorName, and doctorPhone are provided', () => {
+    render(
+      <InformeEditor
+        {...defaultProps}
+        doctorEmail="doc@hospital.com"
+        doctorName="Dr. Smith"
+        doctorPhone="5491112345678"
+      />
+    )
+    // Email button has a mail icon, DoctorWhatsApp has message-circle icon
+    const allButtons = screen.getAllByRole('button')
+    const emailBtn = allButtons.find(btn => btn.querySelector('.lucide-mail'))
+    const doctorWaBtn = allButtons.find(btn => btn.querySelector('.lucide-message-circle:not(.text-emerald-600)'))
+    expect(emailBtn).toBeTruthy()
+    expect(doctorWaBtn).toBeTruthy()
+  })
+
+  it('opens WhatsApp link when patient WhatsApp button is clicked', async () => {
+    const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        pdfUrl="https://example.com/report.pdf"
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+      />
+    )
+    // Find the WhatsApp button in the patient card
+    // Simpler: just click all buttons with "Enviar por WhatsApp" tooltip text parent
+    // The WhatsApp icon on patient card has text-emerald-600
+    const allButtons = screen.getAllByRole('button')
+    const emeraldMsgBtn = allButtons.find(btn => btn.querySelector('.text-emerald-600.lucide-message-circle'))
+    if (emeraldMsgBtn) await user.click(emeraldMsgBtn)
+    expect(mockOpen).toHaveBeenCalledTimes(1)
+    const calledUrl = mockOpen.mock.calls[0][0] as string
+    expect(calledUrl).toContain('https://wa.me/5492611234567')
+    expect(mockToastSuccess).toHaveBeenCalled()
+    mockOpen.mockRestore()
+  })
+
+  it('opens PDF in new tab when ViewPdf button is clicked', async () => {
+    const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        pdfUrl="https://example.com/report.pdf"
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const eyeBtn = allButtons.find(btn => btn.querySelector('.lucide-eye'))
+    expect(eyeBtn).toBeTruthy()
+    await user.click(eyeBtn!)
+    expect(mockOpen).toHaveBeenCalledWith('https://example.com/report.pdf', '_blank', 'noopener,noreferrer')
+    mockOpen.mockRestore()
+  })
+
+  it('sends email successfully when Email button is clicked', async () => {
+    global.fetch = jest.fn()
+    const mockFetch = (global.fetch as jest.Mock).mockResolvedValue({
+      json: async () => ({ success: true }),
+    } as Response)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        doctorEmail="doc@hospital.com"
+        doctorName="Dr. Smith"
+        doctorPhone="5491112345678"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const emailBtn = allButtons.find(btn => btn.querySelector('.lucide-mail'))
+    expect(emailBtn).toBeTruthy()
+    await user.click(emailBtn!)
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/send-email', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
+    await waitFor(() => {
+      expect(mockToastSuccess).toHaveBeenCalledWith('Email enviado', expect.any(Object))
+    })
+    ;(global.fetch as jest.Mock).mockReset()
+  })
+
+  it('shows error toast when email send returns error', async () => {
+    global.fetch = jest.fn()
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      json: async () => ({ error: 'SMTP failure' }),
+    } as Response)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        doctorEmail="doc@hospital.com"
+        doctorName="Dr. Smith"
+        doctorPhone="5491112345678"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const emailBtn = allButtons.find(btn => btn.querySelector('.lucide-mail'))
+    await user.click(emailBtn!)
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith('Error al enviar email', {
+        description: 'SMTP failure',
+      })
+    })
+    ;(global.fetch as jest.Mock).mockReset()
+  })
+
+  it('shows error toast when email fetch throws', async () => {
+    global.fetch = jest.fn()
+    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'))
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        doctorEmail="doc@hospital.com"
+        doctorName="Dr. Smith"
+        doctorPhone="5491112345678"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const emailBtn = allButtons.find(btn => btn.querySelector('.lucide-mail'))
+    await user.click(emailBtn!)
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith('Error al enviar email', {
+        description: 'Ocurrió un error inesperado',
+      })
+    })
+    ;(global.fetch as jest.Mock).mockReset()
+  })
+
+  it('opens DoctorWhatsApp link when doctor WhatsApp button is clicked', async () => {
+    const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        doctorEmail="doc@hospital.com"
+        doctorName="Dr. Smith"
+        doctorPhone="5491112345678"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    // DoctorWhatsApp button has a MessageCircle icon without text-emerald-600
+    const doctorWaBtn = allButtons.find(btn => btn.querySelector('.lucide-message-circle:not(.text-emerald-600)'))
+    expect(doctorWaBtn).toBeTruthy()
+    await user.click(doctorWaBtn!)
+    expect(mockOpen).toHaveBeenCalledTimes(1)
+    const calledUrl = mockOpen.mock.calls[0][0] as string
+    expect(calledUrl).toContain('https://wa.me/5491112345678')
+    expect(mockToastSuccess).toHaveBeenCalled()
+    mockOpen.mockRestore()
+  })
+
+  // --- Patient report edit flow ---
+  it('enters patient edit mode, saves successfully', async () => {
+    mockUpdateInformePacienteWithPdf.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+    render(<InformeEditor {...defaultProps} />)
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    // Second edit button is for patient card
+    await user.click(editButtons[1])
+    // Should show textarea with patient text
+    const textarea = screen.getByRole('textbox')
+    expect(textarea).toHaveValue('Patient report text')
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+    await waitFor(() => {
+      expect(mockUpdateInformePacienteWithPdf).toHaveBeenCalledWith('inf-1', 'Patient report text')
+    })
+    await waitFor(() => {
+      expect(mockToastSuccess).toHaveBeenCalled()
+    })
+  })
+
+  it('shows error toast when patient save fails', async () => {
+    mockUpdateInformePacienteWithPdf.mockResolvedValue({ error: 'Save failed' })
+    const user = userEvent.setup()
+    render(<InformeEditor {...defaultProps} />)
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[1])
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith('Save failed')
+    })
+  })
+
+  it('reverts changes and exits patient edit mode on cancel', async () => {
+    const user = userEvent.setup()
+    render(<InformeEditor {...defaultProps} />)
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[1])
+    const textarea = screen.getByRole('textbox')
+    await user.clear(textarea)
+    await user.type(textarea, 'Changed patient text')
+    const cancelButtons = screen.getAllByRole('button')
+    const cancelBtn = cancelButtons.find(btn => btn.querySelector('.lucide-x'))
+    if (cancelBtn) await user.click(cancelBtn)
+    expect(screen.getByText('Patient report text')).toBeInTheDocument()
+  })
+
+  // --- Doctor report save success exits edit mode ---
+  it('exits doctor edit mode on successful save', async () => {
+    mockUpdateInformeDoctorOnly.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+    render(<InformeEditor {...defaultProps} />)
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    await user.click(editButtons[0])
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+    await waitFor(() => {
+      expect(mockToastSuccess).toHaveBeenCalled()
+    })
+    // Should be back to read mode
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
 })

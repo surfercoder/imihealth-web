@@ -2,6 +2,7 @@ const mockGetAll = jest.fn().mockReturnValue([])
 const mockSet = jest.fn()
 const mockCookieStore = { getAll: mockGetAll, set: mockSet }
 const mockCreateServerClient = jest.fn(() => ({ mock: 'server-client' }))
+const mockCreateSupabaseClient: jest.Mock = jest.fn(() => ({ mock: 'service-client' }))
 
 jest.mock('next/headers', () => ({
   cookies: jest.fn().mockResolvedValue(mockCookieStore),
@@ -10,6 +11,34 @@ jest.mock('next/headers', () => ({
 jest.mock('@supabase/ssr', () => ({
   createServerClient: mockCreateServerClient,
 }))
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: (...args: unknown[]) => mockCreateSupabaseClient(...args),
+}))
+
+describe('createServiceClient', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key'
+    jest.clearAllMocks()
+    mockCreateSupabaseClient.mockReturnValue({ mock: 'service-client' })
+  })
+
+  it('calls createClient from supabase-js with env vars', async () => {
+    const { createServiceClient } = await import('@/utils/supabase/server')
+    createServiceClient()
+    expect(mockCreateSupabaseClient).toHaveBeenCalledWith(
+      'https://test.supabase.co',
+      'test-secret-key'
+    )
+  })
+
+  it('returns the service client', async () => {
+    const { createServiceClient } = await import('@/utils/supabase/server')
+    const client = createServiceClient()
+    expect(client).toEqual({ mock: 'service-client' })
+  })
+})
 
 describe('createClient (server)', () => {
   beforeEach(() => {

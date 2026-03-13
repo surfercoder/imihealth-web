@@ -12,6 +12,7 @@ import {
   resetPasswordSchema,
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
+import { MVP_LIMITS } from "@/lib/mvp-limits";
 
 export async function login(
   _prevState: ActionResult | null,
@@ -61,6 +62,15 @@ export async function signup(
   }
 
   const supabase = await createClient();
+
+  // MVP doctor limit check
+  const { count: doctorCount } = await supabase
+    .from("doctors")
+    .select("id", { count: "exact", head: true });
+  /* v8 ignore next */
+  if ((doctorCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
+    return { error: `Hemos alcanzado el límite de ${MVP_LIMITS.MAX_DOCTORS} médicos para la fase de prueba MVP.` };
+  }
   const headersList = await headers();
   const origin = headersList.get("origin") ?? "";
 

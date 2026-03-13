@@ -15,6 +15,21 @@ jest.mock('@/actions/informes', () => ({
 }))
 
 import { NuevoInformeDialog } from '@/components/nuevo-informe-dialog'
+import { PlanProvider } from '@/contexts/plan-context'
+import type { PlanInfo } from '@/actions/plan'
+
+const defaultPlan: PlanInfo = {
+  maxInformes: 7,
+  currentInformes: 0,
+  canCreateInforme: true,
+  maxDoctors: 2,
+  currentDoctors: 0,
+  canSignUp: true,
+}
+
+function renderWithPlan(ui: React.ReactElement, plan: PlanInfo = defaultPlan) {
+  return render(<PlanProvider plan={plan}>{ui}</PlanProvider>)
+}
 
 const originalLanguages = navigator.languages
 
@@ -35,13 +50,13 @@ describe('NuevoInformeDialog', () => {
   })
 
   it('renders the trigger button', () => {
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     expect(screen.getByRole('button', { name: /Nuevo Informe/i })).toBeInTheDocument()
   })
 
   it('opens the dialog when trigger is clicked', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeInTheDocument()
@@ -50,7 +65,7 @@ describe('NuevoInformeDialog', () => {
 
   it('renders all form fields when dialog is open', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     expect(screen.getByLabelText(/Nombre completo/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/DNI/i)).toBeInTheDocument()
@@ -61,7 +76,7 @@ describe('NuevoInformeDialog', () => {
 
   it('shows validation errors when submitting empty form', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
@@ -71,7 +86,7 @@ describe('NuevoInformeDialog', () => {
 
   it('shows phone validation error for short phone', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -85,7 +100,7 @@ describe('NuevoInformeDialog', () => {
 
   it('shows phone validation error for invalid email (valid AR phone)', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -101,7 +116,7 @@ describe('NuevoInformeDialog', () => {
 
   it('shows email validation error for invalid email', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -118,7 +133,7 @@ describe('NuevoInformeDialog', () => {
   it('shows server error when createPatient returns error', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Error al crear el paciente' })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -134,7 +149,7 @@ describe('NuevoInformeDialog', () => {
   it('shows fallback error when createPatient returns no error message and no data', async () => {
     mockCreatePatient.mockResolvedValue({ data: null })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -150,7 +165,7 @@ describe('NuevoInformeDialog', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ error: 'Error al crear el informe' })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -166,7 +181,7 @@ describe('NuevoInformeDialog', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: null })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -182,7 +197,7 @@ describe('NuevoInformeDialog', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-1' } })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -196,7 +211,7 @@ describe('NuevoInformeDialog', () => {
 
   it('closes dialog and clears errors when cancel is clicked', async () => {
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Cancelar/i }))
@@ -208,7 +223,7 @@ describe('NuevoInformeDialog', () => {
   it('resets form and clears errors when dialog is closed via onOpenChange', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Some error' })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -227,7 +242,7 @@ describe('NuevoInformeDialog', () => {
   it('resets form and clears error when dialog is closed via Escape key', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Some error' })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -243,11 +258,24 @@ describe('NuevoInformeDialog', () => {
     })
   })
 
+  it('shows disabled button and limit message when canCreateInforme is false', () => {
+    const limitedPlan: PlanInfo = {
+      ...defaultPlan,
+      canCreateInforme: false,
+      maxInformes: 7,
+      currentInformes: 7,
+    }
+    renderWithPlan(<NuevoInformeDialog />, limitedPlan)
+    const btn = screen.getByRole('button')
+    expect(btn).toBeDisabled()
+    expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
+  })
+
   it('includes email in FormData when provided', async () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-1' } })
     const user = userEvent.setup()
-    render(<NuevoInformeDialog />)
+    renderWithPlan(<NuevoInformeDialog />)
     await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')

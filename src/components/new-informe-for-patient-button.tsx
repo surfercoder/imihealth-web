@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createInforme } from "@/actions/informes";
 import { useTranslations } from "next-intl";
+import { usePlan } from "@/contexts/plan-context";
 
 interface NewInformeForPatientButtonProps {
   patientId: string;
@@ -13,6 +14,8 @@ interface NewInformeForPatientButtonProps {
 
 export function NewInformeForPatientButton({ patientId }: NewInformeForPatientButtonProps) {
   const t = useTranslations("newInformeButton");
+  const tMvp = useTranslations("mvpLimits");
+  const plan = usePlan();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +30,20 @@ export function NewInformeForPatientButton({ patientId }: NewInformeForPatientBu
       }
       router.push(`/informes/${result.data.id}/grabar`);
     });
+  }
+
+  if (!plan.canCreateInforme) {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <Button size="sm" disabled>
+          <Lock className="size-4 mr-1.5" />
+          {t("submit")}
+        </Button>
+        <p className="text-xs text-muted-foreground max-w-[240px] text-right">
+          {tMvp("informeLimitMessage", { max: plan.maxInformes })}
+        </p>
+      </div>
+    );
   }
 
   return (

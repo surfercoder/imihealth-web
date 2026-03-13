@@ -87,6 +87,10 @@ jest.mock('@/components/transcript-dialog', () => ({
   TranscriptDialog: () => <div data-testid="transcript-dialog" />,
 }))
 
+jest.mock('@/components/transcript-monologue', () => ({
+  TranscriptMonologue: ({ transcript }: { transcript: string }) => <div data-testid="transcript-monologue">{transcript}</div>,
+}))
+
 import InformePage from '@/app/informes/[id]/page'
 
 const doctorData = { name: 'Dr. Test', matricula: '123', especialidad: 'General', firma_digital: null }
@@ -371,5 +375,19 @@ describe('InformePage', () => {
     setupMocks(completedInforme)
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
     expect(screen.getByRole('button', { name: /Generar PDF/i })).toBeInTheDocument()
+  })
+
+  it('renders monologue label when transcript_type is monologue and no transcript_dialog', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks({ ...completedInforme, transcript_type: 'monologue', transcript_dialog: null })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
+    expect(screen.getByText('Narración del doctor')).toBeInTheDocument()
+  })
+
+  it('renders TranscriptMonologue component when transcript_type is monologue', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks({ ...completedInforme, transcript_type: 'monologue', transcript_dialog: null })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }) }))
+    expect(screen.getByTestId('transcript-monologue')).toBeInTheDocument()
   })
 })

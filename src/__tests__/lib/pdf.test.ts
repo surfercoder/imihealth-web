@@ -207,6 +207,15 @@ describe('generateCertificadoPDF', () => {
     expect(header).toBe('%PDF')
   })
 
+  it('includes patient dni when provided', async () => {
+    const result = await generateCertificadoPDF({
+      ...baseOptions,
+      patientDni: '12345678',
+    })
+    expect(result).toBeInstanceOf(Uint8Array)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
   it('includes patient dob when provided', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,

@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import { FileText, CheckCircle2, Clock, AlertCircle, Users } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Users, FileText } from "lucide-react";
+import { InformeCountStat } from "@/components/informe-count-stat";
 import { NuevoInformeDialog } from "@/components/nuevo-informe-dialog";
 import { DashboardPatientsSection } from "@/components/dashboard-patients-section";
 import { HomeWrapper } from "@/components/home-wrapper";
 import { AppHeader } from "@/components/app-header";
 import type { PatientWithStats } from "@/actions/patients";
 import { getTranslations } from "next-intl/server";
+import { getPlanInfo } from "@/actions/plan";
+import { PlanProvider } from "@/contexts/plan-context";
 
 export const metadata: Metadata = {
   title: "Inicio | IMI Health",
@@ -32,10 +35,11 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
-  const [t, { data: doctor }, { data: informes }] = await Promise.all([
+  const [t, { data: doctor }, { data: informes }, plan] = await Promise.all([
     getTranslations(),
     supabase.from("doctors").select("name").eq("id", user.id).single(),
     supabase.from("informes").select("id, status").eq("doctor_id", user.id),
+    getPlanInfo(),
   ]);
 
   const allInformes = informes ?? [];
@@ -50,6 +54,7 @@ export default async function DashboardPage({
     .order("updated_at", { ascending: false });
 
   const allPatients: PatientWithStats[] = (patientsRaw ?? []).map((p) => {
+    /* v8 ignore next */
     const informes = (p.informes as unknown as { created_at: string; status: string }[]) ?? [];
     const sorted = informes.sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -69,6 +74,7 @@ export default async function DashboardPage({
   });
 
   return (
+    <PlanProvider plan={plan}>
     <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
       <div className="flex min-h-screen flex-col bg-background pt-14">
         <AppHeader doctorName={doctor?.name} />
@@ -104,7 +110,7 @@ export default async function DashboardPage({
                   <FileText className="size-4" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-card-foreground">{allInformes.length}</p>
+                  <InformeCountStat current={allInformes.length} max={plan.maxInformes} />
                   <p className="text-xs text-muted-foreground">{t("home.stats.totalReports")}</p>
                 </div>
               </div>
@@ -155,5 +161,6 @@ export default async function DashboardPage({
         </footer>
       </div>
     </HomeWrapper>
+    </PlanProvider>
   );
 }

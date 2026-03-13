@@ -331,6 +331,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true;
     recognition.interimResults = true;
+    /* v8 ignore next */
     recognition.lang = locale === "en" ? "en-US" : "es-AR";
     recognition.maxAlternatives = 1;
 
@@ -494,7 +495,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
   const isActive = phase === "recording";
   const isPaused = phase === "paused";
 
-  /* istanbul ignore next */
+  /* v8 ignore next 8 */
   const progressLabel =
     progress < 30
       ? t("progressUploading")

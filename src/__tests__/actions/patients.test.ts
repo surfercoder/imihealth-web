@@ -198,6 +198,42 @@ describe('searchPatients', () => {
     expect(result.data).toEqual([])
   })
 
+  it('logs error when patientResult has an error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const patientChain = makeChain()
+    patientChain.limit.mockResolvedValue({ data: null, error: { message: 'Patient query failed' } })
+
+    const reportChain = makeChain()
+    reportChain.limit.mockResolvedValue({ data: [], error: null })
+
+    mockFrom.mockReturnValueOnce(patientChain).mockReturnValueOnce(reportChain)
+
+    const result = await searchPatients('test')
+    expect(result.data).toEqual([])
+    expect(consoleSpy).toHaveBeenCalledWith('Patient search error:', { message: 'Patient query failed' })
+    consoleSpy.mockRestore()
+  })
+
+  it('logs error when reportResult has an error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const patientChain = makeChain()
+    patientChain.limit.mockResolvedValue({ data: [], error: null })
+
+    const reportChain = makeChain()
+    reportChain.limit.mockResolvedValue({ data: null, error: { message: 'Report query failed' } })
+
+    mockFrom.mockReturnValueOnce(patientChain).mockReturnValueOnce(reportChain)
+
+    const result = await searchPatients('test')
+    expect(result.data).toEqual([])
+    expect(consoleSpy).toHaveBeenCalledWith('Report search error:', { message: 'Report query failed' })
+    consoleSpy.mockRestore()
+  })
+
   it('handles patient with null informes', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 

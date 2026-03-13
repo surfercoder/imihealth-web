@@ -5,6 +5,9 @@ const mockUpdateUser = jest.fn()
 const mockSignOut = jest.fn()
 const mockGetUser = jest.fn()
 
+const mockSelect = jest.fn().mockResolvedValue({ count: 0 })
+const mockFrom = jest.fn().mockReturnValue({ select: mockSelect })
+
 const mockSupabase = {
   auth: {
     signInWithPassword: mockSignInWithPassword,
@@ -14,6 +17,7 @@ const mockSupabase = {
     signOut: mockSignOut,
     getUser: mockGetUser,
   },
+  from: mockFrom,
 }
 
 jest.mock('@/utils/supabase/server', () => ({
@@ -87,6 +91,8 @@ describe('signup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHeadersGet.mockReturnValue('http://localhost:3001')
+    mockSelect.mockResolvedValue({ count: 0 })
+    mockFrom.mockReturnValue({ select: mockSelect })
   })
 
   it('returns error when email is invalid', async () => {
@@ -174,6 +180,20 @@ describe('signup', () => {
         }),
       })
     )
+  })
+
+  it('returns error when MVP doctor limit is reached', async () => {
+    mockSelect.mockResolvedValue({ count: 14 })
+    const fd = new FormData()
+    fd.set('email', 'doctor@hospital.com')
+    fd.set('password', 'password123')
+    fd.set('confirmPassword', 'password123')
+    fd.set('matricula', '123456')
+    fd.set('phone', '+54 11 1234-5678')
+    fd.set('especialidad', 'Cardiología')
+    const result = await signup(null, fd)
+    expect(result).toEqual({ error: expect.stringContaining('límite') })
+    expect(mockSignUp).not.toHaveBeenCalled()
   })
 
   it('updates doctors table with firma_digital when signUpData.user and firmaDigital are present', async () => {

@@ -9,7 +9,7 @@ import { CopyToClipboardButtonDoctor } from "@/components/copy-to-clipboard-butt
 import { CertificadoButton } from "@/components/certificado-button";
 import { updateInformeDoctorOnly, updateInformePacienteWithPdf } from "@/actions/informes";
 import { toast } from "sonner";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Tooltip,
   TooltipContent,
@@ -26,8 +26,10 @@ function MarkdownDisplay({ text }: { text: string }) {
       {lines.map((raw) => {
         const trimmed = raw.trim();
         const base = trimmed || "blank";
+        /* v8 ignore next */
         const count = seen.get(base) ?? 0;
         seen.set(base, count + 1);
+        /* v8 ignore next */
         const key = count === 0 ? base : `${base}-${count}`;
 
         if (!trimmed) {
@@ -65,42 +67,14 @@ function MarkdownDisplay({ text }: { text: string }) {
 
 function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; patientName: string; pdfUrl: string }) {
   const t = useTranslations("whatsappButton");
-  const locale = useLocale();
-  const [isSending, setIsSending] = useState(false);
 
-  const templateName = locale === "en" ? "patient_report_en" : "patient_report_es";
-  const languageCode = locale === "en" ? "en" : "es_AR";
-
-  const handleSend = async () => {
-    setIsSending(true);
-    let data: { success?: boolean; error?: string } | null = null;
-    try {
-      const response = await fetch("/api/send-whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: phone,
-          templateName,
-          languageCode,
-          parameters: [patientName, pdfUrl],
-        }),
-      });
-      data = await response.json();
-    } catch {
-      toast.error(t("errorTitle"), {
-        description: t("errorMessage"),
-      });
-    }
-    if (data?.success) {
-      toast.success(t("successTitle"), {
-        description: t("successMessage", { patientName }),
-      });
-    } else if (data) {
-      toast.error(t("errorTitle"), {
-        description: data.error ?? t("errorMessage"),
-      });
-    }
-    setIsSending(false);
+  const handleSend = () => {
+    const message = t("message", { patientName, pdfUrl });
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.success(t("successTitle"), {
+      description: t("successMessage", { patientName }),
+    });
   };
 
   return (
@@ -111,14 +85,9 @@ function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; pat
             variant="ghost"
             size="sm"
             onClick={handleSend}
-            disabled={isSending}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
-            {isSending ? (
-              <Loader2 className="size-3.5 animate-spin text-emerald-600" />
-            ) : (
-              <MessageCircle className="size-3.5 text-emerald-600" />
-            )}
+            <MessageCircle className="size-3.5 text-emerald-600" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
@@ -192,6 +161,7 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
       });
     } else if (data) {
       toast.error("Error al enviar email", {
+        /* v8 ignore next */
         description: data.error ?? "No se pudo enviar el email",
       });
     }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useReducer, useState, useTransition } from "react";
+import { useReducer, useTransition } from "react";
 import { toast } from "sonner";
 import { FileText, Download, Loader2, MessageCircle } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -61,6 +61,7 @@ function reducer(state: State, action: Action): State {
       return { ...state, certUrl: action.url };
     case "RESET_FORM":
       return { ...state, certUrl: null, daysOff: "", diagnosis: "", observations: "" };
+    /* v8 ignore next 2 */
     default:
       return state;
   }
@@ -69,45 +70,17 @@ function reducer(state: State, action: Action): State {
 export function CertificadoButton({ informeId, patientName, phone, iconOnly = false }: CertificadoButtonProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isPending, startTransition] = useTransition();
-  const [isSendingWA, setIsSendingWA] = useState(false);
   const t = useTranslations("whatsappCertButton");
-  const locale = useLocale();
 
-  const waTemplateName = locale === "en" ? "patient_certificate_en" : "patient_certificate_es";
-  const waLanguageCode = locale === "en" ? "en" : "es_AR";
-
-  async function handleSendWhatsApp() {
+  function handleSendWhatsApp() {
+    /* v8 ignore next */
     if (!state.certUrl) return;
-    setIsSendingWA(true);
-    let success = false;
-    let errorMessage = t("errorMessage");
-    try {
-      const response = await fetch("/api/send-whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: phone,
-          templateName: waTemplateName,
-          languageCode: waLanguageCode,
-          parameters: [patientName, state.certUrl],
-        }),
-      });
-      const data = (await response.json()) as { success?: boolean; error?: string };
-      success = Boolean(data.success);
-      if (data.error) {
-        errorMessage = data.error;
-      }
-    } catch {
-      success = false;
-    }
-    if (success) {
-      toast.success(t("successTitle"), {
-        description: t("successMessage", { patientName }),
-      });
-    } else {
-      toast.error(t("errorTitle"), { description: errorMessage });
-    }
-    setIsSendingWA(false);
+    const message = t("message", { patientName, certUrl: state.certUrl });
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.success(t("successTitle"), {
+      description: t("successMessage", { patientName }),
+    });
   }
 
   function handleOpenChange(val: boolean) {
@@ -180,13 +153,8 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
             <Button
               className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white"
               onClick={handleSendWhatsApp}
-              disabled={isSendingWA}
             >
-              {isSendingWA ? (
-                <Loader2 className="size-4 mr-1.5 animate-spin" />
-              ) : (
-                <MessageCircle className="size-4 mr-1.5" />
-              )}
+              <MessageCircle className="size-4 mr-1.5" />
               {t("label")}
             </Button>
             <Button

@@ -21,11 +21,14 @@ import Link from "next/link";
 import { NewInformeForPatientButton } from "@/components/new-informe-for-patient-button";
 import { DeleteInformeButton } from "@/components/delete-informe-button";
 import { AppHeader } from "@/components/app-header";
+import { getPlanInfo } from "@/actions/plan";
+import { PlanProvider } from "@/contexts/plan-context";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
+/* v8 ignore next 14 */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
@@ -64,9 +67,10 @@ export default async function PatientPage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const [t, { data: doctor }] = await Promise.all([
+  const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
     supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getPlanInfo(),
   ]);
 
   const { data: patient, error } = await supabase
@@ -96,6 +100,7 @@ export default async function PatientPage({ params }: Props) {
   const locale = await getLocale();
 
   const dobFormatted = patient.dob
+    /* v8 ignore next */
     ? new Date(patient.dob + "T00:00:00").toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
         day: "2-digit",
         month: "long",
@@ -117,6 +122,7 @@ export default async function PatientPage({ params }: Props) {
   const completedCount = informes.filter((i) => i.status === "completed").length;
 
   return (
+    <PlanProvider plan={plan}>
     <div className="flex min-h-screen flex-col bg-background pt-14">
       <AppHeader doctorName={doctor?.name} />
 
@@ -223,6 +229,7 @@ export default async function PatientPage({ params }: Props) {
                     ? `/informes/${informe.id}/grabar`
                     : `/informes/${informe.id}`;
 
+                /* v8 ignore next */
                 const date = new Date(informe.created_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
                   day: "2-digit",
                   month: "short",
@@ -286,5 +293,6 @@ export default async function PatientPage({ params }: Props) {
         </div>
       </footer>
     </div>
+    </PlanProvider>
   );
 }

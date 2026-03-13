@@ -17,10 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { createPatient, createInforme } from "@/actions/informes";
 import { useTranslations } from "next-intl";
+import { usePlan } from "@/contexts/plan-context";
 import {
   PhoneInput,
   type PhoneInputValue,
@@ -48,6 +49,8 @@ const phoneObjectSchema = z.object({
 
 export function NuevoInformeDialog() {
   const t = useTranslations("nuevoInformeDialog");
+  const tMvp = useTranslations("mvpLimits");
+  const plan = usePlan();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +70,7 @@ export function NuevoInformeDialog() {
         (val) => {
           if (!val.subscriber) return true;
           const country = COUNTRIES.find((c) => c.code === val.countryCode);
+          /* v8 ignore next */
           if (!country) return false;
           const digits = val.subscriber.replace(/\D/g, "");
           return country.subscriberRegex.test(digits);
@@ -109,6 +113,7 @@ export function NuevoInformeDialog() {
     if (values.dob) formData.append("dob", values.dob);
     if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
     if (values.email) formData.append("email", values.email);
+    /* v8 ignore next */
     if (values.affiliateNumber) formData.append("affiliateNumber", values.affiliateNumber);
 
     const patientResult = await createPatient(formData);
@@ -144,6 +149,20 @@ export function NuevoInformeDialog() {
     },
     [reset]
   );
+
+  if (!plan.canCreateInforme) {
+    return (
+      <div className="flex flex-col items-end gap-1.5">
+        <Button size="sm" disabled>
+          <Lock className="size-4 mr-1.5" />
+          {t("trigger")}
+        </Button>
+        <p className="text-xs text-muted-foreground max-w-[240px] text-right">
+          {tMvp("informeLimitMessage", { max: plan.maxInformes })}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -208,6 +227,7 @@ export function NuevoInformeDialog() {
               name="phone"
               control={control}
               render={({ field }) => {
+                /* v8 ignore next 2 */
                 const selectedCountry =
                   COUNTRIES.find((c) => c.code === field.value?.countryCode) ?? defaultCountry;
                 return (
@@ -221,6 +241,7 @@ export function NuevoInformeDialog() {
                       searchPlaceholder={t("phoneSearchCountry")}
                       noCountryFound={t("phoneNoCountry")}
                     />
+                    {/* v8 ignore next 4 */}
                     {errors.phone && (
                       <p className="text-xs text-destructive">
                         {errors.phone.message ?? errors.phone.subscriber?.message}

@@ -1,7 +1,9 @@
+export const __mockTranscribe = jest.fn().mockResolvedValue({ text: '', utterances: null });
+
 export class AssemblyAI {
   constructor() {}
   transcripts = {
-    transcribe: jest.fn().mockResolvedValue({ text: '', utterances: null }),
+    transcribe: __mockTranscribe,
   };
 }
 

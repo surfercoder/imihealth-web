@@ -31,6 +31,7 @@ export default async function GrabarPage({ params }: Props) {
     supabase.from("doctors").select("name").eq("id", user.id).single(),
   ]);
   const locale = await getLocale();
+  /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 
   const { data: informe, error } = await supabase

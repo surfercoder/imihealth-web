@@ -517,6 +517,15 @@
     "specialtyRequired": "La especialidad es requerida",
     "specialtyInvalid": "Seleccioná una especialidad válida"
   },
+  "mvpLimits": {
+    "signupLimitTitle": "Registro no disponible",
+    "signupLimitMessage": "Hemos alcanzado el límite de {max} médicos para nuestra fase de prueba MVP. Pronto lanzaremos la versión de producción y podrás registrarte. ¡Gracias por tu interés!",
+    "informeLimitTitle": "Límite de informes alcanzado",
+    "informeLimitMessage": "Alcanzaste el límite de {max} informes para la prueba MVP. Pronto lanzaremos la versión de producción con informes ilimitados. ¡Gracias por probar IMI Health!",
+    "informeCount": "{current} de {max} informes usados",
+    "dashboardTooltip": "Estás en la versión de prueba MVP con un límite de {max} informes. Pronto lanzaremos la versión de producción con informes ilimitados.",
+    "backToLogin": "Volver al inicio de sesión"
+  },
   "manifest": {
     "title": "Manifiesto IMI Health",
     "subtitle": "El informe médico no es un trámite. Es un acto clínico.",

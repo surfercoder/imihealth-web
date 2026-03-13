@@ -111,11 +111,9 @@ describe('CertificadoButton', () => {
     })
   })
 
-  it('sends WhatsApp via API when WhatsApp button is clicked', async () => {
-    const mockFetch = jest.fn().mockResolvedValue({
-      json: async () => ({ success: true }),
-    } as Response)
-    global.fetch = mockFetch
+  it('opens WhatsApp link when WhatsApp button is clicked', async () => {
+    const mockOpen = jest.fn()
+    window.open = mockOpen
     mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
     const user = userEvent.setup()
     render(<CertificadoButton {...defaultProps} />)
@@ -125,25 +123,10 @@ describe('CertificadoButton', () => {
       expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
     })
     await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1)
-    })
-    const [url, options] = mockFetch.mock.calls[0]
-    expect(url).toBe('/api/send-whatsapp')
-    expect(options).toEqual({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: '5492611234567',
-        templateName: 'patient_certificate_es',
-        languageCode: 'es_AR',
-        parameters: ['Juan Pérez', 'https://example.com/cert.pdf'],
-      }),
-    })
-    await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalled()
-    })
-    delete (global as Record<string, unknown>).fetch
+    expect(mockOpen).toHaveBeenCalledTimes(1)
+    const calledUrl = mockOpen.mock.calls[0][0] as string
+    expect(calledUrl).toContain('https://wa.me/5492611234567')
+    expect(mockToastSuccess).toHaveBeenCalled()
   })
 
   it('shows error toast when generation returns error', async () => {
@@ -225,6 +208,22 @@ describe('CertificadoButton', () => {
     // Should still show the form, not the download view
     expect(screen.queryByText(/Descargar certificado/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/Días de reposo/i)).toBeInTheDocument()
+  })
+
+  it('renders iconOnly trigger button when iconOnly prop is true', () => {
+    render(<CertificadoButton {...defaultProps} iconOnly />)
+    // iconOnly renders a ghost button without the "Crear Certificado" text
+    expect(screen.queryByText(/Crear Certificado/i)).not.toBeInTheDocument()
+    // There should still be a trigger button
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+
+  it('opens dialog from iconOnly trigger', async () => {
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} iconOnly />)
+    await user.click(screen.getByRole('button'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('Certificado médico')).toBeInTheDocument()
   })
 
   it('resets certUrl when dialog is closed after successful generation', async () => {

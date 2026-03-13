@@ -517,6 +517,15 @@
     "specialtyRequired": "Specialty is required",
     "specialtyInvalid": "Please select a valid specialty"
   },
+  "mvpLimits": {
+    "signupLimitTitle": "Registration unavailable",
+    "signupLimitMessage": "We have reached the limit of {max} doctors for our MVP testing phase. We will launch the production version soon and you will be able to register. Thank you for your interest!",
+    "informeLimitTitle": "Report limit reached",
+    "informeLimitMessage": "You have reached the limit of {max} reports for the MVP test. We will launch the production version with unlimited reports soon. Thank you for trying IMI Health!",
+    "informeCount": "{current} of {max} reports used",
+    "dashboardTooltip": "You are on the MVP trial version with a limit of {max} reports. We will launch the production version with unlimited reports soon.",
+    "backToLogin": "Back to sign in"
+  },
   "manifest": {
     "title": "IMI Health Manifest",
     "subtitle": "The medical report is not a procedure. It is a clinical act.",

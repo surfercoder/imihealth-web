@@ -140,6 +140,11 @@ describe('PatientsList — with patients', () => {
     expect(screen.getAllByRole('link')).toHaveLength(2)
   })
 
+  it('renders loading spinner when isLoading is true', () => {
+    render(<PatientsList patients={[]} isLoading={true} />)
+    expect(screen.queryByText('Sin pacientes aún')).not.toBeInTheDocument()
+  })
+
   it('renders date formatted in en-US locale when locale is en', () => {
     ;(useLocale as jest.Mock).mockReturnValue('en')
     render(<PatientsList patients={[makePatient({ last_informe_at: '2025-01-15T10:30:00Z' })]} />)

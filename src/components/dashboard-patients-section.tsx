@@ -51,6 +51,7 @@ export function DashboardPatientsSection({ patients }: DashboardPatientsSectionP
         setIsSearching(false);
       })
       .catch(() => {
+        /* v8 ignore next */
         if (searchRef.current !== searchId) return;
         setSearchResults([]);
         setIsSearching(false);

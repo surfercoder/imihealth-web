@@ -1,6 +1,14 @@
 
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+
+/** Bypasses RLS – use only for trusted server-side operations. */
+export const createServiceClient = () =>
+  createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!,
+  );
 
 export const createClient = async () => {
   const cookieStore = await cookies();

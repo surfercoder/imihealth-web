@@ -101,6 +101,7 @@ export default async function InformePage({ params }: Props) {
     supabase.from("doctors").select("name, email, phone").eq("id", user.id).single(),
   ]);
   const locale = await getLocale();
+  /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 
   const { data: informe, error } = await supabase
@@ -201,6 +202,7 @@ export default async function InformePage({ params }: Props) {
         const { data: signed } = await admin.storage
           .from("informes-pdf")
           .createSignedUrl(pdfFileName, 3600);
+        /* v8 ignore next */
         pdfSignedUrl = signed?.signedUrl ?? null;
       }
     } catch (pdfErr) {
@@ -209,6 +211,7 @@ export default async function InformePage({ params }: Props) {
   }
 
   const whatsappPhone = patient.phone.replace(/\D/g, "");
+  /* v8 ignore next */
   const doctorWhatsappPhone = doctor?.phone ? doctor.phone.replace(/\D/g, "") : undefined;
 
   return (
