@@ -18,6 +18,7 @@ import { HomeWrapper } from '@/components/home-wrapper'
 describe('HomeWrapper', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    sessionStorage.clear()
     jest.spyOn(window.history, 'replaceState').mockImplementation(() => {})
   })
 

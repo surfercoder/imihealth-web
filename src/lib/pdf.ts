@@ -9,13 +9,14 @@ interface DoctorSignatureInfo {
 
 interface GenerateInformePDFOptions {
   patientName: string;
-  patientPhone: string;
+  patientPhone: string | null;
   date: string;
   content: string;
   doctor?: DoctorSignatureInfo | null;
 }
 
-function sanitizeForPdf(text: string): string {
+function sanitizeForPdf(text: string | null | undefined): string {
+  if (!text) return "";
   return text.replace(/[^\x00-\xFF]/g, "").replace(/\s+/g, " ").trim();
 }
 

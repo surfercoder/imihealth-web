@@ -3,39 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  const requestHeaders = new Headers(request.headers);
-
-  const origin = requestHeaders.get("origin");
-  const forwardedHost = requestHeaders.get("x-forwarded-host");
-  if (origin && forwardedHost) {
-    try {
-      const originHost = new URL(origin).host;
-      if (originHost !== forwardedHost) {
-        requestHeaders.set("x-forwarded-host", originHost);
-      }
-    } catch {
-    }
-  }
-
-  // Guard against oversized cookie headers (e.g. corrupted Supabase auth tokens)
-  const cookieHeader = request.headers.get("cookie") || "";
-  if (cookieHeader.length > 4096) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    const response = NextResponse.redirect(url);
-    // Delete all sb- prefixed cookies
-    const cookies = cookieHeader.split(";").map((c) => c.trim());
-    for (const cookie of cookies) {
-      const name = cookie.split("=")[0];
-      if (name.startsWith("sb-")) {
-        response.cookies.set(name, "", { maxAge: 0 });
-      }
-    }
-    return response;
-  }
-
   let supabaseResponse = NextResponse.next({
-    request: { headers: requestHeaders },
+    request,
   });
 
   const supabase = createServerClient(
@@ -61,6 +30,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Do not run code between createServerClient and
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -82,6 +55,15 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
+
+  // IMPORTANT: You *must* return the supabaseResponse object as it is.
+  // If you're creating a new response object with NextResponse.next() make sure to:
+  // 1. Pass the request in it, like so:
+  //    const myNewResponse = NextResponse.next({ request })
+  // 2. Copy over the cookies, like so:
+  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
+  // 3. Change the myNewResponse object to fit your needs, but avoid changing the cookies!
+  // 4. Finally: return myNewResponse
 
   return supabaseResponse;
 }

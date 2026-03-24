@@ -103,31 +103,64 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
         </span>
       )}
 
-      <div
-        className={cn(
-          "mb-4 flex size-20 items-center justify-center rounded-full transition-all duration-300",
-          isActive && "bg-destructive/15 text-destructive",
-          isPaused && "bg-primary/10 text-primary",
-          phase === "idle" && "bg-secondary text-muted-foreground",
-          phase === "done" && "bg-emerald-100 text-emerald-600",
-          phase === "error" && "bg-destructive/15 text-destructive",
-          isProcessing && "bg-primary/10 text-primary"
+      <div className="relative mb-4 flex items-center justify-center">
+        {isActive && (
+          <span
+            className="absolute size-20 rounded-full bg-destructive/20"
+            style={{ animation: "pulse-ring 1.5s ease-in-out infinite" }}
+          />
         )}
-      >
-        {phase === "done" ? (
-          <CheckCircle2 className="size-9" />
-        ) : phase === "error" ? (
-          <AlertCircle className="size-9" />
-        ) : isProcessing ? (
-          <Loader2 className="size-9 animate-spin" />
-        ) : isActive ? (
-          <Mic className="size-9" />
-        ) : isPaused ? (
-          <Pause className="size-9" />
-        ) : (
-          <Mic className="size-9" />
-        )}
+        <div
+          className={cn(
+            "relative flex size-20 items-center justify-center rounded-full transition-all duration-300",
+            isActive && "bg-destructive/15 text-destructive",
+            isPaused && "bg-primary/10 text-primary",
+            phase === "idle" && "bg-secondary text-muted-foreground",
+            phase === "done" && "bg-emerald-100 text-emerald-600",
+            phase === "error" && "bg-destructive/15 text-destructive",
+            isProcessing && "bg-primary/10 text-primary"
+          )}
+        >
+          {phase === "done" ? (
+            <CheckCircle2 className="size-9" />
+          ) : phase === "error" ? (
+            <AlertCircle className="size-9" />
+          ) : isProcessing ? (
+            <Loader2 className="size-9 animate-spin" />
+          ) : isActive ? (
+            <Mic className="size-9" />
+          ) : isPaused ? (
+            <Pause className="size-9" />
+          ) : (
+            <Mic className="size-9" />
+          )}
+        </div>
       </div>
+
+      {isActive && (
+        <div className="mb-4 flex items-end justify-center gap-[3px] h-8">
+          {[
+            { id: "b0", bar: 1 },
+            { id: "b1", bar: 2 },
+            { id: "b2", bar: 3 },
+            { id: "b3", bar: 4 },
+            { id: "b4", bar: 5 },
+            { id: "b5", bar: 4 },
+            { id: "b6", bar: 3 },
+            { id: "b7", bar: 2 },
+            { id: "b8", bar: 1 },
+          ].map(({ id, bar }, i) => (
+            <span
+              key={id}
+              className="w-[4px] rounded-full bg-destructive/70"
+              style={{
+                animation: `equalizer-bar-${bar} ${0.6 + bar * 0.15}s ease-in-out infinite`,
+                animationDelay: `${i * 0.08}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="text-center">
         {phase === "idle" && (

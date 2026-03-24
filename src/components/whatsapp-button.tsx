@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Loader2 } from "lucide-react";
 
 interface WhatsAppButtonProps {
   phone: string;
@@ -10,20 +13,56 @@ interface WhatsAppButtonProps {
 }
 
 export function WhatsAppButton({ phone, patientName, pdfUrl }: WhatsAppButtonProps) {
-  const handleSend = () => {
-    const message = `Hola ${patientName}, aquí tiene su informe: ${pdfUrl}`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  const [isSending, setIsSending] = useState(false);
+  const locale = useLocale();
+  const t = useTranslations("whatsappButton");
+
+  const handleSend = async () => {
+    const templateName = locale === "es" ? "patient_report_es" : "patient_report_en";
+    const languageCode = locale === "es" ? "es_AR" : "en";
+    const fallbackError = t("errorMessage");
+    setIsSending(true);
+    let data: { success?: boolean; error?: string } | null = null;
+    try {
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: phone,
+          templateName,
+          languageCode,
+          parameters: [patientName, pdfUrl],
+        }),
+      });
+      data = await response.json();
+    } catch {
+      // network error
+    }
+
+    if (data && data.success) {
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { patientName }),
+      });
+    } else {
+      const errorMsg = (data && data.error) ? data.error : fallbackError;
+      toast.error(t("errorTitle"), { description: errorMsg });
+    }
+    setIsSending(false);
   };
 
   return (
     <Button
       size="sm"
       onClick={handleSend}
+      disabled={isSending}
       className="bg-[#25D366] hover:bg-[#1ebe5d] text-white"
     >
-      <MessageCircle className="size-4 mr-1.5" />
-      Enviar por WhatsApp
+      {isSending ? (
+        <Loader2 className="size-4 mr-1.5 animate-spin" />
+      ) : (
+        <MessageCircle className="size-4 mr-1.5" />
+      )}
+      {t("label")}
     </Button>
   );
 }

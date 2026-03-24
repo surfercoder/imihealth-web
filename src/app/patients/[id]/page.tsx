@@ -276,7 +276,7 @@ export default async function PatientPage({ params }: Props) {
                       )}
                     </div>
 
-                    <div className="relative z-10 mt-0.5">
+                    <div className="relative z-10 self-center">
                       <DeleteInformeButton informeId={informe.id} date={date} />
                     </div>
                   </div>

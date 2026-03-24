@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { User, Phone, FileText, Clock, ChevronRight, Users, Loader2 } from "lucide-react";
+import { User, Phone, FileText, Clock, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PatientWithStats } from "@/actions/patients";
 import { useTranslations, useLocale } from "next-intl";
+import { DeletePatientButton } from "@/components/delete-patient-button";
 
 interface PatientsListProps {
   patients: PatientWithStats[];
@@ -61,16 +62,17 @@ export function PatientsList({ patients, isLoading }: PatientsListProps) {
           : "text-muted-foreground";
 
         return (
-          <Link
+          <div
             key={patient.id}
-            href={`/patients/${patient.id}`}
-            className="group flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+            className="group relative flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Link href={`/patients/${patient.id}`} className="absolute inset-0 rounded-xl" aria-label={patient.name} />
+
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary relative z-10 pointer-events-none">
               <User className="size-5" />
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 relative z-10 pointer-events-none">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-medium truncate text-card-foreground">{patient.name}</p>
                 {patient.informe_count > 0 && (
@@ -95,8 +97,10 @@ export function PatientsList({ patients, isLoading }: PatientsListProps) {
               </div>
             </div>
 
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all group-hover:text-primary group-hover:translate-x-0.5" />
-          </Link>
+            <div className="relative z-20 pointer-events-auto">
+              <DeletePatientButton patientId={patient.id} patientName={patient.name} />
+            </div>
+          </div>
         );
       })}
     </div>

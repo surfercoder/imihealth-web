@@ -210,7 +210,7 @@ export default async function InformePage({ params }: Props) {
     }
   }
 
-  const whatsappPhone = patient.phone.replace(/\D/g, "");
+  const whatsappPhone = patient.phone ? patient.phone.replace(/\D/g, "") : undefined;
   /* v8 ignore next */
   const doctorWhatsappPhone = doctor?.phone ? doctor.phone.replace(/\D/g, "") : undefined;
 

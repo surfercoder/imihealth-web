@@ -169,8 +169,8 @@ describe('whatsapp', () => {
     })
   })
 
-  describe('normalizePhoneForWhatsApp', () => {
-    it('normalizes Argentine mobile with 2-digit area code (11)', async () => {
+  describe('phone number passthrough', () => {
+    it('sends Argentine phone number as-is in E.164 format', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ messages: [{ id: 'msg-1' }] }),
@@ -184,65 +184,10 @@ describe('whatsapp', () => {
       })
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-      expect(body.to).toBe('54111555556666')
+      expect(body.to).toBe('541155556666')
     })
 
-    it('normalizes Argentine mobile with 3-digit area code (351)', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: [{ id: 'msg-2' }] }),
-      })
-
-      await sendWhatsAppTemplate({
-        to: '5493511234567',
-        templateName: 'test',
-        languageCode: 'es',
-        parameters: [],
-      })
-
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-      // 3-digit area code: 351, subscriber: 1234567 -> 5435115234567
-      expect(body.to).toBe('54351151234567')
-    })
-
-    it('normalizes Argentine mobile with 4-digit area code', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: [{ id: 'msg-3' }] }),
-      })
-
-      // Area code 2901 (4-digit, not in the 3-digit set)
-      await sendWhatsAppTemplate({
-        to: '5492901123456',
-        templateName: 'test',
-        languageCode: 'es',
-        parameters: [],
-      })
-
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-      // 4-digit area code: 2901, subscriber: 123456 -> 54290115123456
-      expect(body.to).toBe('54290115123456')
-    })
-
-    it('passes non-string to value through without normalization', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: [{ id: 'msg-ns' }] }),
-      })
-
-      // Force a non-string `to` to cover the typeof branch
-      await sendWhatsAppTemplate({
-        to: 12345 as unknown as string,
-        templateName: 'test',
-        languageCode: 'es',
-        parameters: [],
-      })
-
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-      expect(body.to).toBe(12345)
-    })
-
-    it('does not modify non-Argentine phone numbers', async () => {
+    it('sends non-Argentine phone number as-is', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ messages: [{ id: 'msg-4' }] }),

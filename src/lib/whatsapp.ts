@@ -1,42 +1,5 @@
 const WA_API_URL = "https://graph.facebook.com/v22.0";
 
-// Known 3-digit Argentine area codes (major cities)
-const AR_THREE_DIGIT_AREA_CODES = new Set([
-  "220", "221", "223", "230", "236", "237", "249",
-  "260", "261", "263", "264", "266",
-  "280", "291", "294", "297", "298", "299",
-  "341", "342", "343", "345", "348",
-  "351", "353", "358",
-  "362", "364", "370", "376", "379",
-  "380", "381", "383", "385", "387", "388",
-]);
-
-/**
- * Normalize Argentine mobile numbers for WhatsApp API.
- * Converts +549{area}{subscriber} → +54{area}15{subscriber}
- * WhatsApp requires the "15" format for Argentine numbers.
- */
-function normalizePhoneForWhatsApp(phone: string): string {
-  const match = phone.match(/^549(\d{10})$/);
-  if (!match) return phone;
-
-  const local = match[1]; // 10 digits: area_code + subscriber
-
-  let areaCodeLen: number;
-  if (local.startsWith("11")) {
-    areaCodeLen = 2;
-  } else if (AR_THREE_DIGIT_AREA_CODES.has(local.slice(0, 3))) {
-    areaCodeLen = 3;
-  } else {
-    areaCodeLen = 4;
-  }
-
-  const areaCode = local.slice(0, areaCodeLen);
-  const subscriber = local.slice(areaCodeLen);
-
-  return `54${areaCode}15${subscriber}`;
-}
-
 interface SendTemplateMessageOptions {
   to: string;
   templateName: string;
@@ -56,13 +19,14 @@ async function callWhatsAppAPI(body: Record<string, unknown>): Promise<WhatsAppR
     return { success: false, error: "WhatsApp service not configured" };
   }
 
-  // Normalize the recipient phone number
-  const normalizedBody = {
+  const url = `${WA_API_URL}/${phoneNumberId}/messages`;
+
+  const payload = {
+    messaging_product: "whatsapp",
     ...body,
-    to: typeof body.to === "string" ? normalizePhoneForWhatsApp(body.to) : body.to,
   };
 
-  const url = `${WA_API_URL}/${phoneNumberId}/messages`;
+  console.log("[WhatsApp] Sending to:", body.to, "| Template:", (body.template as Record<string, unknown>)?.name ?? "N/A");
 
   const res = await fetch(url, {
     method: "POST",
@@ -70,10 +34,7 @@ async function callWhatsAppAPI(body: Record<string, unknown>): Promise<WhatsAppR
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      ...normalizedBody,
-    }),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
@@ -87,6 +48,18 @@ async function callWhatsAppAPI(body: Record<string, unknown>): Promise<WhatsAppR
   return { success: true, messageId: data.messages?.[0]?.id ?? "unknown" };
 }
 
+/**
+ * Meta requires Argentine numbers without the "9" after country code "54".
+ * e.g. 5492616886005 → 542616886005
+ */
+function formatPhoneForMeta(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("549") && digits.length === 13) {
+    return "54" + digits.slice(3);
+  }
+  return digits;
+}
+
 export async function sendWhatsAppTemplate({
   to,
   templateName,
@@ -94,7 +67,7 @@ export async function sendWhatsAppTemplate({
   parameters,
 }: SendTemplateMessageOptions): Promise<WhatsAppResult> {
   return callWhatsAppAPI({
-    to,
+    to: formatPhoneForMeta(to),
     type: "template",
     template: {
       name: templateName,

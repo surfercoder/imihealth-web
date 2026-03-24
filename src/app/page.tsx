@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { Mic, FileText, Shield, Smartphone } from "lucide-react";
 import { PublicHeader } from "@/components/public-header";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 
 export const metadata: Metadata = {
   title: "IMI Health",
@@ -96,6 +97,7 @@ export default async function LandingPage() {
             {t("copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-3">
+            <FeedbackDialog doctorName={null} doctorEmail={null} />
             <Link href="/manifest" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
               {tNav("manifest")}
             </Link>

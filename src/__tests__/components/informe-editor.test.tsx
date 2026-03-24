@@ -233,8 +233,12 @@ describe('InformeEditor', () => {
     expect(doctorWaBtn).toBeTruthy()
   })
 
-  it('opens WhatsApp link when patient WhatsApp button is clicked', async () => {
-    const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null)
+  it('sends WhatsApp message via API when patient WhatsApp button is clicked', async () => {
+    const originalFetch = global.fetch
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true }),
+    })
+    global.fetch = mockFetch
     const user = userEvent.setup()
     render(
       <InformeEditor
@@ -244,17 +248,16 @@ describe('InformeEditor', () => {
         patientName="Juan Pérez"
       />
     )
-    // Find the WhatsApp button in the patient card
-    // Simpler: just click all buttons with "Enviar por WhatsApp" tooltip text parent
-    // The WhatsApp icon on patient card has text-emerald-600
     const allButtons = screen.getAllByRole('button')
     const emeraldMsgBtn = allButtons.find(btn => btn.querySelector('.text-emerald-600.lucide-message-circle'))
     if (emeraldMsgBtn) await user.click(emeraldMsgBtn)
-    expect(mockOpen).toHaveBeenCalledTimes(1)
-    const calledUrl = mockOpen.mock.calls[0][0] as string
-    expect(calledUrl).toContain('https://wa.me/5492611234567')
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/send-whatsapp', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
     expect(mockToastSuccess).toHaveBeenCalled()
-    mockOpen.mockRestore()
+    global.fetch = originalFetch
   })
 
   it('opens PDF in new tab when ViewPdf button is clicked', async () => {

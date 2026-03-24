@@ -9,7 +9,7 @@ import { CopyToClipboardButtonDoctor } from "@/components/copy-to-clipboard-butt
 import { CertificadoButton } from "@/components/certificado-button";
 import { updateInformeDoctorOnly, updateInformePacienteWithPdf } from "@/actions/informes";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Tooltip,
   TooltipContent,
@@ -67,14 +67,40 @@ function MarkdownDisplay({ text }: { text: string }) {
 
 function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; patientName: string; pdfUrl: string }) {
   const t = useTranslations("whatsappButton");
+  const locale = useLocale();
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSend = () => {
-    const message = t("message", { patientName, pdfUrl });
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    toast.success(t("successTitle"), {
-      description: t("successMessage", { patientName }),
-    });
+  const handleSend = async () => {
+    const templateName = locale === "es" ? "patient_report_es" : "patient_report_en";
+    const languageCode = locale === "es" ? "es_AR" : "en";
+    const fallbackError = t("errorMessage");
+    setIsSending(true);
+    let data: { success?: boolean; error?: string } | null = null;
+    try {
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: phone,
+          templateName,
+          languageCode,
+          parameters: [patientName, pdfUrl],
+        }),
+      });
+      data = await response.json();
+    } catch {
+      // network error
+    }
+
+    if (data && data.success) {
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { patientName }),
+      });
+    } else {
+      const errorMsg = (data && data.error) ? data.error : fallbackError;
+      toast.error(t("errorTitle"), { description: errorMsg });
+    }
+    setIsSending(false);
   };
 
   return (
@@ -85,9 +111,14 @@ function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; pat
             variant="ghost"
             size="sm"
             onClick={handleSend}
+            disabled={isSending}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
-            <MessageCircle className="size-3.5 text-emerald-600" />
+            {isSending ? (
+              <Loader2 className="size-3.5 animate-spin text-emerald-600" />
+            ) : (
+              <MessageCircle className="size-3.5 text-emerald-600" />
+            )}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

@@ -12,6 +12,9 @@ import type { PatientWithStats } from "@/actions/patients";
 import { getTranslations } from "next-intl/server";
 import { getPlanInfo } from "@/actions/plan";
 import { PlanProvider } from "@/contexts/plan-context";
+import { FeedbackDialog } from "@/components/feedback-dialog";
+import { getDashboardChartData } from "@/actions/dashboard-charts";
+import { DashboardCharts } from "@/components/dashboard-charts";
 
 export const metadata: Metadata = {
   title: "Inicio | IMI Health",
@@ -35,11 +38,12 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
-  const [t, { data: doctor }, { data: informes }, plan] = await Promise.all([
+  const [t, { data: doctor }, { data: informes }, plan, chartData] = await Promise.all([
     getTranslations(),
     supabase.from("doctors").select("name").eq("id", user.id).single(),
     supabase.from("informes").select("id, status").eq("doctor_id", user.id),
     getPlanInfo(),
+    getDashboardChartData(),
   ]);
 
   const allInformes = informes ?? [];
@@ -147,16 +151,24 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          <Separator className="mb-6" />
+          {chartData && (
+            <>
+              <Separator className="mb-6" />
+              <DashboardCharts data={chartData} />
+            </>
+          )}
+
+          <Separator className="my-6" />
 
           <h2 className="mb-4 text-base font-semibold text-foreground">{t("home.patientsTitle")}</h2>
-          
+
           <DashboardPatientsSection patients={allPatients} />
         </main>
 
         <footer className="border-t border-border/60">
-          <div className="mx-auto flex h-14 max-w-5xl items-center justify-center px-6 text-sm text-foreground/50">
+          <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 text-sm text-foreground/50">
             {t("common.copyright", { year: new Date().getFullYear() })}
+            <FeedbackDialog doctorName={doctor?.name} doctorEmail={user.email} />
           </div>
         </footer>
       </div>

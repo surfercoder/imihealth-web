@@ -297,6 +297,17 @@
     "successToast": "Informe eliminado",
     "successDesc": "El informe del {date} fue eliminado correctamente."
   },
+  "deletePatientButton": {
+    "srLabel": "Eliminar paciente",
+    "confirmTitle": "¿Eliminar paciente?",
+    "confirmDescription": "Esta acción eliminará permanentemente al paciente {name} y todos sus informes asociados, incluyendo audios y reportes generados. Esta acción no se puede deshacer.",
+    "cancel": "Cancelar",
+    "confirm": "Eliminar",
+    "deleting": "Eliminando…",
+    "errorTitle": "Error al eliminar el paciente",
+    "successTitle": "Paciente eliminado",
+    "successMessage": "El paciente {name} fue eliminado correctamente."
+  },
   "deleteInformeButton": {
     "srLabel": "Eliminar informe",
     "confirmTitle": "¿Eliminar informe?",
@@ -525,6 +536,50 @@
     "informeCount": "{current} de {max} informes usados",
     "dashboardTooltip": "Estás en la versión de prueba MVP con un límite de {max} informes. Pronto lanzaremos la versión de producción con informes ilimitados.",
     "backToLogin": "Volver al inicio de sesión"
+  },
+  "feedbackDialog": {
+    "trigger": "Feedback",
+    "title": "Envianos tu feedback",
+    "description": "Tu opinión nos ayuda a mejorar IMI Health. Contanos qué pensás.",
+    "reasonLabel": "Motivo",
+    "reasonPlaceholder": "Seleccioná un motivo",
+    "reasons": {
+      "feedback": "Opinión general",
+      "bug": "Reportar un error",
+      "question": "Pregunta",
+      "improvement": "Sugerencia de mejora",
+      "support": "Soporte técnico"
+    },
+    "messageLabel": "Mensaje",
+    "messagePlaceholder": "Contanos con detalle...",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "sending": "Enviando...",
+    "emailSubject": "Feedback desde IMI Health",
+    "successTitle": "Feedback enviado",
+    "successMessage": "Gracias por tu feedback. Lo revisaremos a la brevedad.",
+    "errorTitle": "Error al enviar",
+    "errorMessage": "No se pudo enviar el feedback. Intentá de nuevo."
+  },
+  "charts": {
+    "sectionTitle": "Estadísticas",
+    "patientsOverTime": "Pacientes totales",
+    "patientsOverTimeDesc": "Evolución acumulada de pacientes registrados",
+    "totalPatients": "Total pacientes",
+    "consultationTime": "Tiempo por consulta",
+    "consultationTimeDesc": "Promedio, mínimo y máximo de procesamiento (min)",
+    "minutes": "min",
+    "average": "Promedio",
+    "minimum": "Mínimo",
+    "maximum": "Máximo",
+    "basedOn": "Basado en {count} consultas procesadas",
+    "dailyPatients": "Pacientes por día",
+    "dailyPatientsDesc": "Nuevos pacientes por día · Promedio: {avg}/día",
+    "newPatients": "Nuevos pacientes",
+    "avg": "Prom",
+    "consultationReasons": "Motivos de consulta",
+    "consultationReasonsDesc": "Distribución de motivos extraídos de los informes",
+    "noData": "Sin datos suficientes"
   },
   "manifest": {
     "title": "Manifiesto IMI Health",

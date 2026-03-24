@@ -59,6 +59,18 @@ jest.mock('@/contexts/plan-context', () => ({
   ),
 }))
 
+jest.mock('@/actions/dashboard-charts', () => ({
+  getDashboardChartData: jest.fn(() => Promise.resolve(null)),
+}))
+
+jest.mock('@/components/dashboard-charts', () => ({
+  DashboardCharts: () => <div data-testid="dashboard-charts" />,
+}))
+
+jest.mock('@/components/feedback-dialog', () => ({
+  FeedbackDialog: () => <div data-testid="feedback-dialog" />,
+}))
+
 import DashboardPage from '@/app/dashboard/page'
 
 function makeChain(resolvedValue: unknown, { terminal = 'single' }: { terminal?: 'single' | 'eq' | 'order' } = {}) {

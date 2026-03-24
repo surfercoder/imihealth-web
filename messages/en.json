@@ -297,6 +297,17 @@
     "successToast": "Report deleted",
     "successDesc": "The report from {date} was successfully deleted."
   },
+  "deletePatientButton": {
+    "srLabel": "Delete patient",
+    "confirmTitle": "Delete patient?",
+    "confirmDescription": "This action will permanently delete the patient {name} and all associated reports, including audio files and generated reports. This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "errorTitle": "Error deleting patient",
+    "successTitle": "Patient deleted",
+    "successMessage": "The patient {name} was successfully deleted."
+  },
   "deleteInformeButton": {
     "srLabel": "Delete report",
     "confirmTitle": "Delete report?",
@@ -525,6 +536,50 @@
     "informeCount": "{current} of {max} reports used",
     "dashboardTooltip": "You are on the MVP trial version with a limit of {max} reports. We will launch the production version with unlimited reports soon.",
     "backToLogin": "Back to sign in"
+  },
+  "feedbackDialog": {
+    "trigger": "Feedback",
+    "title": "Send us your feedback",
+    "description": "Your opinion helps us improve IMI Health. Tell us what you think.",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Select a reason",
+    "reasons": {
+      "feedback": "General feedback",
+      "bug": "Report a bug",
+      "question": "Question",
+      "improvement": "Improvement suggestion",
+      "support": "Technical support"
+    },
+    "messageLabel": "Message",
+    "messagePlaceholder": "Tell us in detail...",
+    "cancel": "Cancel",
+    "submit": "Send",
+    "sending": "Sending...",
+    "emailSubject": "Feedback from IMI Health",
+    "successTitle": "Feedback sent",
+    "successMessage": "Thank you for your feedback. We will review it shortly.",
+    "errorTitle": "Error sending",
+    "errorMessage": "Could not send feedback. Please try again."
+  },
+  "charts": {
+    "sectionTitle": "Statistics",
+    "patientsOverTime": "Total patients",
+    "patientsOverTimeDesc": "Cumulative patient registrations over time",
+    "totalPatients": "Total patients",
+    "consultationTime": "Time per consultation",
+    "consultationTimeDesc": "Average, minimum, and maximum processing time (min)",
+    "minutes": "min",
+    "average": "Average",
+    "minimum": "Minimum",
+    "maximum": "Maximum",
+    "basedOn": "Based on {count} processed consultations",
+    "dailyPatients": "Patients per day",
+    "dailyPatientsDesc": "New patients per day · Average: {avg}/day",
+    "newPatients": "New patients",
+    "avg": "Avg",
+    "consultationReasons": "Consultation reasons",
+    "consultationReasonsDesc": "Distribution of reasons extracted from reports",
+    "noData": "Not enough data"
   },
   "manifest": {
     "title": "IMI Health Manifest",

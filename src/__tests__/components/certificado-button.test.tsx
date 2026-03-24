@@ -111,9 +111,12 @@ describe('CertificadoButton', () => {
     })
   })
 
-  it('opens WhatsApp link when WhatsApp button is clicked', async () => {
-    const mockOpen = jest.fn()
-    window.open = mockOpen
+  it('sends WhatsApp message via API when WhatsApp button is clicked', async () => {
+    const originalFetch = global.fetch
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true }),
+    })
+    global.fetch = mockFetch
     mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
     const user = userEvent.setup()
     render(<CertificadoButton {...defaultProps} />)
@@ -123,10 +126,13 @@ describe('CertificadoButton', () => {
       expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
     })
     await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
-    expect(mockOpen).toHaveBeenCalledTimes(1)
-    const calledUrl = mockOpen.mock.calls[0][0] as string
-    expect(calledUrl).toContain('https://wa.me/5492611234567')
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/send-whatsapp', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
     expect(mockToastSuccess).toHaveBeenCalled()
+    global.fetch = originalFetch
   })
 
   it('shows error toast when generation returns error', async () => {

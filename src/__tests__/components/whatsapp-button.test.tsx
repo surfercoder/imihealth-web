@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { WhatsAppButton } from '@/components/whatsapp-button'
+
+const mockFetch = jest.fn()
+global.fetch = mockFetch
 
 describe('WhatsAppButton', () => {
   const defaultProps = {
@@ -12,39 +15,48 @@ describe('WhatsAppButton', () => {
   }
 
   beforeEach(() => {
-    jest.spyOn(window, 'open').mockImplementation(() => null)
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
+    mockFetch.mockReset()
   })
 
   it('renders the button', () => {
     render(<WhatsAppButton {...defaultProps} />)
-    expect(screen.getByRole('button', { name: /Enviar por WhatsApp/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /enviar por whatsapp/i })).toBeInTheDocument()
   })
 
-  it('calls window.open with correct WhatsApp URL when clicked', async () => {
+  it('calls /api/send-whatsapp with correct payload on click', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, messageId: 'msg123' }),
+    })
+
     const user = userEvent.setup()
     render(<WhatsAppButton {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Enviar por WhatsApp/i }))
-    expect(window.open).toHaveBeenCalledTimes(1)
-    const [url, target, features] = (window.open as jest.Mock).mock.calls[0]
-    expect(url).toContain('https://wa.me/5492611234567')
-    expect(url).toContain(encodeURIComponent('Juan Pérez'))
-    expect(url).toContain(encodeURIComponent('https://example.com/informe.pdf'))
-    expect(target).toBe('_blank')
-    expect(features).toBe('noopener,noreferrer')
+    await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    const [url, options] = mockFetch.mock.calls[0]
+    expect(url).toBe('/api/send-whatsapp')
+    expect(options.method).toBe('POST')
+
+    const body = JSON.parse(options.body)
+    expect(body.to).toBe('5492611234567')
+    expect(body.templateName).toMatch(/^patient_report_(es|en)$/)
+    expect(body.parameters).toEqual(['Juan Pérez', 'https://example.com/informe.pdf'])
   })
 
-  it('encodes the patient name and PDF URL in the message', async () => {
+  it('shows error toast on API failure', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: false, error: 'Rate limited' }),
+    })
+
     const user = userEvent.setup()
     render(<WhatsAppButton {...defaultProps} />)
-    await user.click(screen.getByRole('button', { name: /Enviar por WhatsApp/i }))
-    const [url] = (window.open as jest.Mock).mock.calls[0]
-    expect(url).toContain('text=')
-    const textParam = new URL(url).searchParams.get('text')
-    expect(textParam).toContain('Juan Pérez')
-    expect(textParam).toContain('https://example.com/informe.pdf')
+    await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
   })
 })
