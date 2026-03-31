@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { WelcomeScreen } from "./welcome-screen";
 
 export interface HomeWrapperProps {
@@ -15,9 +15,14 @@ export function HomeWrapper({ children, userName, showWelcome: initialShowWelcom
     if (typeof window === "undefined") return false;
     if (sessionStorage.getItem("imi_welcomed") === "1") return false;
     sessionStorage.setItem("imi_welcomed", "1");
-    window.history.replaceState(null, "", window.location.pathname);
     return true;
   });
+
+  useEffect(() => {
+    if (showWelcome) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [showWelcome]);
 
   return (
     <>

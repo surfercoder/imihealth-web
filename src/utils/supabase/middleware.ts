@@ -45,14 +45,14 @@ export async function updateSession(request: NextRequest) {
     Sentry.setUser(null);
   }
 
-  const publicPaths = ["/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest"];
+  const publicPaths = ["/home", "/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest"];
   const isPublicPath =
     request.nextUrl.pathname === "/" ||
     publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 

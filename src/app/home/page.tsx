@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "AI-powered medical consultation reports",
 };
 
-export default async function LandingPage() {
+export default async function HomePage() {
   const supabase = await createClient();
   const {
     data: { user },
