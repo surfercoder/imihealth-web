@@ -118,6 +118,11 @@
   100% { transform: scale(1); opacity: 0; }
 }
 
+@keyframes scale-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

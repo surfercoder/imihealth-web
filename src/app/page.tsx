@@ -1,115 +1,110 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
-import { Mic, FileText, Shield, Smartphone } from "lucide-react";
-import { PublicHeader } from "@/components/public-header";
-import { FeedbackDialog } from "@/components/feedback-dialog";
+import { HomeWrapper } from "@/components/home-wrapper";
+import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
+import { HomeTabs } from "@/components/home-tabs";
+import type { PatientWithStats } from "@/actions/patients";
+import { getPlanInfo } from "@/actions/plan";
+import { PlanProvider } from "@/contexts/plan-context";
+import { getDashboardChartData } from "@/actions/dashboard-charts";
 
 export const metadata: Metadata = {
-  title: "IMI Health",
-  description: "AI-powered medical consultation reports",
+  title: "Inicio | IMI Health",
+  description: "Panel principal de IMI Health",
 };
 
-export default async function LandingPage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string; tab?: string }>;
+}) {
+  const params = await searchParams;
+  const showWelcome = params.welcome === "true";
+  const activeTab = params.tab || "informes";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect("/dashboard");
+  if (!user) {
+    redirect("/login");
   }
 
-  const t = await getTranslations("landing");
-  const tNav = await getTranslations("nav");
+  const [t, { data: doctor }, { data: informes }, plan, chartData] = await Promise.all([
+    getTranslations(),
+    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    supabase.from("informes").select("id, status").eq("doctor_id", user.id),
+    getPlanInfo(),
+    getDashboardChartData(),
+  ]);
 
-  const features = [
-    { icon: Mic, titleKey: "feature1Title" as const, descKey: "feature1Desc" as const },
-    { icon: FileText, titleKey: "feature2Title" as const, descKey: "feature2Desc" as const },
-    { icon: Shield, titleKey: "feature3Title" as const, descKey: "feature3Desc" as const },
-    { icon: Smartphone, titleKey: "feature4Title" as const, descKey: "feature4Desc" as const },
-  ];
+  const allInformes = informes ?? [];
+  const completedCount = allInformes.filter((i) => i.status === "completed").length;
+  const processingCount = allInformes.filter((i) => i.status === "processing").length;
+  const errorCount = allInformes.filter((i) => i.status === "error").length;
+
+  const { data: patientsRaw } = await supabase
+    .from("patients")
+    .select(`id, name, dni, email, phone, dob, created_at, informes(created_at, status)`)
+    .eq("doctor_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  const allPatients: PatientWithStats[] = (patientsRaw ?? []).map((p) => {
+    const informes = (p.informes as unknown as { created_at: string; status: string }[]) ?? [];
+    const sorted = informes.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    return {
+      id: p.id,
+      name: p.name,
+      dni: p.dni,
+      email: p.email,
+      phone: p.phone,
+      dob: p.dob,
+      created_at: p.created_at,
+      informe_count: informes.length,
+      last_informe_at: sorted[0]?.created_at ?? null,
+      last_informe_status: sorted[0]?.status ?? null,
+    };
+  });
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-14">
-      <PublicHeader />
+    <PlanProvider plan={plan}>
+      <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
+        <div className="flex min-h-screen flex-col bg-background pt-14">
+          <Suspense fallback={<AppHeader doctorName={doctor?.name} />}>
+            <AppHeader doctorName={doctor?.name} />
+          </Suspense>
 
-      {/* Hero */}
-      <main className="flex-1">
-        <section className="mx-auto max-w-5xl px-6 py-20 text-center">
-          <div className="mx-auto max-w-2xl">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-              {t("heroTitle")}
-            </h1>
-            <p className="mt-4 text-lg text-foreground/60">
-              {t("heroSubtitle")}
-            </p>
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <Button size="lg" asChild>
-                <Link href="/signup">{t("getStarted")}</Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/login">{t("signIn")}</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+          <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+            <Suspense>
+            <HomeTabs
+              activeTab={activeTab}
+              patients={allPatients}
+              totalInformes={allInformes.length}
+              completedCount={completedCount}
+              processingCount={processingCount}
+              errorCount={errorCount}
+              plan={plan}
+              chartData={chartData}
+              translations={{
+                informes: t("tabs.informes"),
+                misPacientes: t("tabs.misPacientes"),
+                dashboard: t("tabs.dashboard"),
+                plantillas: t("tabs.plantillas"),
+              }}
+            />
+            </Suspense>
+          </main>
 
-        {/* Features */}
-        <section className="border-t border-border/60 bg-muted/30">
-          <div className="mx-auto max-w-5xl px-6 py-16">
-            <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight">
-              {t("featuresTitle")}
-            </h2>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {features.map((f) => (
-                <div key={f.titleKey} className="rounded-xl border bg-card p-6 shadow-sm">
-                  <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <f.icon className="size-5" />
-                  </div>
-                  <h3 className="font-semibold text-card-foreground">{t(f.titleKey)}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{t(f.descKey)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="mx-auto max-w-5xl px-6 py-16 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight">{t("ctaTitle")}</h2>
-          <p className="mt-2 text-foreground/60">{t("ctaSubtitle")}</p>
-          <div className="mt-6">
-            <Button size="lg" asChild>
-              <Link href="/signup">{t("signUp")}</Link>
-            </Button>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <p className="text-sm text-foreground/50">
-            {t("copyright", { year: new Date().getFullYear() })}
-          </p>
-          <div className="flex items-center gap-3">
-            <FeedbackDialog doctorName={null} doctorEmail={null} />
-            <Link href="/manifest" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
-              {tNav("manifest")}
-            </Link>
-            <Link href="/login" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
-              {t("signIn")}
-            </Link>
-            <Link href="/signup" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
-              {t("signUp")}
-            </Link>
-          </div>
+          <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
         </div>
-      </footer>
-    </div>
+      </HomeWrapper>
+    </PlanProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useReducer, useActionState, useTransition, useRef, useCallback } from "react";
+import { useState, useMemo, useReducer, useActionState, useTransition, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -79,6 +79,16 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("signupForm");
+
+  const sortedSpecialties = useMemo(() =>
+    [...ESPECIALIDADES]
+      .map((key) => ({ key, label: t(`specialties.${key}`) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [t]
+  );
+
+  const selectedLabel = field.value ? t(`specialties.${field.value}`) : "";
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
@@ -94,7 +104,7 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
               field.value ? "text-card-foreground" : "text-muted-foreground"
             )}
           >
-            {field.value || t("specialtyPlaceholder")}
+            {selectedLabel || t("specialtyPlaceholder")}
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </button>
         </FormControl>
@@ -107,23 +117,23 @@ function SpecialtyCombobox({ field, open, onOpenChange }: {
               {t("specialtyNotFound")}
             </CommandEmpty>
             <CommandGroup>
-              {ESPECIALIDADES.map((esp) => (
+              {sortedSpecialties.map(({ key, label }) => (
                 <CommandItem
-                  key={esp}
-                  value={esp}
+                  key={key}
+                  value={label}
                   className="text-card-foreground data-[selected=true]:bg-muted data-[selected=true]:text-card-foreground"
-                  onSelect={(val) => {
-                    field.onChange(val);
+                  onSelect={() => {
+                    field.onChange(key);
                     onOpenChange(false);
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 size-4",
-                      field.value === esp ? "opacity-100" : "opacity-0"
+                      field.value === key ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {esp}
+                  {label}
                 </CommandItem>
               ))}
             </CommandGroup>

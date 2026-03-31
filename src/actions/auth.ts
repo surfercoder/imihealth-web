@@ -35,7 +35,7 @@ export async function login(
     return { error: error.message };
   }
 
-  redirect("/dashboard?welcome=true");
+  redirect("/?welcome=true");
 }
 
 export async function signup(
@@ -157,7 +157,7 @@ export async function resetPassword(
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function logout() {

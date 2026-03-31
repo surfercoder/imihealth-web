@@ -9,7 +9,9 @@
     "edit": "Editar",
     "back": "Volver",
     "error": "Error",
-    "noContent": "Sin contenido"
+    "noContent": "Sin contenido",
+    "copy": "Copiar",
+    "copied": "Copiado"
   },
   "nav": {
     "greeting": "Hola, {name}",
@@ -38,6 +40,39 @@
       "processing": "En proceso"
     },
     "patientsTitle": "Pacientes"
+  },
+  "tabs": {
+    "informes": "Informes",
+    "misPacientes": "Mis pacientes",
+    "dashboard": "Dashboard",
+    "plantillas": "Plantillas"
+  },
+  "informes": {
+    "title": "Crear nuevo informe",
+    "subtitle": "Elegí el tipo de informe que querés crear",
+    "classic": "Informe clásico",
+    "classicDesc": "Carga los datos del paciente una vez, luego graba la consulta. Genera informe médico y para el paciente.",
+    "createClassic": "Crear informe clásico",
+    "quick": "Informe rápido",
+    "quickDesc": "No requiere datos del paciente. Dicta todo de una vez. Genera solo informe médico.",
+    "createQuick": "Crear informe rápido",
+    "quickResultDesc": "Tu informe ha sido generado exitosamente",
+    "doctorReport": "Informe del Doctor",
+    "copiedToClipboard": "Informe copiado al portapapeles",
+    "copyError": "No se pudo copiar al portapapeles",
+    "createAnother": "Crear otro informe"
+  },
+  "patients": {
+    "subtitle": "Gestiona y busca tus pacientes"
+  },
+  "dashboard": {
+    "title": "Resumen general",
+    "subtitle": "Vista general de tu actividad médica"
+  },
+  "plantillas": {
+    "title": "Plantillas de informes",
+    "subtitle": "Crea y gestiona plantillas para tus informes",
+    "comingSoon": "Próximamente disponible"
   },
   "welcome": {
     "greeting": "¡Hola, {name}!",
@@ -203,15 +238,19 @@
     "title": "Grabar consulta",
     "subtitle": "Inicie la grabación cuando comience la consulta con el paciente.",
     "howItWorks": "¿Cómo funciona?",
-    "step1": "Presione \"Iniciar grabación\" para comenzar",
+    "step1": "Presione el botón rojo para iniciar la grabación",
     "step2": "Realice la consulta con el paciente normalmente",
-    "step3": "Al finalizar, presione \"Finalizar consulta\"",
-    "step4": "La IA analizará la conversación y generará dos informes automáticamente",
+    "step3": "Presione el botón rojo nuevamente para finalizar y procesar la grabación",
+    "step4": "La IA analizará la conversación y generará los informes automáticamente",
     "yearsOld": "años"
+  },
+  "quickInformePage": {
+    "step2": "Dicte toda la información del paciente y la consulta",
+    "step4": "La IA analizará la información y generará el informe médico automáticamente"
   },
   "audioRecorder": {
     "stateIdle": "Listo para grabar",
-    "stateIdleHint": "Presione el botón para iniciar la consulta",
+    "stateIdleHint": "Presione el botón rojo para comenzar",
     "stateRequesting": "Solicitando acceso al micrófono...",
     "stateRecording": "Grabando...",
     "statePaused": "En pausa",
@@ -230,15 +269,20 @@
     "btnStart": "Iniciar grabación",
     "btnRequesting": "Accediendo al micrófono...",
     "btnPause": "Pausar",
-    "btnStop": "Finalizar consulta",
+    "btnStop": "Finalizar grabación",
     "btnResume": "Continuar",
     "btnRetry": "Intentar de nuevo",
     "errorMicDenied": "Permiso de micrófono denegado. Por favor, permitá el acceso al micrófono.",
     "errorMicAccess": "No se pudo acceder al micrófono",
-    "transcriptFallback": "No se pudo transcribir el audio automáticamente. Por favor revise la grabación.",
+    "transcriptFallback": "No se pudo transcribir la consulta automáticamente. Por favor intente nuevamente.",
     "errorProcess": "Error al procesar la consulta",
     "successTitle": "Informe generado correctamente",
-    "successDescription": "Los informes médico y para el paciente están listos."
+    "successDescription": "Los informes médico y para el paciente están listos.",
+    "stateInsufficientContent": "No se detectó contenido médico relevante",
+    "stateInsufficientContentHint": "La grabación no contiene información médica suficiente para generar los informes. Esto puede ocurrir si hubo mucho ruido de fondo, silencio, o la conversación no incluyó datos clínicos relevantes.",
+    "insufficientContentTitle": "Contenido insuficiente",
+    "insufficientContentDescription": "No se pudo generar el informe porque la grabación no contenía información médica relevante.",
+    "btnTryAgain": "Intentar de nuevo"
   },
   "informeEditor": {
     "edit": "Editar informes",
@@ -248,7 +292,7 @@
     "unsavedChanges": "Tenés cambios sin guardar",
     "medicalReport": "Informe médico",
     "forDoctor": "Para el doctor",
-    "patientReport": "Informe para el paciente",
+    "patientReport": "Informe paciente",
     "viaWhatsApp": "Se enviará por WhatsApp",
     "medicalReportPlaceholder": "Informe médico...",
     "patientReportPlaceholder": "Informe para el paciente...",
@@ -258,7 +302,8 @@
     "regenerateSuccess": "Informe regenerado con IA correctamente",
     "consentLabel": "CONSENTIMIENTO DEL PACIENTE",
     "consentText": "{patientName} confirmó haber leído el informe y prestó su consentimiento el {patientConsentAt}.",
-    "consentTextImplicit": "{patientName} fue informado/a previamente sobre el uso del sistema IMI y prestó su consentimiento para el registro y procesamiento de la consulta médica."
+    "consentTextImplicit": "{patientName} fue informado/a previamente sobre el uso del sistema IMI y prestó su consentimiento para el procesamiento de la consulta médica.",
+    "whatsappNotActivated": "El paciente aún no tiene WhatsApp activado para recibir informes."
   },
   "consentSection": {
     "title": "Consentimiento del paciente",
@@ -289,7 +334,7 @@
   "deleteInforme": {
     "srLabel": "Eliminar informe",
     "title": "¿Eliminar informe?",
-    "description": "Esta acción eliminará permanentemente el informe del {date}, incluyendo el audio, el reporte generado y todos los datos relacionados. Esta acción no se puede deshacer.",
+    "description": "Esta acción eliminará permanentemente el informe del {date}, incluyendo el reporte generado y todos los datos relacionados. Esta acción no se puede deshacer.",
     "cancel": "Cancelar",
     "confirm": "Eliminar",
     "deleting": "Eliminando…",
@@ -300,7 +345,7 @@
   "deletePatientButton": {
     "srLabel": "Eliminar paciente",
     "confirmTitle": "¿Eliminar paciente?",
-    "confirmDescription": "Esta acción eliminará permanentemente al paciente {name} y todos sus informes asociados, incluyendo audios y reportes generados. Esta acción no se puede deshacer.",
+    "confirmDescription": "Esta acción eliminará permanentemente al paciente {name} y todos sus informes asociados. Esta acción no se puede deshacer.",
     "cancel": "Cancelar",
     "confirm": "Eliminar",
     "deleting": "Eliminando…",
@@ -311,7 +356,7 @@
   "deleteInformeButton": {
     "srLabel": "Eliminar informe",
     "confirmTitle": "¿Eliminar informe?",
-    "confirmDescription": "Esta acción eliminará permanentemente el informe del {date}, incluyendo el audio, el reporte generado y todos los datos relacionados. Esta acción no se puede deshacer.",
+    "confirmDescription": "Esta acción eliminará permanentemente el informe del {date}, incluyendo el reporte generado y todos los datos relacionados. Esta acción no se puede deshacer.",
     "cancel": "Cancelar",
     "confirm": "Eliminar",
     "deleting": "Eliminando…",
@@ -329,9 +374,13 @@
     "label": "Enviar por WhatsApp",
     "message": "Hola {patientName}, le enviamos su informe médico de la consulta de hoy.\n\nPuede descargarlo aquí: {pdfUrl}\n\nAnte cualquier duda, no dude en contactarnos.",
     "successTitle": "WhatsApp enviado",
-    "successMessage": "El informe fue enviado por WhatsApp a {patientName}.",
-    "errorTitle": "Error al enviar WhatsApp",
-    "errorMessage": "Ocurrió un error inesperado"
+    "successMessage": "El informe fue enviado por WhatsApp a {patientName} con PDF e imagen adjuntos.",
+    "errorTitle": "Error al enviar",
+    "errorMessage": "No se pudo enviar el informe por WhatsApp. Por favor, intente nuevamente."
+  },
+  "whatsappOptIn": {
+    "activateButton": "Activar WhatsApp",
+    "description": "Confirma que el paciente autoriza recibir informes por WhatsApp."
   },
   "emailButton": {
     "subject": "Informe médico - {doctorName}",
@@ -347,7 +396,7 @@
     "label": "Enviar certificado por WhatsApp",
     "message": "Hola {patientName}, le enviamos su certificado médico.\n\nPuede descargarlo aquí: {certUrl}\n\nAnte cualquier duda, no dude en contactarnos.",
     "successTitle": "WhatsApp enviado",
-    "successMessage": "El certificado fue enviado por WhatsApp a {patientName}.",
+    "successMessage": "El certificado fue enviado por WhatsApp a {patientName} con PDF e imagen adjuntos.",
     "errorTitle": "Error al enviar WhatsApp",
     "errorMessage": "Ocurrió un error inesperado"
   },
@@ -411,6 +460,56 @@
     "specialtyPlaceholder": "Seleccioná tu especialidad",
     "searchSpecialty": "Buscar especialidad…",
     "specialtyNotFound": "No se encontró la especialidad.",
+    "specialties": {
+      "Alergología": "Alergología",
+      "Anestesiología y reanimación": "Anestesiología y reanimación",
+      "Cardiología": "Cardiología",
+      "Dermatología": "Dermatología",
+      "Endocrinología y nutrición": "Endocrinología y nutrición",
+      "Geriatría": "Geriatría",
+      "Hematología y hemoterapia": "Hematología y hemoterapia",
+      "Inmunología": "Inmunología",
+      "Infectología": "Infectología",
+      "Medicina interna": "Medicina interna",
+      "Medicina familiar y comunitaria": "Medicina familiar y comunitaria",
+      "Medicina del trabajo": "Medicina del trabajo",
+      "Medicina preventiva y salud pública": "Medicina preventiva y salud pública",
+      "Medicina crítica / intensiva": "Medicina crítica / intensiva",
+      "Neumología": "Neumología",
+      "Nefrología": "Nefrología",
+      "Neurología": "Neurología",
+      "Oncología médica": "Oncología médica",
+      "Psiquiatría": "Psiquiatría",
+      "Pediatría": "Pediatría",
+      "Reumatología": "Reumatología",
+      "Cirugía general y del aparato digestivo": "Cirugía general y del aparato digestivo",
+      "Cirugía cardiovascular": "Cirugía cardiovascular",
+      "Cirugía torácica": "Cirugía torácica",
+      "Cirugía ortopédica y traumatología": "Cirugía ortopédica y traumatología",
+      "Cirugía pediátrica": "Cirugía pediátrica",
+      "Cirugía plástica, estética y reparadora": "Cirugía plástica, estética y reparadora",
+      "Cirugía oral y maxilofacial": "Cirugía oral y maxilofacial",
+      "Neurocirugía": "Neurocirugía",
+      "Angiología y cirugía vascular": "Angiología y cirugía vascular",
+      "Dermatología médico-quirúrgica y venereología": "Dermatología médico-quirúrgica y venereología",
+      "Obstetricia y ginecología": "Obstetricia y ginecología",
+      "Oftalmología": "Oftalmología",
+      "Otorrinolaringología": "Otorrinolaringología",
+      "Urología": "Urología",
+      "Anatomía patológica": "Anatomía patológica",
+      "Bioquímica clínica": "Bioquímica clínica",
+      "Farmacología clínica": "Farmacología clínica",
+      "Microbiología y parasitología": "Microbiología y parasitología",
+      "Medicina nuclear": "Medicina nuclear",
+      "Neurofisiología clínica": "Neurofisiología clínica",
+      "Radiodiagnóstico": "Radiodiagnóstico",
+      "Medicina transfusional y hemoterapia": "Medicina transfusional y hemoterapia",
+      "Medicina del deporte / medicina física y rehabilitación": "Medicina del deporte / medicina física y rehabilitación",
+      "Medicina legal y forense": "Medicina legal y forense",
+      "Medicina paliativa": "Medicina paliativa",
+      "Medicina aeroespacial / medicina aeronáutica": "Medicina aeroespacial / medicina aeronáutica",
+      "Hidrología médica": "Hidrología médica"
+    },
     "password": "Contraseña",
     "passwordPlaceholder": "Mín. 8 caracteres",
     "confirmPassword": "Confirmar contraseña",
@@ -453,7 +552,7 @@
       "s3li3": "Notificar de inmediato a la Empresa ante cualquier uso no autorizado de tu cuenta.",
       "s3li4": "Cumplir con toda la legislación aplicable en materia de protección de datos personales, telemedicina y derechos del paciente.",
       "s3li5": "No utilizar la plataforma para actividades ilícitas, fraudulentas o que violen derechos de terceros.",
-      "s3li6": "Obtener el consentimiento explícito del paciente antes de grabar y procesar cualquier consulta médica.",
+      "s3li6": "Obtener el consentimiento explícito del paciente antes de procesar cualquier consulta médica.",
       "s4Title": "4. Privacidad y protección de datos",
       "s4p1": "La Empresa recopila y trata datos personales de los usuarios de la plataforma de conformidad con su Política de Privacidad, la cual forma parte integrante de estos Términos. Al aceptar estos Términos, también aceptás la Política de Privacidad.",
       "s4p2": "El Médico, en su rol de responsable del tratamiento respecto de los datos de sus pacientes, deberá garantizar una base legal válida para el tratamiento de dichos datos y respetar los derechos de acceso, rectificación, cancelación y oposición reconocidos por la normativa aplicable.",
@@ -613,5 +712,34 @@
     "conclusion2": "Optimiza su expresión documental.",
     "finalStatement": "Porque el futuro de la medicina no es menos humano.",
     "finalConclusion": "Es más claro, más seguro y más inteligente."
+  },
+  "notifications": {
+    "newReportTitle": "Nuevo informe generado",
+    "newReportDescription": "El informe de {patientName} está listo",
+    "viewReport": "Ver informe",
+    "unknownPatient": "Paciente desconocido"
+  },
+  "profilePage": {
+    "title": "Mi perfil",
+    "subtitle": "Visualizá y actualizá tu información personal y profesional",
+    "backHome": "Volver al inicio",
+    "editTitle": "Editar perfil",
+    "editDescription": "Actualizá tus datos personales y profesionales",
+    "personalInfo": "Información personal",
+    "professionalInfo": "Información profesional",
+    "signatureSection": "Firma digital",
+    "currentSignature": "Firma actual",
+    "signatureAlt": "Firma digital",
+    "changeSignature": "Cambiar firma",
+    "emailDisabledHint": "El email no se puede modificar ya que se usa para iniciar sesión.",
+    "unnamed": "Doctor",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "saveSuccess": "Perfil actualizado correctamente"
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o ha sido movida.",
+    "backHome": "Volver al inicio"
   }
 }

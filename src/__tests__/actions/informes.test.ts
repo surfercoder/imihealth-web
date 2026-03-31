@@ -1,12 +1,10 @@
 const mockGetUser = jest.fn()
 const mockFrom = jest.fn()
-const mockStorage = jest.fn()
 const mockRevalidatePath = jest.fn()
 
 const mockSupabase = {
   auth: { getUser: mockGetUser },
   from: mockFrom,
-  storage: { from: mockStorage },
 }
 
 jest.mock('@/utils/supabase/server', () => ({
@@ -25,13 +23,13 @@ jest.mock('@anthropic-ai/sdk', () => {
   }))
 })
 
-const mockGeneratePDF = jest.fn()
-const mockGenerateCertPDF = jest.fn()
-jest.mock('@/lib/pdf', () => ({
-  generateInformePDF: (...args: unknown[]) => mockGeneratePDF(...args),
-  generateCertificadoPDF: (...args: unknown[]) => mockGenerateCertPDF(...args),
+jest.mock('@/lib/prompts', () => ({
+  getSpecialtyPrompt: jest.fn(() => 'default prompt'),
 }))
 
+jest.mock('@/lib/transcribe', () => ({
+  transcribeAudio: jest.fn().mockResolvedValue({ text: '', utterances: null }),
+}))
 
 import {
   createPatient,
@@ -39,9 +37,6 @@ import {
   processInformeFromTranscript,
   getInformes,
   getInforme,
-  getPdfDownloadUrl,
-  generateAndSavePdf,
-  regeneratePdf,
   deleteInforme,
   updateInformeReports,
   updateInformeDoctorOnly,
@@ -50,8 +45,9 @@ import {
   recordPatientConsent,
   generateAndSaveCertificado,
 } from '@/actions/informes'
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { __mockTranscribe } = require('assemblyai') as { __mockTranscribe: jest.Mock }
+const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -64,8 +60,6 @@ function makeChain(overrides: Record<string, jest.Mock> = {}) {
     eq: jest.fn(),
     order: jest.fn(),
     single: jest.fn(),
-    upload: jest.fn(),
-    createSignedUrl: jest.fn(),
   }
   Object.assign(chain, overrides)
   chain.insert.mockReturnValue(chain)
@@ -173,7 +167,7 @@ describe('createInforme', () => {
   it('returns error when MVP informe limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const countChain = makeChain()
-    countChain.eq.mockResolvedValue({ count: 7 })
+    countChain.eq.mockResolvedValue({ count: 10 })
     mockFrom.mockReturnValue(countChain)
     const result = await createInforme('p-1')
     expect(result).toEqual({ error: expect.stringContaining('límite') })
@@ -238,24 +232,6 @@ describe('getInforme', () => {
   })
 })
 
-describe('getPdfDownloadUrl', () => {
-  beforeEach(() => jest.clearAllMocks())
-
-  it('returns signed URL when available', async () => {
-    const storageChain = { createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: 'https://signed.url/pdf' } }) }
-    mockStorage.mockReturnValue(storageChain)
-    const result = await getPdfDownloadUrl('doctor-1/i-1/informe-paciente.pdf')
-    expect(result).toBe('https://signed.url/pdf')
-  })
-
-  it('returns null when no signed URL', async () => {
-    const storageChain = { createSignedUrl: jest.fn().mockResolvedValue({ data: null }) }
-    mockStorage.mockReturnValue(storageChain)
-    const result = await getPdfDownloadUrl('doctor-1/i-1/informe-paciente.pdf')
-    expect(result).toBeNull()
-  })
-})
-
 describe('processInformeFromTranscript', () => {
   beforeEach(() => jest.clearAllMocks())
 
@@ -268,29 +244,33 @@ describe('processInformeFromTranscript', () => {
   it('returns success and revalidates paths on happy path', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
+    // 1. status update chain
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan Pérez', phone: '+54911234567' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
+    // 2 & 3. Promise.all: transcript save + doctor fetch
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
+
+    // 4. final update chain
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
-      .mockReturnValueOnce(finalUpdateChain)
+      .mockReturnValueOnce(updateChain)       // update status
+      .mockReturnValueOnce(transcriptSaveChain) // save transcript (Promise.all[0])
+      .mockReturnValueOnce(doctorChain)        // fetch doctor (Promise.all[1])
+      .mockReturnValueOnce(finalUpdateChain)   // final update
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
         {
           type: 'text',
           text: JSON.stringify({
+            valid_medical_content: true,
             informe_doctor: 'Doctor report content',
             informe_paciente: 'Patient report content',
           }),
@@ -298,13 +278,7 @@ describe('processInformeFromTranscript', () => {
       ],
     })
 
-    const pdfBytes = new Uint8Array([1, 2, 3])
-    mockGeneratePDF.mockResolvedValue(pdfBytes)
-
-    const storageUploadChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageUploadChain)
-
-    const result = await processInformeFromTranscript('i-1', 'transcript text', 'audio/path.webm')
+    const result = await processInformeFromTranscript('i-1', 'transcript text')
     expect(result).toEqual({ success: true })
     expect(mockRevalidatePath).toHaveBeenCalledWith('/')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
@@ -316,31 +290,29 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan', phone: '+549' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
+
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
+      .mockReturnValueOnce(transcriptSaveChain)
+      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
 
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: 'image', source: {} }],
     })
 
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1]))
-    const storageUploadChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageUploadChain)
-
+    // Non-text response => reportsText = "{}" => parsed as empty => both reports empty
+    // => insufficientContent because both reports empty
     const result = await processInformeFromTranscript('i-1', 'transcript')
-    expect(result).toEqual({ success: true })
+    expect(result).toEqual({ insufficientContent: true })
   })
 
   it('handles invalid JSON from anthropic (falls back to raw text)', async () => {
@@ -349,136 +321,28 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan', phone: '+549' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
+
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
+      .mockReturnValueOnce(transcriptSaveChain)
+      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
 
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: 'text', text: 'not valid json at all' }],
     })
 
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1]))
-    const storageUploadChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageUploadChain)
-
+    // Falls back: informeDoctor = informePaciente = 'not valid json at all' (non-empty)
     const result = await processInformeFromTranscript('i-1', 'transcript')
     expect(result).toEqual({ success: true })
-  })
-
-  it('continues when PDF generation fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValue(updateChain)
-
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan', phone: '+549' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
-
-    const finalUpdateChain = makeChain()
-    finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
-      .mockReturnValueOnce(finalUpdateChain)
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ informe_doctor: 'doc', informe_paciente: 'pac' }),
-        },
-      ],
-    })
-
-    mockGeneratePDF.mockRejectedValue(new Error('PDF generation failed'))
-
-    const result = await processInformeFromTranscript('i-1', 'transcript')
-    expect(result).toEqual({ success: true })
-  })
-
-  it('continues when PDF upload fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValue(updateChain)
-
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan', phone: '+549' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
-
-    const finalUpdateChain = makeChain()
-    finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
-      .mockReturnValueOnce(finalUpdateChain)
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ informe_doctor: 'doc', informe_paciente: 'pac' }),
-        },
-      ],
-    })
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1]))
-    const storageUploadChain = { upload: jest.fn().mockResolvedValue({ error: { message: 'Upload failed' } }) }
-    mockStorage.mockReturnValue(storageUploadChain)
-
-    const result = await processInformeFromTranscript('i-1', 'transcript')
-    expect(result).toEqual({ success: true })
-  })
-
-  it('skips PDF generation when informeData is null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValue(updateChain)
-
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: null, error: null })
-
-    const finalUpdateChain = makeChain()
-    finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(selectSingleChain)
-      .mockReturnValueOnce(finalUpdateChain)
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ informe_doctor: 'doc', informe_paciente: 'pac' }),
-        },
-      ],
-    })
-
-    const result = await processInformeFromTranscript('i-1', 'transcript')
-    expect(result).toEqual({ success: true })
-    expect(mockGeneratePDF).not.toHaveBeenCalled()
   })
 
   it('returns error and sets status to error when final update fails', async () => {
@@ -490,8 +354,8 @@ describe('processInformeFromTranscript', () => {
     const transcriptSaveChain = makeChain()
     transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: null, error: null })
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: { message: 'Update failed' } })
@@ -502,7 +366,7 @@ describe('processInformeFromTranscript', () => {
     mockFrom
       .mockReturnValueOnce(updateChain)
       .mockReturnValueOnce(transcriptSaveChain)
-      .mockReturnValueOnce(selectSingleChain)
+      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
       .mockReturnValueOnce(errorUpdateChain)
 
@@ -510,7 +374,7 @@ describe('processInformeFromTranscript', () => {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ informe_doctor: 'doc', informe_paciente: 'pac' }),
+          text: JSON.stringify({ valid_medical_content: true, informe_doctor: 'doc', informe_paciente: 'pac' }),
         },
       ],
     })
@@ -557,24 +421,19 @@ describe('processInformeFromTranscript', () => {
     expect(result).toEqual({ error: 'Error desconocido' })
   })
 
-  it('uses AssemblyAI transcription when audioPath is provided and download succeeds', async () => {
+  it('uses AssemblyAI transcription when audioBase64 is provided', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     // 1. status update chain
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    // 2. transcript save chain
+    // 2 & 3. Promise.all: transcript save + doctor fetch
     const transcriptSaveChain = makeChain()
     transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
-    // 3. select informe data chain
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan Pérez', phone: '+54911234567' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
 
     // 4. final update chain
     const finalUpdateChain = makeChain()
@@ -583,23 +442,17 @@ describe('processInformeFromTranscript', () => {
     mockFrom
       .mockReturnValueOnce(updateChain)       // update status
       .mockReturnValueOnce(transcriptSaveChain) // save transcript
-      .mockReturnValueOnce(selectSingleChain)  // select informe+patients
+      .mockReturnValueOnce(doctorChain)        // fetch doctor
       .mockReturnValueOnce(finalUpdateChain)   // final update
 
-    // Storage: download audio, upload PDF, remove audio
-    const audioBlob = { arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(3)) }
-    mockStorage
-      .mockReturnValueOnce({ download: jest.fn().mockResolvedValue({ data: audioBlob, error: null }) })
-      .mockReturnValueOnce({ upload: jest.fn().mockResolvedValue({ error: null }) })
-      .mockReturnValueOnce({ remove: jest.fn().mockResolvedValue({}) })
-
-    __mockTranscribe.mockResolvedValueOnce({ text: 'AssemblyAI transcript', status: 'completed', utterances: null })
+    mockTranscribeAudio.mockResolvedValueOnce({ text: 'AssemblyAI transcript', utterances: null })
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
         {
           type: 'text',
           text: JSON.stringify({
+            valid_medical_content: true,
             informe_doctor: 'Doctor report',
             informe_paciente: 'Patient report',
           }),
@@ -607,11 +460,10 @@ describe('processInformeFromTranscript', () => {
       ],
     })
 
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-
-    const result = await processInformeFromTranscript('i-1', 'browser transcript', 'audio/path.webm')
+    const audioBase64 = Buffer.from('fake audio').toString('base64')
+    const result = await processInformeFromTranscript('i-1', 'browser transcript', audioBase64)
     expect(result).toEqual({ success: true })
-    expect(__mockTranscribe).toHaveBeenCalled()
+    expect(mockTranscribeAudio).toHaveBeenCalled()
   })
 
   it('stores transcript_dialog when AI response includes a dialog field', async () => {
@@ -623,12 +475,8 @@ describe('processInformeFromTranscript', () => {
     const transcriptSaveChain = makeChain()
     transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
-    const informeData = {
-      id: 'i-1',
-      patients: { name: 'Juan Pérez', phone: '+54911234567' },
-    }
-    const selectSingleChain = makeChain()
-    selectSingleChain.single.mockResolvedValue({ data: informeData, error: null })
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
@@ -636,7 +484,7 @@ describe('processInformeFromTranscript', () => {
     mockFrom
       .mockReturnValueOnce(updateChain)
       .mockReturnValueOnce(transcriptSaveChain)
-      .mockReturnValueOnce(selectSingleChain)
+      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
 
     const dialog = [
@@ -649,6 +497,7 @@ describe('processInformeFromTranscript', () => {
         {
           type: 'text',
           text: JSON.stringify({
+            valid_medical_content: true,
             informe_doctor: 'Doctor report',
             informe_paciente: 'Patient report',
             dialog,
@@ -657,12 +506,6 @@ describe('processInformeFromTranscript', () => {
       ],
     })
 
-    const pdfBytes = new Uint8Array([1, 2, 3])
-    mockGeneratePDF.mockResolvedValue(pdfBytes)
-
-    const storageUploadChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageUploadChain)
-
     const result = await processInformeFromTranscript('i-1', 'transcript')
     expect(result).toEqual({ success: true })
 
@@ -670,214 +513,44 @@ describe('processInformeFromTranscript', () => {
     const updateCall = finalUpdateChain.update.mock.calls[0][0]
     expect(updateCall.transcript_dialog).toEqual(dialog)
   })
-})
 
-describe('generateAndSavePdf', () => {
-  beforeEach(() => jest.clearAllMocks())
-
-  it('returns error when user is not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'No autenticado' })
-  })
-
-  it('returns error when informe fetch fails', async () => {
+  it('returns insufficientContent when valid_medical_content is false', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
-    mockFrom.mockReturnValue(chain)
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'Informe no encontrado' })
-  })
-
-  it('returns error when informe data is null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(chain)
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'Informe no encontrado' })
-  })
-
-  it('returns error when status is not completed', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'processing', informe_paciente: 'content', created_at: '2025-01-01T00:00:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-    mockFrom.mockReturnValue(chain)
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'El informe no está completado' })
-  })
-
-  it('returns error when informe_paciente is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: null, created_at: '2025-01-01T00:00:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-    mockFrom.mockReturnValue(chain)
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'Sin contenido para el paciente' })
-  })
-
-  it('returns error when PDF upload fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'Patient content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan Pérez', phone: '+54911234567' } },
-      error: null,
-    })
-    mockFrom.mockReturnValue(fetchChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    const storageChain = { upload: jest.fn().mockResolvedValue({ error: { message: 'Upload failed' } }) }
-    mockStorage.mockReturnValue(storageChain)
-
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'Upload failed' })
-  })
-
-  it('returns signedUrl on success', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'Patient content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan Pérez', phone: '+54911234567' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123456', especialidad: 'Cardiología', firma_digital: null },
-      error: null,
-    })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: 'https://signed.url/pdf' } }),
-    }
-    mockStorage.mockReturnValue(storageChain)
-
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ signedUrl: 'https://signed.url/pdf' })
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
-  })
-
-  it('returns signedUrl as null when createSignedUrl returns no data', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'Patient content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan Pérez', phone: '+54911234567' } },
-      error: null,
-    })
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
 
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValue(updateChain)
+    // Reset chain (status back to recording)
+    const resetChain = makeChain()
+    resetChain.eq.mockReturnValue(resetChain)
 
     mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: null }),
-    }
-    mockStorage.mockReturnValue(storageChain)
-
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ signedUrl: null })
-  })
-
-  it('returns error when PDF generation throws', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'Patient content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan Pérez', phone: '+54911234567' } },
-      error: null,
-    })
-    mockFrom.mockReturnValue(fetchChain)
-
-    mockGeneratePDF.mockRejectedValue(new Error('PDF gen error'))
-
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'PDF gen error' })
-  })
-
-  it('returns generic error when non-Error is thrown', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'Patient content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan Pérez', phone: '+54911234567' } },
-      error: null,
-    })
-    mockFrom.mockReturnValue(fetchChain)
-
-    mockGeneratePDF.mockRejectedValue('string error')
-
-    const result = await generateAndSavePdf('i-1')
-    expect(result).toEqual({ error: 'Error desconocido' })
-  })
-})
-
-describe('regeneratePdf', () => {
-  beforeEach(() => jest.clearAllMocks())
-
-  it('calls generateAndSavePdf and revalidatePath', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123456', especialidad: 'Cardiología', firma_digital: null },
-      error: null,
-    })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValue(updateChain)
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(resetChain)
 
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: false,
+            informe_doctor: '',
+            informe_paciente: '',
+          }),
+        },
+      ],
+    })
 
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: 'https://signed.url/pdf' } }),
-    }
-    mockStorage.mockReturnValue(storageChain)
-
-    await regeneratePdf('i-1')
-
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
+    const result = await processInformeFromTranscript('i-1', 'some noise')
+    expect(result).toEqual({ insufficientContent: true })
   })
 })
 
@@ -899,11 +572,11 @@ describe('deleteInforme', () => {
     expect(result).toEqual({ error: 'Informe no encontrado' })
   })
 
-  it('deletes audio and pdf files when present', async () => {
+  it('deletes informe and revalidates paths on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', audio_path: 'audio/path.webm', pdf_path: 'pdf/path.pdf', patient_id: 'p-1' },
+      data: { id: 'i-1', patient_id: 'p-1' },
       error: null,
     })
 
@@ -912,39 +585,17 @@ describe('deleteInforme', () => {
 
     mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(deleteChain)
 
-    const storageRemove = jest.fn().mockResolvedValue({})
-    mockStorage.mockReturnValue({ remove: storageRemove })
-
     const result = await deleteInforme('i-1')
     expect(result).toEqual({ success: true })
-    expect(storageRemove).toHaveBeenCalledTimes(2)
     expect(mockRevalidatePath).toHaveBeenCalledWith('/')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/patients/p-1')
-  })
-
-  it('skips file deletion when paths are null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', audio_path: null, pdf_path: null, patient_id: 'p-1' },
-      error: null,
-    })
-
-    const deleteChain = makeChain()
-    deleteChain.eq.mockReturnValueOnce(deleteChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(deleteChain)
-
-    const result = await deleteInforme('i-1')
-    expect(result).toEqual({ success: true })
-    expect(mockStorage).not.toHaveBeenCalled()
   })
 
   it('returns error when delete fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', audio_path: null, pdf_path: null, patient_id: 'p-1' },
+      data: { id: 'i-1', patient_id: 'p-1' },
       error: null,
     })
 
@@ -967,147 +618,27 @@ describe('updateInformeReports', () => {
     expect(result).toEqual({ error: 'No autenticado' })
   })
 
-  it('returns error when informe is not found', async () => {
+  it('updates reports on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
-    mockFrom.mockReturnValue(chain)
-    const result = await updateInformeReports('i-1', 'doc', 'pac')
-    expect(result).toEqual({ error: 'Informe no encontrado' })
-  })
-
-  it('updates reports and regenerates PDF on success', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: 'old/path.pdf', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123', especialidad: 'General', firma_digital: null },
-      error: null,
-    })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    const storageChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageChain)
+    mockFrom.mockReturnValue(updateChain)
 
     const result = await updateInformeReports('i-1', 'doctor report', 'patient report')
     expect(result).toEqual({ success: true })
     expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
   })
 
-  it('skips PDF generation when informe_paciente is empty', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    const result = await updateInformeReports('i-1', 'doctor report', '')
-    expect(result).toEqual({ success: true })
-    expect(mockGeneratePDF).not.toHaveBeenCalled()
-  })
-
   it('returns error when update fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: { message: 'Update error' } })
+    mockFrom.mockReturnValue(updateChain)
 
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    const result = await updateInformeReports('i-1', 'doc', '')
+    const result = await updateInformeReports('i-1', 'doc', 'pac')
     expect(result).toEqual({ error: 'Update error' })
-  })
-
-  it('continues when PDF generation fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: 'old.pdf', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockRejectedValue(new Error('PDF fail'))
-
-    const result = await updateInformeReports('i-1', 'doc', 'pac')
-    expect(result).toEqual({ success: true })
-  })
-
-  it('continues when PDF upload fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: 'old.pdf', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1]))
-    mockStorage.mockReturnValue({ upload: jest.fn().mockResolvedValue({ error: { message: 'Upload fail' } }) })
-
-    const result = await updateInformeReports('i-1', 'doc', 'pac')
-    expect(result).toEqual({ success: true })
   })
 })
 
@@ -1144,38 +675,28 @@ describe('regenerateReportFromEdits', () => {
   it('regenerates reports using AI and updates', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
-    // First call: fetch informe for regenerateReportFromEdits
+    // Promise.all: fetch informe + fetch doctor
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', transcript: 'some transcript', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    // Second call: fetch informe for updateInformeReports
-    const fetchChain2 = makeChain()
-    fetchChain2.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', transcript: 'some transcript' },
       error: null,
     })
 
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
 
+    // updateInformeReports call
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(fetchChain2)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(fetchChain)    // informe fetch (Promise.all[0])
+      .mockReturnValueOnce(doctorChain)   // doctor fetch (Promise.all[1])
+      .mockReturnValueOnce(updateChain)   // updateInformeReports
 
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ informe_doctor: 'new doc', informe_paciente: 'new pac' }) }],
     })
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1]))
-    mockStorage.mockReturnValue({ upload: jest.fn().mockResolvedValue({ error: null }) })
 
     const result = await regenerateReportFromEdits('i-1', 'edited doc', 'edited pac')
     expect(result).toEqual({ success: true })
@@ -1186,13 +707,7 @@ describe('regenerateReportFromEdits', () => {
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', transcript: 'transcript', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const fetchChain2 = makeChain()
-    fetchChain2.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', transcript: 'transcript' },
       error: null,
     })
 
@@ -1204,7 +719,6 @@ describe('regenerateReportFromEdits', () => {
 
     mockFrom
       .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(fetchChain2)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(updateChain)
 
@@ -1221,11 +735,17 @@ describe('regenerateReportFromEdits', () => {
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', transcript: 'transcript', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', transcript: 'transcript' },
       error: null,
     })
 
-    mockFrom.mockReturnValueOnce(fetchChain)
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
+
+    mockFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(doctorChain)
+
     mockAnthropicCreate.mockRejectedValue(new Error('AI error'))
 
     const result = await regenerateReportFromEdits('i-1', 'doc', 'pac')
@@ -1237,11 +757,17 @@ describe('regenerateReportFromEdits', () => {
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', transcript: 'transcript', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', transcript: 'transcript' },
       error: null,
     })
 
-    mockFrom.mockReturnValueOnce(fetchChain)
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: null, error: null })
+
+    mockFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(doctorChain)
+
     mockAnthropicCreate.mockRejectedValue('string error')
 
     const result = await regenerateReportFromEdits('i-1', 'doc', 'pac')
@@ -1253,13 +779,7 @@ describe('regenerateReportFromEdits', () => {
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', transcript: 'transcript', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const fetchChain2 = makeChain()
-    fetchChain2.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', transcript: 'transcript' },
       error: null,
     })
 
@@ -1271,7 +791,6 @@ describe('regenerateReportFromEdits', () => {
 
     mockFrom
       .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(fetchChain2)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(updateChain)
 
@@ -1331,85 +850,41 @@ describe('recordPatientConsent', () => {
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', patients: { name: 'Juan', phone: '+549' } },
       error: null,
     })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: { message: 'Update failed' } })
 
     mockFrom
       .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(updateChain)
 
     const result = await recordPatientConsent('i-1')
     expect(result).toEqual({ error: 'Update failed' })
   })
 
-  it('records consent and regenerates PDF on success', async () => {
+  it('records consent on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123', especialidad: 'General', firma_digital: null },
+      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', patients: { name: 'Juan', phone: '+549' } },
       error: null,
     })
 
     const consentUpdateChain = makeChain()
     consentUpdateChain.eq.mockReturnValueOnce(consentUpdateChain).mockResolvedValueOnce({ error: null })
 
-    const pdfUpdateChain = makeChain()
-    pdfUpdateChain.eq.mockReturnValueOnce(pdfUpdateChain).mockResolvedValueOnce({ error: null })
-
     mockFrom
       .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(consentUpdateChain)
-      .mockReturnValueOnce(pdfUpdateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    mockStorage.mockReturnValue({ upload: jest.fn().mockResolvedValue({ error: null }) })
 
     const result = await recordPatientConsent('i-1')
     expect(result).toEqual(expect.objectContaining({ success: true }))
     expect(result.consentAt).toBeDefined()
     expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
-  })
-
-  it('continues when PDF regeneration fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', informe_paciente: 'content', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    const consentUpdateChain = makeChain()
-    consentUpdateChain.eq.mockReturnValueOnce(consentUpdateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(consentUpdateChain)
-
-    mockGeneratePDF.mockRejectedValue(new Error('PDF error'))
-
-    const result = await recordPatientConsent('i-1')
-    expect(result).toEqual(expect.objectContaining({ success: true }))
   })
 })
 
@@ -1435,7 +910,7 @@ describe('generateAndSaveCertificado', () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const chain = makeChain()
     chain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'processing', patients: { name: 'Juan', phone: '+549' } },
+      data: { id: 'i-1', status: 'processing' },
       error: null,
     })
     mockFrom.mockReturnValue(chain)
@@ -1443,145 +918,40 @@ describe('generateAndSaveCertificado', () => {
     expect(result).toEqual({ error: 'El informe no está completado' })
   })
 
-  it('generates certificado and returns signed URL', async () => {
+  it('returns signedUrl with query params on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: '1990-05-15' } },
+      data: { id: 'i-1', status: 'completed' },
       error: null,
     })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123', especialidad: 'General', firma_digital: null },
-      error: null,
-    })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-
-    mockGenerateCertPDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: 'https://cert.url/pdf' } }),
-    }
-    mockStorage.mockReturnValue(storageChain)
+    mockFrom.mockReturnValue(fetchChain)
 
     const result = await generateAndSaveCertificado('i-1', { daysOff: 3, diagnosis: 'Flu', observations: 'Rest' })
-    expect(result).toEqual({ signedUrl: 'https://cert.url/pdf' })
+    expect(result).toEqual({
+      signedUrl: expect.stringContaining('/api/pdf/certificado?'),
+    })
+    expect((result as { signedUrl: string }).signedUrl).toContain('id=i-1')
+    expect((result as { signedUrl: string }).signedUrl).toContain('daysOff=3')
+    expect((result as { signedUrl: string }).signedUrl).toContain('diagnosis=Flu')
+    expect((result as { signedUrl: string }).signedUrl).toContain('observations=Rest')
   })
 
-  it('handles null dob', async () => {
+  it('returns signedUrl without optional params when not provided', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: null } },
+      data: { id: 'i-1', status: 'completed' },
       error: null,
     })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-
-    mockGenerateCertPDF.mockResolvedValue(new Uint8Array([1]))
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: 'https://cert.url/pdf' } }),
-    }
-    mockStorage.mockReturnValue(storageChain)
+    mockFrom.mockReturnValue(fetchChain)
 
     const result = await generateAndSaveCertificado('i-1')
-    expect(result).toEqual({ signedUrl: 'https://cert.url/pdf' })
-  })
-
-  it('returns error when upload fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: null } },
-      error: null,
+    expect(result).toEqual({
+      signedUrl: '/api/pdf/certificado?id=i-1',
     })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(doctorChain)
-
-    mockGenerateCertPDF.mockResolvedValue(new Uint8Array([1]))
-    mockStorage.mockReturnValue({ upload: jest.fn().mockResolvedValue({ error: { message: 'Upload error' } }) })
-
-    const result = await generateAndSaveCertificado('i-1')
-    expect(result).toEqual({ error: 'Upload error' })
-  })
-
-  it('returns error when PDF generation throws', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: null } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(doctorChain)
-    mockGenerateCertPDF.mockRejectedValue(new Error('Cert PDF error'))
-
-    const result = await generateAndSaveCertificado('i-1')
-    expect(result).toEqual({ error: 'Cert PDF error' })
-  })
-
-  it('returns generic error when non-Error is thrown', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: null } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(doctorChain)
-    mockGenerateCertPDF.mockRejectedValue('string error')
-
-    const result = await generateAndSaveCertificado('i-1')
-    expect(result).toEqual({ error: 'Error desconocido' })
-  })
-
-  it('returns signedUrl null when createSignedUrl returns no data', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549', dob: null } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(doctorChain)
-
-    mockGenerateCertPDF.mockResolvedValue(new Uint8Array([1]))
-    const storageChain = {
-      upload: jest.fn().mockResolvedValue({ error: null }),
-      createSignedUrl: jest.fn().mockResolvedValue({ data: null }),
-    }
-    mockStorage.mockReturnValue(storageChain)
-
-    const result = await generateAndSaveCertificado('i-1')
-    expect(result).toEqual({ signedUrl: null })
   })
 })
 
@@ -1627,94 +997,26 @@ describe('updateInformePacienteWithPdf', () => {
     expect(result).toEqual({ error: 'No autenticado' })
   })
 
-  it('returns error when informe is not found', async () => {
+  it('returns success and revalidates on successful update', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const chain = makeChain()
-    chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
-    mockFrom.mockReturnValue(chain)
-    const result = await updateInformePacienteWithPdf('i-1', 'new patient report')
-    expect(result).toEqual({ error: 'Informe no encontrado' })
-  })
-
-  it('updates patient report and regenerates PDF on success', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: 'old/path.pdf', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({
-      data: { name: 'Dr. Smith', matricula: '123', especialidad: 'General', firma_digital: null },
-      error: null,
-    })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    const storageChain = { upload: jest.fn().mockResolvedValue({ error: null }) }
-    mockStorage.mockReturnValue(storageChain)
+    mockFrom.mockReturnValue(updateChain)
 
     const result = await updateInformePacienteWithPdf('i-1', 'patient report')
     expect(result).toEqual({ success: true })
     expect(mockRevalidatePath).toHaveBeenCalledWith('/informes/i-1')
   })
 
-  it('returns error when final update fails', async () => {
+  it('returns error when update fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: null, created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: { message: 'Update error' } })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
+    mockFrom.mockReturnValue(updateChain)
 
     const result = await updateInformePacienteWithPdf('i-1', '')
     expect(result).toEqual({ error: 'Update error' })
-  })
-
-  it('continues when PDF generation fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const fetchChain = makeChain()
-    fetchChain.single.mockResolvedValue({
-      data: { id: 'i-1', pdf_path: 'old.pdf', created_at: '2025-01-15T10:30:00Z', patients: { name: 'Juan', phone: '+549' } },
-      error: null,
-    })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-
-    const updateChain = makeChain()
-    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
-
-    mockFrom
-      .mockReturnValueOnce(fetchChain)
-      .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(updateChain)
-
-    mockGeneratePDF.mockRejectedValue(new Error('PDF fail'))
-
-    const result = await updateInformePacienteWithPdf('i-1', 'pac')
-    expect(result).toEqual({ success: true })
   })
 })

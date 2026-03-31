@@ -77,21 +77,25 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
   async function handleSendWhatsApp() {
     /* v8 ignore next */
     if (!state.certUrl) return;
-    const templateName = locale === "es" ? "patient_certificate_es" : "patient_certificate_en";
-    const languageCode = locale === "es" ? "es_AR" : "en";
     const fallbackError = t("errorMessage");
-    const certUrl = state.certUrl;
     setIsSendingWa(true);
     let data: { success?: boolean; error?: string } | null = null;
+    const certOptions = {
+      daysOff: state.daysOff ? parseInt(state.daysOff, 10) : null,
+      diagnosis: state.diagnosis.trim() || null,
+      observations: state.observations.trim() || null,
+    };
     try {
       const response = await fetch("/api/send-whatsapp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: phone,
-          templateName,
-          languageCode,
-          parameters: [patientName, certUrl],
+          type: "certificado",
+          informeId,
+          patientName,
+          locale,
+          certOptions,
         }),
       });
       data = await response.json();
@@ -146,7 +150,7 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
             size="sm"
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
-            <FileText className="size-3.5 text-emerald-600" />
+            <FileText className="size-6 text-emerald-600" />
           </Button>
         ) : (
           <Button variant="outline" size="sm">

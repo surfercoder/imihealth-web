@@ -1,7 +1,7 @@
 "use client";
 "use no memo";
 
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { createPatient, createInforme } from "@/actions/informes";
 import { useTranslations } from "next-intl";
 import { usePlan } from "@/contexts/plan-context";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 import {
   PhoneInput,
   type PhoneInputValue,
@@ -47,11 +48,17 @@ const phoneObjectSchema = z.object({
   e164: z.string(),
 });
 
-export function NuevoInformeDialog() {
+interface NuevoInformeDialogProps {
+  fullWidth?: boolean;
+  variant?: "default" | "outline";
+}
+
+function NuevoInformeDialogContent({ fullWidth = false, variant = "default" }: NuevoInformeDialogProps = {}) {
   const t = useTranslations("nuevoInformeDialog");
   const tMvp = useTranslations("mvpLimits");
   const plan = usePlan();
   const router = useRouter();
+  const currentTab = useCurrentTab();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +143,8 @@ export function NuevoInformeDialog() {
 
     setOpen(false);
     reset();
-    router.push(`/informes/${informeResult.data.id}/grabar`);
+    const url = currentTab ? `/informes/${informeResult.data.id}/grabar?tab=${currentTab}` : `/informes/${informeResult.data.id}/grabar`;
+    router.push(url);
   };
 
   const handleOpenChange = useCallback(
@@ -153,7 +161,7 @@ export function NuevoInformeDialog() {
   if (!plan.canCreateInforme) {
     return (
       <div className="flex flex-col items-end gap-1.5">
-        <Button size="sm" disabled>
+        <Button size={fullWidth ? "default" : "sm"} disabled className={fullWidth ? "w-full" : ""}>
           <Lock className="size-4 mr-1.5" />
           {t("trigger")}
         </Button>
@@ -167,8 +175,8 @@ export function NuevoInformeDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4 mr-1.5" />
+        <Button size={fullWidth ? "default" : "sm"} variant={variant} className={fullWidth ? "w-full" : ""}>
+          {!fullWidth && <Plus className="size-4 mr-1.5" />}
           {t("trigger")}
         </Button>
       </DialogTrigger>
@@ -309,5 +317,13 @@ export function NuevoInformeDialog() {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function NuevoInformeDialog(props: NuevoInformeDialogProps) {
+  return (
+    <Suspense fallback={null}>
+      <NuevoInformeDialogContent {...props} />
+    </Suspense>
   );
 }

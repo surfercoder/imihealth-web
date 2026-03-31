@@ -1,11 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { User, Phone, FileText, Clock, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PatientWithStats } from "@/actions/patients";
 import { useTranslations, useLocale } from "next-intl";
 import { DeletePatientButton } from "@/components/delete-patient-button";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface PatientsListProps {
   patients: PatientWithStats[];
@@ -20,9 +22,10 @@ const statusColors: Record<string, string> = {
   error: "text-destructive",
 };
 
-export function PatientsList({ patients, isLoading }: PatientsListProps) {
+function PatientsListContent({ patients, isLoading }: PatientsListProps) {
   const t = useTranslations("patientsList");
   const locale = useLocale();
+  const currentTab = useCurrentTab();
 
   if (isLoading) {
     return (
@@ -66,7 +69,11 @@ export function PatientsList({ patients, isLoading }: PatientsListProps) {
             key={patient.id}
             className="group relative flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
-            <Link href={`/patients/${patient.id}`} className="absolute inset-0 rounded-xl" aria-label={patient.name} />
+            <Link 
+              href={currentTab ? `/patients/${patient.id}?tab=${currentTab}` : `/patients/${patient.id}`} 
+              className="absolute inset-0 rounded-xl" 
+              aria-label={patient.name} 
+            />
 
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary relative z-10 pointer-events-none">
               <User className="size-5" />
@@ -104,5 +111,13 @@ export function PatientsList({ patients, isLoading }: PatientsListProps) {
         );
       })}
     </div>
+  );
+}
+
+export function PatientsList(props: PatientsListProps) {
+  return (
+    <Suspense fallback={null}>
+      <PatientsListContent {...props} />
+    </Suspense>
   );
 }

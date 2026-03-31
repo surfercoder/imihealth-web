@@ -36,7 +36,7 @@ export function CopyToClipboardButton({ text }: CopyToClipboardButtonProps) {
             title="Copiar al portapapeles"
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
-            {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5 text-emerald-600" />}
+            {copied ? <Check className="size-6 text-emerald-600" /> : <Copy className="size-6 text-emerald-600" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

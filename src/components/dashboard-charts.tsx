@@ -1,6 +1,7 @@
 "use client";
 
-import {
+/* eslint-disable @typescript-eslint/no-require-imports */
+const {
   Area,
   AreaChart,
   Bar,
@@ -14,7 +15,7 @@ import {
   ReferenceLine,
   XAxis,
   YAxis,
-} from "recharts";
+} = require("recharts") as typeof import("recharts");
 import {
   ChartContainer,
   ChartTooltip,
@@ -69,7 +70,7 @@ function PatientsOverTimeChart({
         </CardTitle>
         <CardDescription>{t("patientsOverTimeDesc")}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <AreaChart accessibilityLayer data={data}>
             <defs>
@@ -150,7 +151,7 @@ function ConsultationTimeChart({
         </CardTitle>
         <CardDescription>{t("consultationTimeDesc")}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <ChartContainer config={summaryConfig} className="h-[250px] w-full">
           <BarChart accessibilityLayer data={summaryData}>
             <CartesianGrid vertical={false} />
@@ -168,8 +169,8 @@ function ConsultationTimeChart({
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-              {summaryData.map((entry, index) => (
-                <Cell key={index} fill={entry.fill} />
+              {summaryData.map((entry) => (
+                <Cell key={entry.label} fill={entry.fill} />
               ))}
             </Bar>
           </BarChart>
@@ -211,7 +212,7 @@ function PatientsAccumulatorChart({
           })}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <LineChart accessibilityLayer data={data.current}>
             <CartesianGrid vertical={false} />
@@ -288,7 +289,7 @@ function ConsultationReasonsChart({
         </CardTitle>
         <CardDescription>{t("consultationReasonsDesc")}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         {data.length === 0 ? (
           <p className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
             {t("noData")}
@@ -307,9 +308,9 @@ function ConsultationReasonsChart({
                 outerRadius={90}
                 paddingAngle={2}
               >
-                {data.map((_, index) => (
+                {data.map((item, index) => (
                   <Cell
-                    key={index}
+                    key={item.reason}
                     fill={CHART_COLORS[index % CHART_COLORS.length]}
                   />
                 ))}

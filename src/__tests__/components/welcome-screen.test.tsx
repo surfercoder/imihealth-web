@@ -43,7 +43,7 @@ describe('WelcomeScreen', () => {
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
     const img = screen.getByRole('img', { name: 'IMI Health' })
     expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('data-src', '/assets/images/IMIHEALTH.jpeg')
+    expect(img).toHaveAttribute('data-src', '/assets/images/imi-bot-welcome.png')
   })
 
   it('renders a motivational message', () => {

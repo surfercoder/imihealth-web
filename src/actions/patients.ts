@@ -249,25 +249,6 @@ export async function deletePatient(patientId: string) {
 
   if (fetchError || !patient) return { error: "Paciente no encontrado" };
 
-  // Clean up storage files from all informes before cascade delete removes them
-  const { data: informes } = await supabase
-    .from("informes")
-    .select("audio_path, pdf_path")
-    .eq("patient_id", patientId)
-    .eq("doctor_id", user.id);
-
-  if (informes && informes.length > 0) {
-    const audioPaths = informes.map((i) => i.audio_path).filter(Boolean) as string[];
-    const pdfPaths = informes.map((i) => i.pdf_path).filter(Boolean) as string[];
-
-    if (audioPaths.length > 0) {
-      await supabase.storage.from("audio-recordings").remove(audioPaths);
-    }
-    if (pdfPaths.length > 0) {
-      await supabase.storage.from("informes-pdf").remove(pdfPaths);
-    }
-  }
-
   // Delete patient — informes are cascade-deleted by FK constraint
   const { error: deleteError } = await supabase
     .from("patients")
@@ -278,7 +259,6 @@ export async function deletePatient(patientId: string) {
   if (deleteError) return { error: deleteError.message };
 
   revalidatePath("/");
-  revalidatePath("/dashboard");
   return { success: true };
 }
 

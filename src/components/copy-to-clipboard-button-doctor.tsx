@@ -35,7 +35,7 @@ export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDocto
             onClick={handleCopy}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? <Check className="size-6" /> : <Copy className="size-6" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

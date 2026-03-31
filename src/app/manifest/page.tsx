@@ -72,8 +72,8 @@ export default async function ManifestPage() {
               {t("principlesTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {(t.raw("principles") as string[]).map((principle, index) => (
-                <Card key={index} className="border-0 shadow-sm">
+              {(t.raw("principles") as string[]).map((principle) => (
+                <Card key={principle} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -141,8 +141,8 @@ export default async function ManifestPage() {
               {t("benefitsTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {(t.raw("benefits") as string[]).map((benefit, index) => (
-                <Card key={index} className="border-0 shadow-sm">
+              {(t.raw("benefits") as string[]).map((benefit) => (
+                <Card key={benefit} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-green-500/10 text-green-600">

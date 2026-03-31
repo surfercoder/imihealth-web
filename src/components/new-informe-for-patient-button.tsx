@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createInforme } from "@/actions/informes";
 import { useTranslations } from "next-intl";
 import { usePlan } from "@/contexts/plan-context";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface NewInformeForPatientButtonProps {
   patientId: string;
 }
 
-export function NewInformeForPatientButton({ patientId }: NewInformeForPatientButtonProps) {
+function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientButtonProps) {
   const t = useTranslations("newInformeButton");
   const tMvp = useTranslations("mvpLimits");
   const plan = usePlan();
   const router = useRouter();
+  const currentTab = useCurrentTab();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +30,8 @@ export function NewInformeForPatientButton({ patientId }: NewInformeForPatientBu
         setError(result.error ?? t("error"));
         return;
       }
-      router.push(`/informes/${result.data.id}/grabar`);
+      const url = currentTab ? `/informes/${result.data.id}/grabar?tab=${currentTab}` : `/informes/${result.data.id}/grabar`;
+      router.push(url);
     });
   }
 
@@ -65,5 +68,13 @@ export function NewInformeForPatientButton({ patientId }: NewInformeForPatientBu
         <p className="text-xs text-destructive">{error}</p>
       )}
     </div>
+  );
+}
+
+export function NewInformeForPatientButton(props: NewInformeForPatientButtonProps) {
+  return (
+    <Suspense fallback={null}>
+      <NewInformeForPatientButtonContent {...props} />
+    </Suspense>
   );
 }

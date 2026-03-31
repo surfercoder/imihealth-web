@@ -23,13 +23,22 @@ describe('WhatsAppButton', () => {
     expect(screen.getByRole('button', { name: /enviar por whatsapp/i })).toBeInTheDocument()
   })
 
-  it('calls /api/send-whatsapp with correct payload on click', async () => {
+  it('shows warning toast when isOptedIn is false (default) and does not call fetch', async () => {
+    const user = userEvent.setup()
+    render(<WhatsAppButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
+
+    // fetch should NOT be called when isOptedIn is false
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it('calls /api/send-whatsapp with correct payload on click when isOptedIn', async () => {
     mockFetch.mockResolvedValueOnce({
       json: () => Promise.resolve({ success: true, messageId: 'msg123' }),
     })
 
     const user = userEvent.setup()
-    render(<WhatsAppButton {...defaultProps} />)
+    render(<WhatsAppButton {...defaultProps} isOptedIn />)
     await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
 
     await waitFor(() => {
@@ -52,7 +61,7 @@ describe('WhatsAppButton', () => {
     })
 
     const user = userEvent.setup()
-    render(<WhatsAppButton {...defaultProps} />)
+    render(<WhatsAppButton {...defaultProps} isOptedIn />)
     await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
 
     await waitFor(() => {

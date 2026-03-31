@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Stethoscope, MessageCircle, Pencil, X, Save, Loader2, Eye, Mail } from "lucide-react";
+import { WhatsAppOptInButton } from "@/components/whatsapp-opt-in-button";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyToClipboardButton } from "@/components/copy-to-clipboard-button";
@@ -65,14 +66,12 @@ function MarkdownDisplay({ text }: { text: string }) {
   );
 }
 
-function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; patientName: string; pdfUrl: string }) {
+function WhatsAppIconButton({ phone, patientName, informeId }: { phone: string; patientName: string; informeId: string }) {
   const t = useTranslations("whatsappButton");
   const locale = useLocale();
   const [isSending, setIsSending] = useState(false);
 
   const handleSend = async () => {
-    const templateName = locale === "es" ? "patient_report_es" : "patient_report_en";
-    const languageCode = locale === "es" ? "es_AR" : "en";
     const fallbackError = t("errorMessage");
     setIsSending(true);
     let data: { success?: boolean; error?: string } | null = null;
@@ -82,9 +81,10 @@ function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; pat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: phone,
-          templateName,
-          languageCode,
-          parameters: [patientName, pdfUrl],
+          type: "informe",
+          informeId,
+          patientName,
+          locale,
         }),
       });
       data = await response.json();
@@ -115,9 +115,9 @@ function WhatsAppIconButton({ phone, patientName, pdfUrl }: { phone: string; pat
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
             {isSending ? (
-              <Loader2 className="size-3.5 animate-spin text-emerald-600" />
+              <Loader2 className="size-6 animate-spin text-emerald-600" />
             ) : (
-              <MessageCircle className="size-3.5 text-emerald-600" />
+              <MessageCircle className="size-6 text-emerald-600" />
             )}
           </Button>
         </TooltipTrigger>
@@ -150,7 +150,7 @@ function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
             onClick={handleView}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
-            <Eye className="size-3.5 text-emerald-600" />
+            <Eye className="size-6 text-emerald-600" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
@@ -211,9 +211,9 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             {isSending ? (
-              <Loader2 className="size-3.5 animate-spin" />
+              <Loader2 className="size-6 animate-spin" />
             ) : (
-              <Mail className="size-3.5" />
+              <Mail className="size-6" />
             )}
           </Button>
         </TooltipTrigger>
@@ -249,7 +249,7 @@ function DoctorWhatsAppIconButton({ phone, doctorName, reportContent }: { phone:
             onClick={handleSend}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            <MessageCircle className="size-3.5" />
+            <MessageCircle className="size-6" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
@@ -312,22 +312,22 @@ function DoctorReportCard({
   return (
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
       <div className="flex items-center gap-3 border-b bg-primary/5 px-5 py-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Stethoscope className="size-4" />
+        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Stethoscope className="size-5" />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-sm text-card-foreground">{t("medicalReport")}</p>
+          <p className="font-semibold text-base text-card-foreground">{t("medicalReport")}</p>
           <p className="text-xs text-muted-foreground">{t("forDoctor")}</p>
         </div>
         <div className="flex items-center gap-1">
           {isEditing ? (
             <>
               <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-7">
-                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                {isSaving ? <Loader2 className="size-6 animate-spin" /> : <Save className="size-6" />}
                 {t("save")}
               </Button>
               <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving} className="gap-1.5 text-muted-foreground h-7">
-                <X className="size-3.5" />
+                <X className="size-6" />
               </Button>
             </>
           ) : (
@@ -336,7 +336,7 @@ function DoctorReportCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
-                      <Pencil className="size-3.5" />
+                      <Pencil className="size-6" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Editar informe</p></TooltipContent>
@@ -385,14 +385,18 @@ function PatientReportCard({
   informeId,
   informePaciente,
   patientName,
+  patientId,
   pdfUrl,
   whatsappPhone,
+  whatsappOptedIn,
 }: {
   informeId: string;
   informePaciente: string;
   patientName?: string;
+  patientId?: string;
   pdfUrl?: string | null;
   whatsappPhone?: string;
+  whatsappOptedIn?: boolean;
 }) {
   const t = useTranslations("informeEditor");
   const [isEditing, setIsEditing] = useState(false);
@@ -427,22 +431,22 @@ function PatientReportCard({
   return (
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
       <div className="flex items-center gap-3 border-b bg-emerald-50/50 px-5 py-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-          <MessageCircle className="size-4" />
+        <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+          <MessageCircle className="size-5" />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-sm text-card-foreground">{t("patientReport")}</p>
+          <p className="font-semibold text-base text-card-foreground">{t("patientReport")}</p>
           <p className="text-xs text-muted-foreground">{t("viaWhatsApp")}</p>
         </div>
         <div className="flex items-center gap-1">
           {isEditing ? (
             <>
               <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-7">
-                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                {isSaving ? <Loader2 className="size-6 animate-spin" /> : <Save className="size-6" />}
                 {t("save")}
               </Button>
               <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving} className="gap-1.5 text-muted-foreground h-7">
-                <X className="size-3.5" />
+                <X className="size-6" />
               </Button>
             </>
           ) : (
@@ -451,15 +455,15 @@ function PatientReportCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50">
-                      <Pencil className="size-3.5 text-emerald-600" />
+                      <Pencil className="size-6 text-emerald-600" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Editar informe</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               {pdfUrl && <ViewPdfIconButton pdfUrl={pdfUrl} />}
-              {pdfUrl && whatsappPhone && patientName && (
-                <WhatsAppIconButton phone={whatsappPhone} patientName={patientName} pdfUrl={pdfUrl} />
+              {whatsappPhone && patientName && (
+                <WhatsAppIconButton phone={whatsappPhone} patientName={patientName} informeId={informeId} />
               )}
               {whatsappPhone && patientName && (
                 <TooltipProvider>
@@ -479,6 +483,18 @@ function PatientReportCard({
         </div>
       </div>
       <div className="p-5 max-h-[600px] overflow-y-auto">
+        {!whatsappOptedIn && patientId && patientName && whatsappPhone && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm font-medium text-amber-900 mb-3">
+              {t("whatsappNotActivated")}
+            </p>
+            <WhatsAppOptInButton
+              patientId={patientId}
+              isOptedIn={whatsappOptedIn ?? false}
+              onOptInComplete={() => window.location.reload()}
+            />
+          </div>
+        )}
         {isEditing ? (
           <Textarea
             value={pacienteText}
@@ -514,11 +530,14 @@ interface InformeEditorProps {
   informeDoctor: string;
   informePaciente: string;
   patientName?: string;
+  patientId?: string;
   pdfUrl?: string | null;
   whatsappPhone?: string;
+  whatsappOptedIn?: boolean;
   doctorName?: string;
   doctorEmail?: string;
   doctorPhone?: string;
+  isQuickReport?: boolean;
 }
 
 export function InformeEditor({
@@ -526,15 +545,18 @@ export function InformeEditor({
   informeDoctor,
   informePaciente,
   patientName,
+  patientId,
   pdfUrl,
   whatsappPhone,
+  whatsappOptedIn,
   doctorName,
   doctorEmail,
   doctorPhone,
+  isQuickReport = false,
 }: InformeEditorProps) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-6 lg:grid-cols-2">
+      {isQuickReport ? (
         <DoctorReportCard
           informeId={informeId}
           informeDoctor={informeDoctor}
@@ -543,14 +565,27 @@ export function InformeEditor({
           doctorEmail={doctorEmail}
           doctorPhone={doctorPhone}
         />
-        <PatientReportCard
-          informeId={informeId}
-          informePaciente={informePaciente}
-          patientName={patientName}
-          pdfUrl={pdfUrl}
-          whatsappPhone={whatsappPhone}
-        />
-      </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <DoctorReportCard
+            informeId={informeId}
+            informeDoctor={informeDoctor}
+            patientName={patientName}
+            doctorName={doctorName}
+            doctorEmail={doctorEmail}
+            doctorPhone={doctorPhone}
+          />
+          <PatientReportCard
+            informeId={informeId}
+            informePaciente={informePaciente}
+            patientName={patientName}
+            patientId={patientId}
+            pdfUrl={pdfUrl}
+            whatsappPhone={whatsappPhone}
+            whatsappOptedIn={whatsappOptedIn}
+          />
+        </div>
+      )}
     </div>
   );
 }

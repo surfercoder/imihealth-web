@@ -35,15 +35,15 @@ describe('SignupPage', () => {
     expect(screen.getByRole('heading', { name: 'Unite a IMI Health' })).toBeInTheDocument()
   })
 
-  it('redirects to /dashboard when user is already authenticated', async () => {
+  it('redirects to / when user is already authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     try { await SignupPage() } catch { /* redirect throws */ }
-    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
+    expect(mockRedirect).toHaveBeenCalledWith('/')
   })
 
   it('renders limit reached screen when doctor count >= MAX_DOCTORS', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    mockSelect.mockResolvedValue({ count: 14 })
+    mockSelect.mockResolvedValue({ count: 15 })
     render(await SignupPage())
     expect(screen.getByText('Registro no disponible')).toBeInTheDocument()
     expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument()

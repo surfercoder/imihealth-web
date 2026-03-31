@@ -30,9 +30,9 @@ export function TranscriptMonologue({ transcript }: TranscriptMonologueProps) {
 
       <div className="rounded-xl border bg-card p-5 shadow-sm">
         <div className="space-y-4">
-          {paragraphs.map((paragraph, index) => (
-            <p 
-              key={index} 
+          {paragraphs.map((paragraph) => (
+            <p
+              key={paragraph}
               className="text-sm leading-relaxed text-card-foreground"
             >
               {paragraph.trim()}

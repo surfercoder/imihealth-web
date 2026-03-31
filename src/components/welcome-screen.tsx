@@ -55,38 +55,26 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
       `}</style>
 
       <div
-        className="ws-overlay fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6"
-        style={{ backgroundColor: "#0F172A" }}
+        className="ws-overlay fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 bg-white"
       >
-        {/* Image centered at natural size, edges faded into background via mask */}
-        <div
-          className="ws-image flex items-center justify-center"
-          style={{
-            WebkitMaskImage: "radial-gradient(ellipse 85% 80% at 50% 50%, black 40%, transparent 100%)",
-            maskImage: "radial-gradient(ellipse 85% 80% at 50% 50%, black 40%, transparent 100%)",
-          }}
-        >
+        {/* Image centered at natural size */}
+        <div className="ws-image flex items-center justify-center">
           <Image
-            src="/assets/images/IMIHEALTH.jpeg"
+            src="/assets/images/imi-bot-welcome.png"
             alt="IMI Health"
-            width={1280}
-            height={853}
+            width={800}
+            height={800}
             priority
-            style={{ maxWidth: "min(90vw, 860px)", height: "auto" }}
+            style={{ maxWidth: "min(90vw, 500px)", height: "auto" }}
           />
         </div>
 
         {/* Greeting and phrase */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1
-            className="ws-text text-3xl font-bold tracking-tight text-white"
-          >
+          <h1 className="ws-text text-3xl font-bold tracking-tight text-gray-900">
             {t("greeting", { name: firstName })}
           </h1>
-          <p
-            className="ws-phrase max-w-lg text-base leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.72)" }}
-          >
+          <p className="ws-phrase max-w-lg text-base leading-relaxed text-gray-600">
             {t(`messages.${messageIndex}` as Parameters<typeof t>[0])}
           </p>
         </div>

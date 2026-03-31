@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 jest.mock('@/components/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }))
@@ -20,10 +25,10 @@ import { AppHeader } from '@/components/app-header'
 describe('AppHeader', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('renders the IMI Health logo link to /dashboard', async () => {
+  it('renders the IMI Health logo link to /', async () => {
     render(await AppHeader({}))
     const link = screen.getByText('IMI Health')
-    expect(link.closest('a')).toHaveAttribute('href', '/dashboard')
+    expect(link.closest('a')).toHaveAttribute('href', '/')
   })
 
   it('renders the language switcher', async () => {

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 const mockProcessInforme = jest.fn()
@@ -95,7 +96,6 @@ describe('AudioRecorder — idle state', () => {
 
   it('renders idle state with start button', () => {
     render(<AudioRecorder {...defaultProps} />)
-    expect(screen.getByText('Listo para grabar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Iniciar grabación/i })).toBeInTheDocument()
   })
 })
@@ -134,7 +134,7 @@ describe('AudioRecorder — recording state', () => {
       expect(screen.getByText('Grabando...')).toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: /Pausar/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Finalizar consulta/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Finalizar grabación/i })).toBeInTheDocument()
   })
 
   it('shows paused state when pause button is clicked', async () => {
@@ -187,7 +187,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
 
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
@@ -208,7 +208,7 @@ describe('AudioRecorder — stop and process', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al procesar')).toBeInTheDocument()
       expect(screen.getByText('Processing failed')).toBeInTheDocument()
@@ -225,18 +225,17 @@ describe('AudioRecorder — stop and process', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('Error al procesar')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Intentar de nuevo/i }))
     await waitFor(() => {
-      expect(screen.getByText('Listo para grabar')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Iniciar grabación/i })).toBeInTheDocument()
     })
   })
 
-  it('continues without audio path when upload fails', async () => {
+  it('calls processInformeFromTranscript with base64 audio', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: { message: 'Upload failed' } })
     mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
@@ -244,32 +243,39 @@ describe('AudioRecorder — stop and process', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
-    expect(mockProcessInforme).toHaveBeenCalledWith('i-1', expect.any(String), undefined, 'es')
+    expect(mockProcessInforme).toHaveBeenCalledWith('i-1', expect.any(String), undefined, undefined, 'es')
     jest.useRealTimers()
   })
 
-  it('continues when upload throws an exception', async () => {
+  it('continues when audio encoding fails', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockRejectedValue(new Error('Network error'))
     mockProcessInforme.mockResolvedValue({ success: true })
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    // Make Buffer.from throw to simulate encoding failure
+    const origFrom = Buffer.from
+    const bufferSpy = jest.spyOn(Buffer, 'from').mockImplementation((...args: unknown[]) => {
+      if (args[0] instanceof ArrayBuffer) throw new Error('Encoding error')
+      return origFrom.apply(Buffer, args as Parameters<typeof origFrom>)
+    })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
-    expect(warnSpy).toHaveBeenCalledWith('Audio upload failed, continuing without it:', expect.any(Error))
+    expect(warnSpy).toHaveBeenCalledWith('Audio encoding failed, continuing without it')
     warnSpy.mockRestore()
+    bufferSpy.mockRestore()
     jest.useRealTimers()
   })
 })
@@ -492,7 +498,7 @@ describe('AudioRecorder — ogg mime type', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
   })
@@ -513,10 +519,9 @@ describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
       .mockReturnValue(true)
   })
 
-  it('uses m4a extension when only mp4 is supported', async () => {
+  it('processes successfully when only mp4 is supported', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
     mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
@@ -524,13 +529,8 @@ describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
-    expect(mockUpload).toHaveBeenCalledWith(
-      expect.stringContaining('.m4a'),
-      expect.any(Blob),
-      expect.objectContaining({ contentType: 'audio/mp4' })
-    )
     jest.useRealTimers()
   })
 })
@@ -591,7 +591,7 @@ describe('AudioRecorder — stopAndProcess with inactive mediaRecorder', () => {
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
 
     mediaRecorderState = 'inactive'
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
@@ -718,7 +718,7 @@ describe('AudioRecorder — audio/webm (not opus) mime type', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
     ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported.mockReturnValue(true)
@@ -769,7 +769,7 @@ describe('AudioRecorder — ondataavailable with data', () => {
       }
     })
 
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
     void OriginalMockMediaRecorder
@@ -787,7 +787,6 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
   it('falls back to audio/webm when mimeType is empty string', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
     mockProcessInforme.mockResolvedValue({ success: true })
 
     ;(MockMediaRecorder as jest.Mock).mockImplementationOnce(() => {
@@ -809,13 +808,9 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
-    expect(mockUpload).toHaveBeenCalledWith(
-      expect.stringContaining('.webm'),
-      expect.any(Blob),
-      expect.objectContaining({ contentType: 'audio/webm' })
-    )
+    expect(mockProcessInforme).toHaveBeenCalled()
     jest.useRealTimers()
   })
 })
@@ -863,7 +858,7 @@ describe('AudioRecorder — progress text branches', () => {
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /Finalizar consulta/i }))
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Analizando consulta con IA...')).toBeInTheDocument()

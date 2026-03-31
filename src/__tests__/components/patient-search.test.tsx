@@ -12,6 +12,7 @@ jest.mock('next-intl', () => ({
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 jest.mock('@/actions/patients', () => ({

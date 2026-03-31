@@ -83,7 +83,7 @@ describe('login', () => {
     fd.set('email', 'doctor@hospital.com')
     fd.set('password', 'secret')
     await login(null, fd)
-    expect(mockRedirect).toHaveBeenCalledWith('/dashboard?welcome=true')
+    expect(mockRedirect).toHaveBeenCalledWith('/?welcome=true')
   })
 })
 
@@ -156,7 +156,7 @@ describe('signup', () => {
       expect.objectContaining({
         options: expect.objectContaining({
           emailRedirectTo: 'http://localhost:3001/auth/confirm',
-          data: { name: '', matricula: '123456', phone: '+54 11 1234-5678', especialidad: 'Cardiología' },
+          data: { name: '', dni: undefined, matricula: '123456', phone: '+54 11 1234-5678', especialidad: 'Cardiología' },
         }),
       })
     )
@@ -183,7 +183,7 @@ describe('signup', () => {
   })
 
   it('returns error when MVP doctor limit is reached', async () => {
-    mockSelect.mockResolvedValue({ count: 14 })
+    mockSelect.mockResolvedValue({ count: 15 })
     const fd = new FormData()
     fd.set('email', 'doctor@hospital.com')
     fd.set('password', 'password123')
@@ -306,7 +306,7 @@ describe('resetPassword', () => {
     fd.set('confirmPassword', 'newpassword')
     await resetPassword(null, fd)
     expect(mockRevalidatePath).toHaveBeenCalledWith('/', 'layout')
-    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
+    expect(mockRedirect).toHaveBeenCalledWith('/')
   })
 })
 

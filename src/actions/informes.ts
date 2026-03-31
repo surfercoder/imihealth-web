@@ -2,10 +2,10 @@
 
 import { createClient } from "@/utils/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { generateInformePDF, generateCertificadoPDF } from "@/lib/pdf";
 import { revalidatePath } from "next/cache";
 import { transcribeAudio } from "@/lib/transcribe";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
+import { getSpecialtyPrompt } from "@/lib/prompts";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -78,7 +78,8 @@ export async function createInforme(patientId: string) {
 export async function processInformeFromTranscript(
   informeId: string,
   browserTranscript: string,
-  audioPath?: string,
+  audioBase64?: string,
+  audioContentType?: string,
   language: string = "es"
 ) {
   const supabase = await createClient();
@@ -89,28 +90,21 @@ export async function processInformeFromTranscript(
 
   await supabase
     .from("informes")
-    .update({ status: "processing", audio_path: audioPath ?? null })
+    .update({ status: "processing" })
     .eq("id", informeId)
     .eq("doctor_id", user.id);
 
   try {
     // Transcribe audio with AssemblyAI for accurate medical transcription
     let transcript = browserTranscript;
-    if (audioPath) {
+    if (audioBase64) {
       try {
-        const { data: audioData, error: downloadError } = await supabase.storage
-          .from("audio-recordings")
-          .download(audioPath);
-
-        if (!downloadError && audioData) {
-          const arrayBuffer = await audioData.arrayBuffer();
-          const audioBuffer = Buffer.from(arrayBuffer);
-          /* v8 ignore next */
-          const langCode = language === "en" ? "en" : "es";
-          const result = await transcribeAudio(audioBuffer, langCode);
-          if (result.text) {
-            transcript = result.text;
-          }
+        const audioBuffer = Buffer.from(audioBase64, "base64");
+        /* v8 ignore next */
+        const langCode = language === "en" ? "en" : "es";
+        const result = await transcribeAudio(audioBuffer, langCode);
+        if (result.text) {
+          transcript = result.text;
         }
       } catch (transcribeError) {
         console.warn("AssemblyAI transcription failed, falling back to browser transcript:", transcribeError);
@@ -118,20 +112,30 @@ export async function processInformeFromTranscript(
       }
     }
 
-    // Save transcript to DB
-    await supabase
-      .from("informes")
-      .update({ transcript })
-      .eq("id", informeId)
-      .eq("doctor_id", user.id);
+    // Save transcript to DB and fetch doctor's specialty in parallel
+    const [, doctorResult] = await Promise.all([
+      supabase
+        .from("informes")
+        .update({ transcript })
+        .eq("id", informeId)
+        .eq("doctor_id", user.id),
+      supabase
+        .from("doctors")
+        .select("especialidad")
+        .eq("id", user.id)
+        .single(),
+    ]);
+
+    const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
     const reportsResponse = await anthropic.messages.create({
       model: "claude-opus-4-5",
       max_tokens: 8192,
+      system: specialtyPrompt,
       messages: [
         {
           role: "user",
-          content: `Eres un asistente médico experto. Basándote en la siguiente transcripción de una consulta médica, genera DOS informes separados.
+          content: `Basándote en la siguiente transcripción de una consulta médica, genera DOS informes separados.
 
 TRANSCRIPCIÓN:
 ${transcript}
@@ -142,23 +146,30 @@ IMPORTANTE: Primero determina si esta es una CONVERSACIÓN (diálogo entre docto
 
 Genera la respuesta en el siguiente formato JSON exacto (sin markdown, solo JSON puro):
 {
+  "valid_medical_content": true o false,
   "transcript_type": "dialog" o "monologue",
   "informe_doctor": "...",
   "informe_paciente": "...",
   "dialog": [...]
 }
 
+VALIDACIÓN DE CONTENIDO MÉDICO (valid_medical_content):
+- true: La transcripción contiene información médica relevante (síntomas, diagnósticos, medicamentos, indicaciones, consultas médicas, etc.)
+- false: La transcripción NO contiene información médica útil. Ejemplos: silencio, ruido de fondo, conversaciones no médicas, palabras sueltas sin sentido médico, pruebas de micrófono, etc.
+- Si valid_medical_content es false, deja informe_doctor e informe_paciente como strings vacíos "" y dialog como []
+
 TIPO DE TRANSCRIPCIÓN (transcript_type):
 - "dialog": Si hay dos personas conversando (doctor haciendo preguntas y paciente respondiendo)
 - "monologue": Si solo el doctor está hablando, narrando el caso del paciente
 
 INFORME PARA EL DOCTOR (informe_doctor):
-- Detallado y técnico
-- Incluye: motivo de consulta, anamnesis, síntomas reportados, diagnóstico presuntivo, medicamentos recetados con dosis y frecuencia, indicaciones, próximos pasos y seguimiento
-- Usa terminología médica apropiada
+- Sigue ESTRICTAMENTE el formato de salida definido en tus instrucciones de sistema para esta especialidad
+- Detallado y técnico, con terminología médica apropiada
+- Incluye clasificaciones, scores y códigos CIE-10 según corresponda
 - Formato estructurado con secciones claras usando saltos de línea
 
 INFORME PARA EL PACIENTE (informe_paciente):
+- Sigue las instrucciones para informe del paciente definidas en tus instrucciones de sistema
 - Lenguaje simple y amigable, fácil de entender
 - Incluye: resumen de la consulta, qué le pasa y por qué, medicamentos que debe tomar (nombre, para qué sirve, cuándo tomarlo), recomendaciones y cuidados, próximos pasos
 - Tono cálido y tranquilizador
@@ -187,8 +198,10 @@ DIÁLOGO ESTRUCTURADO (dialog):
     let transcriptType: "dialog" | "monologue" = "dialog";
 
     const jsonMatch = reportsText.match(/\{[\s\S]*\}/);
+    let validMedicalContent = true;
     try {
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : reportsText);
+      validMedicalContent = parsed.valid_medical_content !== false;
       informeDoctor = parsed.informe_doctor || "";
       informePaciente = parsed.informe_paciente || "";
       /* v8 ignore next */
@@ -201,75 +214,31 @@ DIÁLOGO ESTRUCTURADO (dialog):
       informePaciente = reportsText;
     }
 
-    const { data: informeData } = await supabase
-      .from("informes")
-      .select("*, patients(*)")
-      .eq("id", informeId)
-      .single();
+    // If Claude determined there's no valid medical content, reset the informe and abort
+    if (!validMedicalContent || (!informeDoctor.trim() && !informePaciente.trim())) {
+      // Reset informe back to "recording" status so it doesn't pollute the DB
+      await supabase
+        .from("informes")
+        .update({ status: "recording", transcript: null })
+        .eq("id", informeId)
+        .eq("doctor_id", user.id);
 
-    let pdfPath: string | null = null;
-    if (informeData && informePaciente) {
-      try {
-        const patient = (informeData as { patients: { name: string; phone: string } }).patients;
-        const pdfBytes = await generateInformePDF({
-          patientName: patient.name,
-          patientPhone: patient.phone,
-          date: new Date().toLocaleDateString("es-AR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          }),
-          content: informePaciente,
-        });
-
-        const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
-        const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-        const { error: pdfUploadError } = await supabase.storage
-          .from("informes-pdf")
-          .upload(pdfFileName, pdfBlob, {
-            contentType: "application/pdf",
-            upsert: true,
-          });
-
-        if (!pdfUploadError) {
-          pdfPath = pdfFileName;
-        }
-      /* v8 ignore next 3 */
-      } catch (pdfError) {
-        console.error("Error generando PDF:", pdfError);
-      }
-    }
-
-    const finalUpdate: Record<string, unknown> = {
-      status: "completed",
-      informe_doctor: informeDoctor,
-      informe_paciente: informePaciente,
-      pdf_path: pdfPath,
-      transcript_dialog: transcriptDialog,
-      transcript_type: transcriptType,
-    };
-
-    // Clear audio_path in the same update (legal compliance)
-    if (audioPath) {
-      finalUpdate.audio_path = null;
+      return { insufficientContent: true };
     }
 
     const { error: updateError } = await supabase
       .from("informes")
-      .update(finalUpdate)
+      .update({
+        status: "completed",
+        informe_doctor: informeDoctor,
+        informe_paciente: informePaciente,
+        transcript_dialog: transcriptDialog,
+        transcript_type: transcriptType,
+      })
       .eq("id", informeId)
       .eq("doctor_id", user.id);
 
     if (updateError) throw new Error(updateError.message);
-
-    // Delete audio file from storage after reports are generated (legal compliance)
-    if (audioPath) {
-      try {
-        await supabase.storage.from("audio-recordings").remove([audioPath]);
-      } catch {
-        // Storage deletion is best-effort; the audio_path has already been nullified in the DB
-      }
-    }
 
     revalidatePath("/");
     revalidatePath(`/informes/${informeId}`);
@@ -294,20 +263,12 @@ export async function deleteInforme(informeId: string) {
 
   const { data: informe, error: fetchError } = await supabase
     .from("informes")
-    .select("id, audio_path, pdf_path, patient_id")
+    .select("id, patient_id")
     .eq("id", informeId)
     .eq("doctor_id", user.id)
     .single();
 
   if (fetchError || !informe) return { error: "Informe no encontrado" };
-
-  if (informe.audio_path) {
-    await supabase.storage.from("audio-recordings").remove([informe.audio_path]);
-  }
-
-  if (informe.pdf_path) {
-    await supabase.storage.from("informes-pdf").remove([informe.pdf_path]);
-  }
 
   const { error: deleteError } = await supabase
     .from("informes")
@@ -357,19 +318,6 @@ export async function getInforme(informeId: string) {
   return { data };
 }
 
-export async function getPdfDownloadUrl(pdfPath: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.storage
-    .from("informes-pdf")
-    .createSignedUrl(pdfPath, 3600);
-  return data?.signedUrl ?? null;
-}
-
-export async function regeneratePdf(informeId: string) {
-  await generateAndSavePdf(informeId);
-  revalidatePath(`/informes/${informeId}`);
-}
-
 export async function updateInformeDoctorOnly(
   informeId: string,
   informeDoctor: string
@@ -402,60 +350,9 @@ export async function updateInformePacienteWithPdf(
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: informeData, error: fetchError } = await supabase
-    .from("informes")
-    .select("*, patients(*)")
-    .eq("id", informeId)
-    .eq("doctor_id", user.id)
-    .single();
-
-  if (fetchError || !informeData) return { error: "Informe no encontrado" };
-
-  const { data: doctorData } = await supabase
-    .from("doctors")
-    .select("name, matricula, especialidad, firma_digital")
-    .eq("id", user.id)
-    .single();
-
-  let pdfPath: string | null = informeData.pdf_path ?? null;
-
-  if (informePaciente) {
-    try {
-      const patient = (informeData as { patients: { name: string; phone: string } }).patients;
-      const pdfBytes = await generateInformePDF({
-        patientName: patient.name,
-        patientPhone: patient.phone,
-        date: new Date(informeData.created_at).toLocaleDateString("es-AR", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        }),
-        content: informePaciente,
-        doctor: doctorData
-          ? {
-              name: doctorData.name,
-              matricula: doctorData.matricula,
-              especialidad: doctorData.especialidad,
-              firmaDigital: doctorData.firma_digital,
-            }
-          : null,
-      });
-
-      const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
-      const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-      const { error: uploadError } = await supabase.storage
-        .from("informes-pdf")
-        .upload(pdfFileName, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-      if (!uploadError) pdfPath = pdfFileName;
-    } catch (pdfError) {
-      console.error("Error regenerando PDF:", pdfError);
-    }
-  }
-
   const { error: updateError } = await supabase
     .from("informes")
-    .update({ informe_paciente: informePaciente, pdf_path: pdfPath })
+    .update({ informe_paciente: informePaciente })
     .eq("id", informeId)
     .eq("doctor_id", user.id);
 
@@ -476,60 +373,9 @@ export async function updateInformeReports(
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: informeData, error: fetchError } = await supabase
-    .from("informes")
-    .select("*, patients(*)")
-    .eq("id", informeId)
-    .eq("doctor_id", user.id)
-    .single();
-
-  if (fetchError || !informeData) return { error: "Informe no encontrado" };
-
-  const { data: doctorData } = await supabase
-    .from("doctors")
-    .select("name, matricula, especialidad, firma_digital")
-    .eq("id", user.id)
-    .single();
-
-  let pdfPath: string | null = informeData.pdf_path ?? null;
-
-  if (informePaciente) {
-    try {
-      const patient = (informeData as { patients: { name: string; phone: string } }).patients;
-      const pdfBytes = await generateInformePDF({
-        patientName: patient.name,
-        patientPhone: patient.phone,
-        date: new Date(informeData.created_at).toLocaleDateString("es-AR", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        }),
-        content: informePaciente,
-        doctor: doctorData
-          ? {
-              name: doctorData.name,
-              matricula: doctorData.matricula,
-              especialidad: doctorData.especialidad,
-              firmaDigital: doctorData.firma_digital,
-            }
-          : null,
-      });
-
-      const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
-      const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-      const { error: uploadError } = await supabase.storage
-        .from("informes-pdf")
-        .upload(pdfFileName, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-      if (!uploadError) pdfPath = pdfFileName;
-    } catch (pdfError) {
-      console.error("Error regenerando PDF:", pdfError);
-    }
-  }
-
   const { error: updateError } = await supabase
     .from("informes")
-    .update({ informe_doctor: informeDoctor, informe_paciente: informePaciente, pdf_path: pdfPath })
+    .update({ informe_doctor: informeDoctor, informe_paciente: informePaciente })
     .eq("id", informeId)
     .eq("doctor_id", user.id);
 
@@ -550,24 +396,36 @@ export async function regenerateReportFromEdits(
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: informeData, error: fetchError } = await supabase
-    .from("informes")
-    .select("id, transcript")
-    .eq("id", informeId)
-    .eq("doctor_id", user.id)
-    .single();
+  const [informeResult, doctorResult] = await Promise.all([
+    supabase
+      .from("informes")
+      .select("id, transcript")
+      .eq("id", informeId)
+      .eq("doctor_id", user.id)
+      .single(),
+    supabase
+      .from("doctors")
+      .select("especialidad")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  const { data: informeData, error: fetchError } = informeResult;
 
   if (fetchError || !informeData) return { error: "Informe no encontrado" };
   if (!informeData.transcript) return { error: "No hay transcripción disponible" };
+
+  const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
   try {
     const response = await anthropic.messages.create({
       model: "claude-opus-4-5",
       max_tokens: 8192,
+      system: specialtyPrompt,
       messages: [
         {
           role: "user",
-          content: `Eres un asistente médico experto. El doctor ha editado los informes generados previamente. Basándote en la transcripción original y las ediciones del doctor, regenera ambos informes incorporando los cambios.
+          content: `El doctor ha editado los informes generados previamente. Basándote en la transcripción original y las ediciones del doctor, regenera ambos informes incorporando los cambios y siguiendo el formato de tu especialidad.
 
 TRANSCRIPCIÓN ORIGINAL:
 ${informeData.transcript}
@@ -584,7 +442,7 @@ Genera la respuesta en formato JSON exacto (sin markdown, solo JSON puro):
   "informe_paciente": "..."
 }
 
-Mantén las ediciones del doctor como base, mejorando coherencia y formato.`,
+Mantén las ediciones del doctor como base, mejorando coherencia y formato según el estándar de la especialidad.`,
         },
       ],
     });
@@ -629,12 +487,6 @@ export async function recordPatientConsent(informeId: string) {
   if (informeData.status !== "completed") return { error: "El informe no está completado" };
   if (!informeData.informe_paciente) return { error: "Sin contenido para el paciente" };
 
-  const { data: doctorDataConsent } = await supabase
-    .from("doctors")
-    .select("name, matricula, especialidad, firma_digital")
-    .eq("id", user.id)
-    .single();
-
   const consentAt = new Date().toLocaleString("es-AR", {
     day: "2-digit",
     month: "long",
@@ -650,42 +502,6 @@ export async function recordPatientConsent(informeId: string) {
     .eq("doctor_id", user.id);
 
   if (updateError) return { error: updateError.message };
-
-  try {
-    const patient = (informeData as { patients: { name: string; phone: string } }).patients;
-    const pdfBytes = await generateInformePDF({
-      patientName: patient.name,
-      patientPhone: patient.phone,
-      date: new Date(informeData.created_at).toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      content: informeData.informe_paciente,
-      doctor: doctorDataConsent
-        ? {
-            name: doctorDataConsent.name,
-            matricula: doctorDataConsent.matricula,
-            especialidad: doctorDataConsent.especialidad,
-            firmaDigital: doctorDataConsent.firma_digital,
-          }
-        : null,
-    });
-
-    const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
-    const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-    await supabase.storage
-      .from("informes-pdf")
-      .upload(pdfFileName, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-    await supabase
-      .from("informes")
-      .update({ pdf_path: pdfFileName })
-      .eq("id", informeId)
-      .eq("doctor_id", user.id);
-  } catch (pdfError) {
-    console.error("Error regenerando PDF con consentimiento:", pdfError);
-  }
 
   revalidatePath(`/informes/${informeId}`);
   return { success: true, consentAt };
@@ -707,7 +523,7 @@ export async function generateAndSaveCertificado(
 
   const { data: informeData, error: fetchError } = await supabase
     .from("informes")
-    .select("*, patients(*)")
+    .select("status")
     .eq("id", informeId)
     .eq("doctor_id", user.id)
     .single();
@@ -715,139 +531,11 @@ export async function generateAndSaveCertificado(
   if (fetchError || !informeData) return { error: "Informe no encontrado" };
   if (informeData.status !== "completed") return { error: "El informe no está completado" };
 
-  const { data: doctorData } = await supabase
-    .from("doctors")
-    .select("name, matricula, especialidad, firma_digital")
-    .eq("id", user.id)
-    .single();
+  // Build on-demand PDF URL with options as query params
+  const params = new URLSearchParams({ id: informeId });
+  if (options.daysOff != null) params.set("daysOff", String(options.daysOff));
+  if (options.diagnosis) params.set("diagnosis", options.diagnosis);
+  if (options.observations) params.set("observations", options.observations);
 
-  try {
-    const patient = (
-      informeData as { patients: { name: string; phone: string; dni?: string | null; dob?: string | null } }
-    ).patients;
-
-    const date = new Date(informeData.created_at).toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-
-    const patientDob = patient.dob
-      ? new Date(patient.dob + "T00:00:00").toLocaleDateString("es-AR", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
-      : null;
-
-    const certBytes = await generateCertificadoPDF({
-      patientName: patient.name,
-      patientDni: patient.dni ?? null,
-      patientDob,
-      date,
-      diagnosis: options.diagnosis ?? null,
-      daysOff: options.daysOff ?? null,
-      observations: options.observations ?? null,
-      doctor: doctorData
-        ? {
-            name: doctorData.name,
-            matricula: doctorData.matricula,
-            especialidad: doctorData.especialidad,
-            firmaDigital: doctorData.firma_digital,
-          }
-        : null,
-    });
-
-    const certFileName = `${user.id}/${informeId}/certificado-medico.pdf`;
-    const certBlob = new Blob([certBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-    const { error: uploadError } = await supabase.storage
-      .from("informes-pdf")
-      .upload(certFileName, certBlob, { contentType: "application/pdf", upsert: true });
-
-    if (uploadError) return { error: uploadError.message };
-
-    const { data: signed } = await supabase.storage
-      .from("informes-pdf")
-      .createSignedUrl(certFileName, 3600);
-
-    return { signedUrl: signed?.signedUrl ?? null };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
-  }
-}
-
-export async function generateAndSavePdf(informeId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
-
-  const { data: informeData, error: fetchError } = await supabase
-    .from("informes")
-    .select("*, patients(*)")
-    .eq("id", informeId)
-    .eq("doctor_id", user.id)
-    .single();
-
-  if (fetchError || !informeData) return { error: "Informe no encontrado" };
-  if (informeData.status !== "completed") return { error: "El informe no está completado" };
-  if (!informeData.informe_paciente) return { error: "Sin contenido para el paciente" };
-
-  const { data: doctorDataPdf } = await supabase
-    .from("doctors")
-    .select("name, matricula, especialidad, firma_digital")
-    .eq("id", user.id)
-    .single();
-
-  try {
-    const patient = (informeData as { patients: { name: string; phone: string } }).patients;
-    const pdfBytes = await generateInformePDF({
-      patientName: patient.name,
-      patientPhone: patient.phone,
-      date: new Date(informeData.created_at).toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      content: informeData.informe_paciente,
-      doctor: doctorDataPdf
-        ? {
-            name: doctorDataPdf.name,
-            matricula: doctorDataPdf.matricula,
-            especialidad: doctorDataPdf.especialidad,
-            firmaDigital: doctorDataPdf.firma_digital,
-          }
-        : null,
-    });
-
-    const pdfFileName = `${user.id}/${informeId}/informe-paciente.pdf`;
-    const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-    const { error: uploadError } = await supabase.storage
-      .from("informes-pdf")
-      .upload(pdfFileName, pdfBlob, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    if (uploadError) return { error: uploadError.message };
-
-    await supabase
-      .from("informes")
-      .update({ pdf_path: pdfFileName })
-      .eq("id", informeId)
-      .eq("doctor_id", user.id);
-
-    revalidatePath(`/informes/${informeId}`);
-
-    const { data: signed } = await supabase.storage
-      .from("informes-pdf")
-      .createSignedUrl(pdfFileName, 3600);
-
-    return { signedUrl: signed?.signedUrl ?? null };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
-  }
+  return { signedUrl: `/api/pdf/certificado?${params.toString()}` };
 }

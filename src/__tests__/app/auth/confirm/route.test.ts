@@ -55,9 +55,9 @@ describe('GET /auth/confirm', () => {
 
   it('redirects to custom next when code exchange succeeds', async () => {
     mockExchangeCodeForSession.mockResolvedValue({ error: null })
-    const res = await GET(makeRequest('?code=mycode&next=/dashboard'))
+    const res = await GET(makeRequest('?code=mycode&next=/'))
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toBe('http://localhost:3001/dashboard')
+    expect(res.headers.get('location')).toBe('http://localhost:3001/')
   })
 
   it('redirects to /auth/auth-error when code exchange fails', async () => {

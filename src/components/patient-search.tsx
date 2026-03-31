@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useRef, useEffect, useCallback } from "react";
+import { Suspense, useReducer, useRef, useEffect, useCallback } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { searchPatients } from "@/actions/patients";
 import type { PatientSearchResult } from "@/actions/patients";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface SearchState {
   query: string;
@@ -65,13 +66,14 @@ interface PatientSearchProps {
   onSearchChange?: (query: string) => void;
 }
 
-export function PatientSearch({
+function PatientSearchContent({
   className,
   placeholder,
   onSearchChange,
 }: PatientSearchProps) {
   const t = useTranslations("patientSearch");
   const router = useRouter();
+  const currentTab = useCurrentTab();
   const [state, dispatch] = useReducer(searchReducer, initialState);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,7 +127,8 @@ export function PatientSearch({
   };
 
   const selectPatient = (patient: PatientSearchResult) => {
-    router.push(`/patients/${patient.id}`);
+    const url = currentTab ? `/patients/${patient.id}?tab=${currentTab}` : `/patients/${patient.id}`;
+    router.push(url);
     dispatch({ type: "CLEAR" });
   };
 
@@ -241,5 +244,13 @@ export function PatientSearch({
         </div>
       )}
     </div>
+  );
+}
+
+export function PatientSearch(props: PatientSearchProps) {
+  return (
+    <Suspense fallback={null}>
+      <PatientSearchContent {...props} />
+    </Suspense>
   );
 }

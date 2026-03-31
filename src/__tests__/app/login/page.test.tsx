@@ -35,9 +35,9 @@ describe('LoginPage', () => {
     expect(screen.getByText('title')).toBeInTheDocument()
   })
 
-  it('redirects to /dashboard when user is already authenticated', async () => {
+  it('redirects to / when user is already authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     try { await LoginPage() } catch { /* redirect throws */ }
-    expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
+    expect(mockRedirect).toHaveBeenCalledWith('/')
   })
 })

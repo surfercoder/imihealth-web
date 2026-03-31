@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations, useLocale } from "next-intl";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface InformeRow {
   id: string;
@@ -43,9 +45,10 @@ const statusClasses: Record<string, string> = {
   error: "text-destructive bg-destructive/10 border-destructive/20",
 };
 
-export function InformesList({ informes }: InformesListProps) {
+function InformesListContent({ informes }: InformesListProps) {
   const t = useTranslations("informesList");
   const locale = useLocale();
+  const currentTab = useCurrentTab();
 
   if (informes.length === 0) {
     return (
@@ -68,10 +71,11 @@ export function InformesList({ informes }: InformesListProps) {
         const StatusIcon = statusIcons[statusKey] ?? AlertCircle;
         const statusClass = statusClasses[informe.status] ?? statusClasses.error;
         const statusLabel = t(`status.${statusKey}` as Parameters<typeof t>[0]);
-        const href =
+        const baseHref =
           informe.status === "recording"
             ? `/informes/${informe.id}/grabar`
             : `/informes/${informe.id}`;
+        const href = currentTab ? `${baseHref}?tab=${currentTab}` : baseHref;
 
         const date = new Date(informe.created_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
           day: "2-digit",
@@ -130,5 +134,13 @@ export function InformesList({ informes }: InformesListProps) {
         );
       })}
     </div>
+  );
+}
+
+export function InformesList(props: InformesListProps) {
+  return (
+    <Suspense fallback={null}>
+      <InformesListContent {...props} />
+    </Suspense>
   );
 }

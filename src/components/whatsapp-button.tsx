@@ -10,14 +10,27 @@ interface WhatsAppButtonProps {
   phone: string;
   patientName: string;
   pdfUrl: string;
+  isOptedIn?: boolean;
 }
 
-export function WhatsAppButton({ phone, patientName, pdfUrl }: WhatsAppButtonProps) {
+export function WhatsAppButton({ phone, patientName, pdfUrl, isOptedIn = false }: WhatsAppButtonProps) {
   const [isSending, setIsSending] = useState(false);
   const locale = useLocale();
   const t = useTranslations("whatsappButton");
 
   const handleSend = async () => {
+    if (!isOptedIn) {
+      toast.warning(
+        locale === "es" ? "WhatsApp no activado" : "WhatsApp not activated",
+        {
+          description: locale === "es"
+            ? "El paciente debe activar WhatsApp primero para recibir mensajes automáticos."
+            : "Patient must activate WhatsApp first to receive automatic messages."
+        }
+      );
+      return;
+    }
+
     const templateName = locale === "es" ? "patient_report_es" : "patient_report_en";
     const languageCode = locale === "es" ? "es_AR" : "en";
     const fallbackError = t("errorMessage");

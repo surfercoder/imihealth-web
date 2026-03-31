@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, Suspense } from "react";
 import { PatientSearch } from "@/components/patient-search";
 import { PatientsList } from "@/components/patients-list";
 import type { PatientWithStats } from "@/actions/patients";
@@ -62,13 +62,17 @@ export function DashboardPatientsSection({ patients }: DashboardPatientsSectionP
 
   return (
     <div className="space-y-4">
-      <PatientSearch
-        onSearchChange={handleSearchChange}
-      />
-      <PatientsList
-        patients={displayedPatients}
-        isLoading={isSearching}
-      />
+      <Suspense fallback={<div className="h-10" />}>
+        <PatientSearch
+          onSearchChange={handleSearchChange}
+        />
+      </Suspense>
+      <Suspense fallback={<PatientsList patients={displayedPatients} isLoading={true} />}>
+        <PatientsList
+          patients={displayedPatients}
+          isLoading={isSearching}
+        />
+      </Suspense>
     </div>
   );
 }

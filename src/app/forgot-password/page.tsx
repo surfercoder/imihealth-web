@@ -17,7 +17,7 @@ export default async function ForgotPasswordPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   const t = await getTranslations("forgotPasswordPage");

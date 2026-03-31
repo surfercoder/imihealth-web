@@ -1,19 +1,21 @@
 "use client";
 
-import { useReducer, useRef, useCallback, useEffect } from "react";
+import { Suspense, useReducer, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Mic, MicOff, Square, Play, Pause, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Square, Pause, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/utils/supabase/client";
 import { processInformeFromTranscript } from "@/actions/informes";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations, useLocale } from "next-intl";
+import Image from "next/image";
+import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface AudioRecorderProps {
   informeId: string;
   doctorId: string;
+  isQuickReport?: boolean;
 }
 
 type RecorderPhase =
@@ -26,7 +28,8 @@ type RecorderPhase =
   | "transcribing"
   | "processing"
   | "done"
-  | "error";
+  | "error"
+  | "insufficient_content";
 
 interface RecorderState {
   phase: RecorderPhase;
@@ -85,17 +88,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
 }) {
   const t = useTranslations("audioRecorder");
   return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-center rounded-2xl border-2 p-10 transition-all duration-300",
-        isActive && "border-destructive/50 bg-destructive/5",
-        isPaused && "border-primary/40 bg-primary/5",
-        phase === "idle" && "border-dashed border-border bg-muted",
-        phase === "done" && "border-emerald-300 bg-emerald-50",
-        phase === "error" && "border-destructive/50 bg-destructive/5",
-        isProcessing && "border-primary/40 bg-primary/5"
-      )}
-    >
+    <div className="relative flex flex-col items-center justify-center transition-all duration-300">
       {isActive && (
         <span className="absolute top-4 right-4 flex size-3">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
@@ -103,72 +96,43 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
         </span>
       )}
 
-      <div className="relative mb-4 flex items-center justify-center">
-        {isActive && (
-          <span
-            className="absolute size-20 rounded-full bg-destructive/20"
-            style={{ animation: "pulse-ring 1.5s ease-in-out infinite" }}
-          />
-        )}
+      <div className="relative mb-0 flex items-center justify-center">
         <div
           className={cn(
-            "relative flex size-20 items-center justify-center rounded-full transition-all duration-300",
-            isActive && "bg-destructive/15 text-destructive",
-            isPaused && "bg-primary/10 text-primary",
-            phase === "idle" && "bg-secondary text-muted-foreground",
-            phase === "done" && "bg-emerald-100 text-emerald-600",
-            phase === "error" && "bg-destructive/15 text-destructive",
-            isProcessing && "bg-primary/10 text-primary"
+            "relative flex items-center justify-center transition-all duration-300"
           )}
+          style={isActive ? { animation: "scale-pulse 2s ease-in-out infinite" } : undefined}
         >
           {phase === "done" ? (
-            <CheckCircle2 className="size-9" />
+            <div className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <CheckCircle2 className="size-9" />
+            </div>
+          ) : phase === "insufficient_content" ? (
+            <div className="flex size-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+              <AlertCircle className="size-9" />
+            </div>
           ) : phase === "error" ? (
-            <AlertCircle className="size-9" />
+            <div className="flex size-20 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+              <AlertCircle className="size-9" />
+            </div>
           ) : isProcessing ? (
-            <Loader2 className="size-9 animate-spin" />
-          ) : isActive ? (
-            <Mic className="size-9" />
-          ) : isPaused ? (
-            <Pause className="size-9" />
-          ) : (
-            <Mic className="size-9" />
-          )}
+            <div className="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Loader2 className="size-9 animate-spin" />
+            </div>
+          ) : (isActive || isPaused) ? (
+            <Image
+              src="/assets/images/imi-bot-listening.png"
+              alt="IMI Bot Listening"
+              width={192}
+              height={192}
+              className="size-48"
+              priority
+            />
+          ) : null}
         </div>
       </div>
 
-      {isActive && (
-        <div className="mb-4 flex items-end justify-center gap-[3px] h-8">
-          {[
-            { id: "b0", bar: 1 },
-            { id: "b1", bar: 2 },
-            { id: "b2", bar: 3 },
-            { id: "b3", bar: 4 },
-            { id: "b4", bar: 5 },
-            { id: "b5", bar: 4 },
-            { id: "b6", bar: 3 },
-            { id: "b7", bar: 2 },
-            { id: "b8", bar: 1 },
-          ].map(({ id, bar }, i) => (
-            <span
-              key={id}
-              className="w-[4px] rounded-full bg-destructive/70"
-              style={{
-                animation: `equalizer-bar-${bar} ${0.6 + bar * 0.15}s ease-in-out infinite`,
-                animationDelay: `${i * 0.08}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       <div className="text-center">
-        {phase === "idle" && (
-          <>
-            <p className="text-base font-medium text-card-foreground">{t("stateIdle")}</p>
-            <p className="mt-1 text-sm text-card-foreground/60">{t("stateIdleHint")}</p>
-          </>
-        )}
         {phase === "requesting" && (
           <p className="text-sm text-muted-foreground">{t("stateRequesting")}</p>
         )}
@@ -206,6 +170,12 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
             <p className="mt-1 text-sm text-muted-foreground">{t("stateRedirecting")}</p>
           </>
         )}
+        {phase === "insufficient_content" && (
+          <>
+            <p className="text-base font-medium text-amber-600">{t("stateInsufficientContent")}</p>
+            <p className="mt-2 text-sm text-muted-foreground max-w-sm">{t("stateInsufficientContentHint")}</p>
+          </>
+        )}
         {phase === "error" && (
           <>
             <p className="text-base font-medium text-destructive">{t("stateError")}</p>
@@ -228,42 +198,75 @@ async function uploadAndProcess(
   t: (key: string) => string,
   router: ReturnType<typeof useRouter>,
   locale: string,
+  tab?: string | null,
+  isQuickReport?: boolean,
 ) {
   dispatch({ type: "SET_PHASE", phase: "uploading" });
   dispatch({ type: "SET_PROGRESS", progress: 20 });
 
   const blob = new Blob(chunks, { type: mimeType });
-  let audioPath: string | undefined;
+  const transcriptToUse = finalTranscript || fallbackText;
 
-  try {
-    const supabase = createClient();
-    const ext = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
-    const fileName = `${doctorId}/${informeId}/recording.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("audio-recordings")
-      .upload(fileName, blob, { contentType: blob.type, upsert: true });
-    if (!uploadError) audioPath = fileName;
-  } catch (uploadErr) {
-    console.warn("Audio upload failed, continuing without it:", uploadErr);
+  // For quick reports, skip database storage and use processQuickInforme
+  if (isQuickReport) {
+    dispatch({ type: "SET_PROGRESS", progress: 30 });
+    dispatch({ type: "SET_PHASE", phase: "transcribing" });
+    
+    const { processQuickInforme } = await import("@/actions/quick-informe");
+    
+    dispatch({ type: "SET_PROGRESS", progress: 50 });
+    dispatch({ type: "SET_PHASE", phase: "processing" });
+    
+    const result = await processQuickInforme(transcriptToUse, blob, locale);
+    dispatch({ type: "SET_PROGRESS", progress: 100 });
+
+    if (result.error) {
+      dispatch({ type: "SET_ERROR", error: result.error });
+      dispatch({ type: "SET_PHASE", phase: "error" });
+      toast.error(t("errorProcess"), { description: result.error });
+    } else if (result.informeDoctor) {
+      dispatch({ type: "SET_PHASE", phase: "done" });
+      toast.success(t("successTitle"), { description: t("successDescription") });
+      // Redirect to a result page with the informe in the URL state
+      setTimeout(() => {
+        router.push(`/quick-informe/result?informe=${encodeURIComponent(result.informeDoctor!)}`);
+      }, 1200);
+    }
+    return;
   }
 
+  // Classic report flow - pass audio directly to server action (no storage)
   dispatch({ type: "SET_PROGRESS", progress: 30 });
   dispatch({ type: "SET_PHASE", phase: "transcribing" });
 
-  const transcriptToUse = finalTranscript || fallbackText;
+  // Convert blob to base64 for server action transfer
+  let audioBase64: string | undefined;
+  let audioContentType: string | undefined;
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+    audioContentType = blob.type;
+  } catch {
+    console.warn("Audio encoding failed, continuing without it");
+  }
+
   dispatch({ type: "SET_PROGRESS", progress: 50 });
 
-  const result = await processInformeFromTranscript(informeId, transcriptToUse, audioPath, locale);
+  const result = await processInformeFromTranscript(informeId, transcriptToUse, audioBase64, audioContentType, locale);
   dispatch({ type: "SET_PROGRESS", progress: 100 });
 
-  if (result.error) {
+  if ("insufficientContent" in result && result.insufficientContent) {
+    dispatch({ type: "SET_PHASE", phase: "insufficient_content" });
+    toast.warning(t("insufficientContentTitle"), { description: t("insufficientContentDescription") });
+  } else if (result.error) {
     dispatch({ type: "SET_ERROR", error: result.error });
     dispatch({ type: "SET_PHASE", phase: "error" });
     toast.error(t("errorProcess"), { description: result.error });
   } else {
     dispatch({ type: "SET_PHASE", phase: "done" });
     toast.success(t("successTitle"), { description: t("successDescription") });
-    setTimeout(() => router.push(`/informes/${informeId}`), 1200);
+    const url = tab ? `/informes/${informeId}?tab=${tab}` : `/informes/${informeId}`;
+    setTimeout(() => router.push(url), 1200);
   }
 }
 
@@ -279,42 +282,66 @@ function RecorderControls({ phase, isActive, isPaused, onStart, onPause, onResum
 }) {
   const t = useTranslations("audioRecorder");
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex gap-4 justify-center items-center">
       {phase === "idle" && (
-        <Button size="lg" onClick={onStart} className="gap-2 px-8">
-          <Mic className="size-4" />
-          {t("btnStart")}
-        </Button>
+        <button
+          onClick={onStart}
+          className="relative flex size-24 items-center justify-center rounded-full bg-destructive text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+          aria-label={t("btnStart")}
+        >
+          <Mic className="size-10" />
+        </button>
       )}
       {phase === "requesting" && (
-        <Button size="lg" disabled className="gap-2 px-8">
-          <Loader2 className="size-4 animate-spin" />
-          {t("btnRequesting")}
-        </Button>
+        <button
+          disabled
+          className="relative flex size-24 items-center justify-center rounded-full bg-destructive/50 text-white shadow-lg"
+          aria-label={t("btnRequesting")}
+        >
+          <Loader2 className="size-10 animate-spin" />
+        </button>
       )}
       {isActive && (
         <>
-          <Button size="lg" variant="outline" onClick={onPause} className="gap-2">
-            <Pause className="size-4" />
-            {t("btnPause")}
-          </Button>
-          <Button size="lg" onClick={onStop} className="gap-2 px-8">
-            <Square className="size-4" />
-            {t("btnStop")}
-          </Button>
+          <button
+            onClick={onPause}
+            className="relative flex size-16 items-center justify-center rounded-lg bg-white border-2 border-gray-300 text-gray-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+            aria-label={t("btnPause")}
+          >
+            <Pause className="size-7" />
+          </button>
+          <button
+            onClick={onStop}
+            className="relative flex size-24 items-center justify-center rounded-full bg-destructive text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+            aria-label={t("btnStop")}
+          >
+            <Square className="size-10" fill="white" />
+          </button>
         </>
       )}
       {isPaused && (
         <>
-          <Button size="lg" variant="outline" onClick={onResume} className="gap-2">
-            <Play className="size-4" />
-            {t("btnResume")}
-          </Button>
-          <Button size="lg" onClick={onStop} className="gap-2 px-8">
-            <Square className="size-4" />
-            {t("btnStop")}
-          </Button>
+          <button
+            onClick={onResume}
+            className="relative flex size-16 items-center justify-center rounded-lg bg-white border-2 border-gray-300 text-gray-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+            aria-label={t("btnResume")}
+          >
+            <Mic className="size-7" />
+          </button>
+          <button
+            onClick={onStop}
+            className="relative flex size-24 items-center justify-center rounded-full bg-destructive text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+            aria-label={t("btnStop")}
+          >
+            <Square className="size-10" fill="white" />
+          </button>
         </>
+      )}
+      {phase === "insufficient_content" && (
+        <Button size="lg" variant="default" onClick={onRetry} className="gap-2">
+          <Mic className="size-4" />
+          {t("btnTryAgain")}
+        </Button>
       )}
       {phase === "error" && (
         <Button size="lg" variant="outline" onClick={onRetry} className="gap-2">
@@ -326,10 +353,11 @@ function RecorderControls({ phase, isActive, isPaused, onStart, onPause, onResum
   );
 }
 
-export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
+function AudioRecorderContent({ informeId, doctorId, isQuickReport }: AudioRecorderProps) {
   const t = useTranslations("audioRecorder");
   const locale = useLocale();
   const router = useRouter();
+  const currentTab = useCurrentTab();
   const [state, dispatch] = useReducer(recorderReducer, initialRecorderState);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -453,6 +481,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
     }
   }, [startTimer, setupSpeechRecognition, t]);
 
+
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.pause();
@@ -492,7 +521,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
     const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
 
     const process = () =>
-      uploadAndProcess(dispatch, chunksRef.current, mimeType, doctorId, informeId, finalTranscript, t("transcriptFallback"), t, router, locale);
+      uploadAndProcess(dispatch, chunksRef.current, mimeType, doctorId, informeId, finalTranscript, t("transcriptFallback"), t, router, locale, currentTab, isQuickReport);
 
     return new Promise<void>((resolve) => {
       /* v8 ignore next 4 */
@@ -510,7 +539,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
         process().then(resolve);
       }
     });
-  }, [stopTimer, informeId, doctorId, router, t, locale]);
+  }, [stopTimer, informeId, doctorId, router, t, locale, currentTab, isQuickReport]);
 
   useEffect(() => {
     return () => {
@@ -547,7 +576,7 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <RecorderStatusDisplay
         phase={phase}
         error={error}
@@ -566,15 +595,6 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
         </div>
       )}
 
-      {(isActive || isPaused) && transcript && (
-        <div className="rounded-lg border border-border bg-muted p-4 max-h-40 overflow-y-auto">
-          <p className="text-xs font-medium text-muted-foreground mb-1.5">
-            {t("liveTranscript")}
-          </p>
-          <p className="text-sm leading-relaxed text-card-foreground">{transcript}</p>
-        </div>
-      )}
-
       <RecorderControls
         phase={phase}
         isActive={isActive}
@@ -585,6 +605,23 @@ export function AudioRecorder({ informeId, doctorId }: AudioRecorderProps) {
         onStop={stopAndProcess}
         onRetry={handleRetry}
       />
+
+      {(isActive || isPaused) && transcript && (
+        <div className="rounded-lg border border-border bg-muted p-4 max-h-40 overflow-y-auto">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">
+            {t("liveTranscript")}
+          </p>
+          <p className="text-sm leading-relaxed text-card-foreground">{transcript}</p>
+        </div>
+      )}
     </div>
+  );
+}
+
+export function AudioRecorder(props: AudioRecorderProps) {
+  return (
+    <Suspense fallback={null}>
+      <AudioRecorderContent {...props} />
+    </Suspense>
   );
 }

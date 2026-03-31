@@ -9,7 +9,9 @@
     "edit": "Edit",
     "back": "Back",
     "error": "Error",
-    "noContent": "No content"
+    "noContent": "No content",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "nav": {
     "greeting": "Hello, {name}",
@@ -38,6 +40,39 @@
       "processing": "Processing"
     },
     "patientsTitle": "Patients"
+  },
+  "tabs": {
+    "informes": "Reports",
+    "misPacientes": "My patients",
+    "dashboard": "Dashboard",
+    "plantillas": "Templates"
+  },
+  "informes": {
+    "title": "Create new report",
+    "subtitle": "Choose the type of report you want to create",
+    "classic": "Classic report",
+    "classicDesc": "Load patient data once, then record the consultation. Generates both doctor and patient reports.",
+    "createClassic": "Create classic report",
+    "quick": "Quick report",
+    "quickDesc": "No patient data needed. Dictate everything in one shot. Generates doctor report only.",
+    "createQuick": "Create quick report",
+    "quickResultDesc": "Your report has been generated successfully",
+    "doctorReport": "Doctor's Report",
+    "copiedToClipboard": "Report copied to clipboard",
+    "copyError": "Could not copy to clipboard",
+    "createAnother": "Create another report"
+  },
+  "patients": {
+    "subtitle": "Manage and search your patients"
+  },
+  "dashboard": {
+    "title": "Overview",
+    "subtitle": "General view of your medical activity"
+  },
+  "plantillas": {
+    "title": "Report templates",
+    "subtitle": "Create and manage templates for your reports",
+    "comingSoon": "Coming soon"
   },
   "welcome": {
     "greeting": "Hello, {name}!",
@@ -203,15 +238,15 @@
     "title": "Record consultation",
     "subtitle": "Start recording when the consultation with the patient begins.",
     "howItWorks": "How does it work?",
-    "step1": "Press \"Start recording\" to begin",
+    "step1": "Press the red button to start recording",
     "step2": "Conduct the consultation with the patient normally",
-    "step3": "When finished, press \"End consultation\"",
-    "step4": "AI will analyze the conversation and automatically generate two reports",
+    "step3": "Press the red button again to finish and process the recording",
+    "step4": "AI will analyze the conversation and automatically generate the reports",
     "yearsOld": "years old"
   },
   "audioRecorder": {
     "stateIdle": "Ready to record",
-    "stateIdleHint": "Press the button to start the consultation",
+    "stateIdleHint": "Press the red button to start",
     "stateRequesting": "Requesting microphone access...",
     "stateRecording": "Recording...",
     "statePaused": "Paused",
@@ -230,15 +265,20 @@
     "btnStart": "Start recording",
     "btnRequesting": "Accessing microphone...",
     "btnPause": "Pause",
-    "btnStop": "End consultation",
+    "btnStop": "Finish recording",
     "btnResume": "Resume",
     "btnRetry": "Try again",
     "errorMicDenied": "Microphone permission denied. Please allow microphone access.",
     "errorMicAccess": "Could not access microphone",
-    "transcriptFallback": "Audio could not be transcribed automatically. Please review the recording.",
+    "transcriptFallback": "Consultation could not be transcribed automatically. Please try again.",
     "errorProcess": "Error processing consultation",
     "successTitle": "Report generated successfully",
-    "successDescription": "The medical and patient reports are ready."
+    "successDescription": "The medical and patient reports are ready.",
+    "stateInsufficientContent": "No relevant medical content detected",
+    "stateInsufficientContentHint": "The recording does not contain enough medical information to generate reports. This can happen if there was too much background noise, silence, or the conversation did not include relevant clinical data.",
+    "insufficientContentTitle": "Insufficient content",
+    "insufficientContentDescription": "The report could not be generated because the recording did not contain relevant medical information.",
+    "btnTryAgain": "Try again"
   },
   "informeEditor": {
     "edit": "Edit reports",
@@ -258,7 +298,8 @@
     "regenerateSuccess": "Report regenerated with AI successfully",
     "consentLabel": "PATIENT CONSENT",
     "consentText": "{patientName} confirmed having read the report and gave consent on {patientConsentAt}.",
-    "consentTextImplicit": "{patientName} was previously informed about the use of the IMI system and gave consent for the recording and processing of the medical consultation."
+    "consentTextImplicit": "{patientName} was previously informed about the use of the IMI system and gave consent for the processing of the medical consultation.",
+    "whatsappNotActivated": "Patient has not yet been activated to receive reports via WhatsApp."
   },
   "consentSection": {
     "title": "Patient consent",
@@ -289,7 +330,7 @@
   "deleteInforme": {
     "srLabel": "Delete report",
     "title": "Delete report?",
-    "description": "This action will permanently delete the report from {date}, including the audio, generated report and all related data. This action cannot be undone.",
+    "description": "This action will permanently delete the report from {date}, including the generated report and all related data. This action cannot be undone.",
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting…",
@@ -300,7 +341,7 @@
   "deletePatientButton": {
     "srLabel": "Delete patient",
     "confirmTitle": "Delete patient?",
-    "confirmDescription": "This action will permanently delete the patient {name} and all associated reports, including audio files and generated reports. This action cannot be undone.",
+    "confirmDescription": "This action will permanently delete the patient {name} and all associated reports. This action cannot be undone.",
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting…",
@@ -311,7 +352,7 @@
   "deleteInformeButton": {
     "srLabel": "Delete report",
     "confirmTitle": "Delete report?",
-    "confirmDescription": "This action will permanently delete the report from {date}, including the audio, generated report and all related data. This action cannot be undone.",
+    "confirmDescription": "This action will permanently delete the report from {date}, including the generated report and all related data. This action cannot be undone.",
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting…",
@@ -329,9 +370,13 @@
     "label": "Send via WhatsApp",
     "message": "Hello {patientName}, we are sending you your medical report from today's consultation.\n\nYou can download it here: {pdfUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
     "successTitle": "WhatsApp sent",
-    "successMessage": "The report was sent via WhatsApp to {patientName}.",
-    "errorTitle": "WhatsApp error",
-    "errorMessage": "An unexpected error occurred"
+    "successMessage": "The report was sent via WhatsApp to {patientName} with PDF and image attached.",
+    "errorTitle": "Error sending",
+    "errorMessage": "Could not send the report via WhatsApp. Please try again."
+  },
+  "whatsappOptIn": {
+    "activateButton": "Activate WhatsApp",
+    "description": "Confirm that the patient authorizes receiving reports via WhatsApp."
   },
   "emailButton": {
     "subject": "Medical Report - {doctorName}",
@@ -347,7 +392,7 @@
     "label": "Send certificate via WhatsApp",
     "message": "Hello {patientName}, we are sending you your medical certificate.\n\nYou can download it here: {certUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
     "successTitle": "WhatsApp sent",
-    "successMessage": "The certificate was sent via WhatsApp to {patientName}.",
+    "successMessage": "The certificate was sent via WhatsApp to {patientName} with PDF and image attached.",
     "errorTitle": "WhatsApp error",
     "errorMessage": "An unexpected error occurred"
   },
@@ -411,6 +456,56 @@
     "specialtyPlaceholder": "Select your specialty",
     "searchSpecialty": "Search specialty…",
     "specialtyNotFound": "Specialty not found.",
+    "specialties": {
+      "Alergología": "Allergology",
+      "Anestesiología y reanimación": "Anesthesiology and resuscitation",
+      "Cardiología": "Cardiology",
+      "Dermatología": "Dermatology",
+      "Endocrinología y nutrición": "Endocrinology and nutrition",
+      "Geriatría": "Geriatrics",
+      "Hematología y hemoterapia": "Hematology and hemotherapy",
+      "Inmunología": "Immunology",
+      "Infectología": "Infectology",
+      "Medicina interna": "Internal medicine",
+      "Medicina familiar y comunitaria": "Family and community medicine",
+      "Medicina del trabajo": "Occupational medicine",
+      "Medicina preventiva y salud pública": "Preventive medicine and public health",
+      "Medicina crítica / intensiva": "Critical / intensive care medicine",
+      "Neumología": "Pulmonology",
+      "Nefrología": "Nephrology",
+      "Neurología": "Neurology",
+      "Oncología médica": "Medical oncology",
+      "Psiquiatría": "Psychiatry",
+      "Pediatría": "Pediatrics",
+      "Reumatología": "Rheumatology",
+      "Cirugía general y del aparato digestivo": "General and digestive surgery",
+      "Cirugía cardiovascular": "Cardiovascular surgery",
+      "Cirugía torácica": "Thoracic surgery",
+      "Cirugía ortopédica y traumatología": "Orthopedic surgery and traumatology",
+      "Cirugía pediátrica": "Pediatric surgery",
+      "Cirugía plástica, estética y reparadora": "Plastic, aesthetic and reconstructive surgery",
+      "Cirugía oral y maxilofacial": "Oral and maxillofacial surgery",
+      "Neurocirugía": "Neurosurgery",
+      "Angiología y cirugía vascular": "Angiology and vascular surgery",
+      "Dermatología médico-quirúrgica y venereología": "Medical-surgical dermatology and venereology",
+      "Obstetricia y ginecología": "Obstetrics and gynecology",
+      "Oftalmología": "Ophthalmology",
+      "Otorrinolaringología": "Otorhinolaryngology",
+      "Urología": "Urology",
+      "Anatomía patológica": "Pathological anatomy",
+      "Bioquímica clínica": "Clinical biochemistry",
+      "Farmacología clínica": "Clinical pharmacology",
+      "Microbiología y parasitología": "Microbiology and parasitology",
+      "Medicina nuclear": "Nuclear medicine",
+      "Neurofisiología clínica": "Clinical neurophysiology",
+      "Radiodiagnóstico": "Radiodiagnosis",
+      "Medicina transfusional y hemoterapia": "Transfusion medicine and hemotherapy",
+      "Medicina del deporte / medicina física y rehabilitación": "Sports medicine / physical medicine and rehabilitation",
+      "Medicina legal y forense": "Legal and forensic medicine",
+      "Medicina paliativa": "Palliative medicine",
+      "Medicina aeroespacial / medicina aeronáutica": "Aerospace / aeronautical medicine",
+      "Hidrología médica": "Medical hydrology"
+    },
     "password": "Password",
     "passwordPlaceholder": "Min. 8 characters",
     "confirmPassword": "Confirm password",
@@ -453,7 +548,7 @@
       "s3li3": "Immediately notify the Company of any unauthorized use of your account.",
       "s3li4": "Comply with all applicable legislation on personal data protection, telemedicine and patient rights.",
       "s3li5": "Not use the platform for unlawful, fraudulent or rights-infringing activities.",
-      "s3li6": "Obtain explicit patient consent before recording and processing any medical consultation.",
+      "s3li6": "Obtain explicit patient consent before processing any medical consultation.",
       "s4Title": "4. Privacy and data protection",
       "s4p1": "The Company collects and processes personal data of platform users in accordance with its Privacy Policy, which forms an integral part of these Terms. By accepting these Terms, you also accept the Privacy Policy.",
       "s4p2": "The Doctor, in their role as data controller with respect to their patients' data, must ensure a valid legal basis for processing such data and respect the rights of access, rectification, erasure and objection recognised by applicable regulations.",
@@ -613,5 +708,28 @@
     "conclusion2": "It optimizes its documentary expression.",
     "finalStatement": "Because the future of medicine is not less human.",
     "finalConclusion": "It is clearer, safer, and more intelligent."
+  },
+  "profilePage": {
+    "title": "My profile",
+    "subtitle": "View and update your personal and professional information",
+    "backHome": "Back to home",
+    "editTitle": "Edit profile",
+    "editDescription": "Update your personal and professional details",
+    "personalInfo": "Personal information",
+    "professionalInfo": "Professional information",
+    "signatureSection": "Digital signature",
+    "currentSignature": "Current signature",
+    "signatureAlt": "Digital signature",
+    "changeSignature": "Change signature",
+    "emailDisabledHint": "Email cannot be changed as it is used for login.",
+    "unnamed": "Doctor",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saveSuccess": "Profile updated successfully"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "backHome": "Back to home"
   }
 }

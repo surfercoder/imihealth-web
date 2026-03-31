@@ -9,6 +9,7 @@ const mockFrom = jest.fn()
 jest.mock('next/navigation', () => ({
   redirect: (...args: unknown[]) => mockRedirect(...args),
   notFound: () => mockNotFound(),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 jest.mock('@/utils/supabase/server', () => ({
@@ -26,6 +27,27 @@ jest.mock('next/cache', () => ({
 
 jest.mock('@/components/app-header', () => ({
   AppHeader: () => <div data-testid="app-header" />,
+}))
+
+jest.mock('@/components/app-footer', () => ({
+  AppFooter: () => <div data-testid="app-footer" />,
+}))
+
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: jest.fn(() => Promise.resolve({
+    maxInformes: 7,
+    currentInformes: 3,
+    canCreateInforme: true,
+    maxDoctors: 14,
+    currentDoctors: 5,
+    canSignUp: true,
+  })),
+}))
+
+jest.mock('@/contexts/plan-context', () => ({
+  PlanProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="plan-provider">{children}</div>
+  ),
 }))
 
 jest.mock('next/link', () => {
@@ -89,9 +111,15 @@ const basePatient = {
   ],
 }
 
+const doctorData = { name: 'Dr. Test' }
+
 function setupMocks(patientData: unknown, error: unknown = null) {
-  const chain = makeChain({ data: patientData, error })
-  mockFrom.mockReturnValue(chain)
+  const patientChain = makeChain({ data: patientData, error })
+  const doctorsChain = makeChain({ data: doctorData, error: null })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'doctors') return doctorsChain
+    return patientChain
+  })
 }
 
 describe('PatientPage', () => {
@@ -101,28 +129,28 @@ describe('PatientPage', () => {
 
   it('redirects to /login when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }) } catch { /* redirect throws */ }
+    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }) } catch { /* redirect throws */ }
     expect(mockRedirect).toHaveBeenCalledWith('/login')
   })
 
   it('calls notFound when patient query returns error', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(null, { message: 'Not found' })
-    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }) } catch { /* notFound throws */ }
+    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }) } catch { /* notFound throws */ }
     expect(mockNotFound).toHaveBeenCalled()
   })
 
   it('calls notFound when patient data is null', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(null)
-    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }) } catch { /* notFound throws */ }
+    try { await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }) } catch { /* notFound throws */ }
     expect(mockNotFound).toHaveBeenCalled()
   })
 
   it('renders patient name and info', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getAllByText('Juan Perez').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('+54 9 261 123 4567')).toBeInTheDocument()
     expect(screen.getByText('juan@email.com')).toBeInTheDocument()
@@ -131,28 +159,28 @@ describe('PatientPage', () => {
   it('renders dob and age when dob is present', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/mayo/i)).toBeInTheDocument()
   })
 
   it('does not render dob section when dob is null', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks({ ...basePatient, dob: null })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.queryByText(/mayo/i)).not.toBeInTheDocument()
   })
 
   it('does not render email section when email is null', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks({ ...basePatient, email: null })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.queryByText('juan@email.com')).not.toBeInTheDocument()
   })
 
   it('renders informes list sorted by date descending', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     // Both informes should be rendered
     expect(screen.getByTestId('delete-i-1')).toBeInTheDocument()
     expect(screen.getByTestId('delete-i-2')).toBeInTheDocument()
@@ -161,7 +189,7 @@ describe('PatientPage', () => {
   it('renders empty state when informes array is empty', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks({ ...basePatient, informes: [] })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('Sin consultas aún')).toBeInTheDocument()
   })
 
@@ -173,7 +201,7 @@ describe('PatientPage', () => {
         { id: 'i-2', status: 'recording', created_at: '2025-01-10T08:00:00Z', informe_doctor: null, informe_paciente: null },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     const link = screen.getByRole('link', { name: /Informe/ })
     expect(link).toHaveAttribute('href', '/informes/i-2/grabar')
   })
@@ -186,7 +214,7 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', informe_doctor: 'Report', informe_paciente: 'Patient report' },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     const link = screen.getByRole('link', { name: /Informe/ })
     expect(link).toHaveAttribute('href', '/informes/i-1')
   })
@@ -200,7 +228,7 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', informe_doctor: longText, informe_paciente: 'Patient report' },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     // Preview should be first 120 chars + ellipsis
     const expectedPreview = longText.slice(0, 120) + '\u2026'
     expect(screen.getByText(expectedPreview)).toBeInTheDocument()
@@ -214,7 +242,7 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', informe_doctor: null, informe_paciente: null },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     // No preview paragraph should be present - just verify status is shown
     expect(screen.getByText('Completado')).toBeInTheDocument()
   })
@@ -227,7 +255,7 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'processing', created_at: '2025-01-15T10:30:00Z', informe_doctor: null, informe_paciente: null },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('Procesando')).toBeInTheDocument()
   })
 
@@ -239,7 +267,7 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'error', created_at: '2025-01-15T10:30:00Z', informe_doctor: null, informe_paciente: null },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('Error')).toBeInTheDocument()
   })
 
@@ -251,23 +279,23 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'unknown', created_at: '2025-01-15T10:30:00Z', informe_doctor: null, informe_paciente: null },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('status.unknown')).toBeInTheDocument()
   })
 
   it('renders NewInformeForPatientButton with patient id', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByTestId('new-informe-btn')).toHaveTextContent('p-1')
   })
 
   it('renders back link to home', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     const backLink = screen.getByRole('link', { name: /Pacientes/ })
-    expect(backLink).toHaveAttribute('href', '/dashboard')
+    expect(backLink).toHaveAttribute('href', '/?tab=misPacientes')
   })
 
   it('renders singular "consulta" when there is exactly 1 informe', async () => {
@@ -278,22 +306,22 @@ describe('PatientPage', () => {
         { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', informe_doctor: 'Report', informe_paciente: 'Patient' },
       ],
     })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('1 consulta')).toBeInTheDocument()
   })
 
   it('renders plural "consultas" when there are multiple informes', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('2 consultas')).toBeInTheDocument()
   })
 
-  it('renders copyright in footer', async () => {
+  it('renders footer', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
-    expect(screen.getByText(new RegExp(String(new Date().getFullYear())))).toBeInTheDocument()
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
+    expect(screen.getByTestId('app-footer')).toBeInTheDocument()
   })
 
   it('decrements age when birthday has not yet occurred this year', async () => {
@@ -303,7 +331,7 @@ describe('PatientPage', () => {
     if (futureDay > 28) return // skip edge case around month end
     const dob = `1990-${String(today.getMonth() + 1).padStart(2, '0')}-${String(futureDay).padStart(2, '0')}`
     setupMocks({ ...basePatient, dob })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/años/i)).toBeInTheDocument()
   })
 
@@ -314,7 +342,7 @@ describe('PatientPage', () => {
     const futureMonth = ((today.getMonth() + 2) % 12) + 1
     const dob = `1990-${String(futureMonth).padStart(2, '0')}-15`
     setupMocks({ ...basePatient, dob })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/años/i)).toBeInTheDocument()
   })
 
@@ -323,7 +351,7 @@ describe('PatientPage', () => {
     getLocale.mockResolvedValueOnce('en')
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }) }))
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/May/i)).toBeInTheDocument()
   })
 })

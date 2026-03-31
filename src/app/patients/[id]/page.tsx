@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,11 +22,13 @@ import Link from "next/link";
 import { NewInformeForPatientButton } from "@/components/new-informe-for-patient-button";
 import { DeleteInformeButton } from "@/components/delete-informe-button";
 import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
 import { getPlanInfo } from "@/actions/plan";
 import { PlanProvider } from "@/contexts/plan-context";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
 /* v8 ignore next 14 */
@@ -58,8 +61,10 @@ const statusClasses: Record<string, string> = {
   error: "text-destructive bg-destructive/10 border-destructive/20",
 };
 
-export default async function PatientPage({ params }: Props) {
+export default async function PatientPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const searchParamsResolved = await searchParams;
+  const tab = searchParamsResolved.tab;
   const supabase = await createClient();
   const {
     data: { user },
@@ -124,12 +129,14 @@ export default async function PatientPage({ params }: Props) {
   return (
     <PlanProvider plan={plan}>
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <AppHeader doctorName={doctor?.name} />
+      <Suspense fallback={<AppHeader doctorName={doctor?.name} />}>
+        <AppHeader doctorName={doctor?.name} />
+      </Suspense>
 
       <div className="border-b border-border/40">
         <div className="mx-auto flex h-11 max-w-5xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard">
+            <Link href={`/?tab=${tab || "misPacientes"}`}>
               <ArrowLeft className="size-4 mr-1.5" />
               {t("nav.patients")}
             </Link>
@@ -224,10 +231,11 @@ export default async function PatientPage({ params }: Props) {
                 const StatusIcon = statusIcons[statusKey] ?? AlertCircle;
                 const statusClass = statusClasses[informe.status] ?? statusClasses.error;
                 const statusLabel = t(`status.${statusKey}` as Parameters<typeof t>[0]);
-                const href =
+                const baseHref =
                   informe.status === "recording"
                     ? `/informes/${informe.id}/grabar`
                     : `/informes/${informe.id}`;
+                const href = `${baseHref}${tab ? `?tab=${tab}` : ''}`;
 
                 /* v8 ignore next */
                 const date = new Date(informe.created_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
@@ -287,11 +295,7 @@ export default async function PatientPage({ params }: Props) {
         </div>
       </main>
 
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-center px-6 text-sm text-foreground/50">
-          {t("common.copyright", { year: new Date().getFullYear() })}
-        </div>
-      </footer>
+      <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
     </div>
     </PlanProvider>
   );
