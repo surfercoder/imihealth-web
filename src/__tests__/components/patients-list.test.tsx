@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
+const mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('next/link', () => {
@@ -152,6 +153,14 @@ describe('PatientsList — with patients', () => {
   it('renders loading spinner when isLoading is true', () => {
     render(<PatientsList patients={[]} isLoading={true} />)
     expect(screen.queryByText('Sin pacientes aún')).not.toBeInTheDocument()
+  })
+
+  it('includes tab query param in link when currentTab is set', () => {
+    mockSearchParams.set('tab', 'pacientes')
+    render(<PatientsList patients={[makePatient({ id: 'p-99' })]} />)
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/patients/p-99?tab=pacientes')
+    mockSearchParams.delete('tab')
   })
 
   it('renders date formatted in en-US locale when locale is en', () => {

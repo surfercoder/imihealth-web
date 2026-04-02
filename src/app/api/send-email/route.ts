@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { to, subject, text } = body;
+    const { to, subject, text, html } = body;
 
     if (!to || !subject || !text) {
       return NextResponse.json(
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await sendEmail({ to, subject, text });
+    const result = await sendEmail({ to, subject, text, ...(html && { html }) });
 
     return NextResponse.json({
       success: true,

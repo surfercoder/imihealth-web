@@ -425,6 +425,111 @@ describe('InformeEditor', () => {
     expect(screen.getByText('Patient report text')).toBeInTheDocument()
   })
 
+  // --- isQuickReport mode ---
+  it('renders only the doctor report card when isQuickReport is true', () => {
+    render(
+      <InformeEditor
+        {...defaultProps}
+        isQuickReport
+        doctorName="Dr. Smith"
+      />
+    )
+    // Doctor section header should be present
+    expect(screen.getByText('Informe médico')).toBeInTheDocument()
+    // Patient report card (vía WhatsApp header) should NOT be present
+    expect(screen.queryByText(/vía WhatsApp/i)).not.toBeInTheDocument()
+    // Only one edit button (doctor card only)
+    const editButtons = screen.getAllByRole('button', { name: /Editar informe/i })
+    expect(editButtons).toHaveLength(1)
+  })
+
+  it('does not render the two-column grid when isQuickReport is true', () => {
+    const { container } = render(
+      <InformeEditor
+        {...defaultProps}
+        isQuickReport
+      />
+    )
+    // The two-column layout has lg:grid-cols-2 class; it should not be present
+    expect(container.querySelector('.lg\\:grid-cols-2')).not.toBeInTheDocument()
+  })
+
+  // --- WhatsAppIconButton error path ---
+  it('shows error toast with API error when patient WhatsApp send returns error response', async () => {
+    global.fetch = jest.fn()
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      json: async () => ({ success: false, error: 'Delivery failed' }),
+    } as Response)
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        pdfUrl="https://example.com/report.pdf"
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const emeraldMsgBtn = allButtons.find(btn => btn.querySelector('.text-emerald-600.lucide-message-circle'))
+    if (emeraldMsgBtn) await user.click(emeraldMsgBtn)
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ description: 'Delivery failed' }),
+      )
+    })
+    ;(global.fetch as jest.Mock).mockReset()
+  })
+
+  // --- WhatsAppIconButton network error (fetch throws) ---
+  it('shows fallback error toast when patient WhatsApp fetch throws a network error', async () => {
+    global.fetch = jest.fn()
+    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('Network failure'))
+    const user = userEvent.setup()
+    render(
+      <InformeEditor
+        {...defaultProps}
+        pdfUrl="https://example.com/report.pdf"
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+      />
+    )
+    const allButtons = screen.getAllByRole('button')
+    const emeraldMsgBtn = allButtons.find(btn => btn.querySelector('.text-emerald-600.lucide-message-circle'))
+    if (emeraldMsgBtn) await user.click(emeraldMsgBtn)
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalled()
+    })
+    ;(global.fetch as jest.Mock).mockReset()
+  })
+
+  // --- WhatsApp opt-in section ---
+  it('shows WhatsApp opt-in section when whatsappOptedIn is false and required props present', () => {
+    render(
+      <InformeEditor
+        {...defaultProps}
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+        patientId="p-1"
+        whatsappOptedIn={false}
+      />
+    )
+    expect(screen.getByText(/aún no tiene WhatsApp activado/i)).toBeInTheDocument()
+  })
+
+  it('shows WhatsApp opt-in section when whatsappOptedIn is undefined (covers ?? false branch)', () => {
+    render(
+      <InformeEditor
+        {...defaultProps}
+        whatsappPhone="5492611234567"
+        patientName="Juan Pérez"
+        patientId="p-1"
+        // whatsappOptedIn omitted → undefined → triggers isOptedIn={undefined ?? false}
+      />
+    )
+    expect(screen.getByText(/aún no tiene WhatsApp activado/i)).toBeInTheDocument()
+  })
+
   // --- Doctor report save success exits edit mode ---
   it('exits doctor edit mode on successful save', async () => {
     mockUpdateInformeDoctorOnly.mockResolvedValue({ success: true })

@@ -3,21 +3,10 @@ import { render, screen, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockPush = jest.fn()
+let mockSearchParamsOverride: URLSearchParams | null = null
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => new URLSearchParams(),
-}))
-
-const mockProcessInforme = jest.fn()
-jest.mock('@/actions/informes', () => ({
-  processInformeFromTranscript: (...args: unknown[]) => mockProcessInforme(...args),
-}))
-
-const mockUpload = jest.fn()
-const mockStorageFrom = jest.fn(() => ({ upload: mockUpload }))
-const mockCreateClient = jest.fn(() => ({ storage: { from: mockStorageFrom } }))
-jest.mock('@/utils/supabase/client', () => ({
-  createClient: () => mockCreateClient(),
+  useSearchParams: () => mockSearchParamsOverride ?? new URLSearchParams(),
 }))
 
 const mockMediaRecorderStop = jest.fn()
@@ -78,7 +67,13 @@ beforeAll(() => {
     value: MockSpeechRecognition,
     writable: true,
   })
+  global.fetch = jest.fn()
 })
+
+const mockProcessQuickInforme = jest.fn()
+jest.mock('@/actions/quick-informe', () => ({
+  processQuickInforme: (...args: unknown[]) => mockProcessQuickInforme(...args),
+}))
 
 import { AudioRecorder } from '@/components/audio-recorder'
 
@@ -173,13 +168,15 @@ describe('AudioRecorder — stop and process', () => {
     mediaRecorderState = 'inactive'
     mediaRecorderOnstop = null
     recognitionOnend = null
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   it('shows done state and redirects on successful processing', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -201,8 +198,10 @@ describe('AudioRecorder — stop and process', () => {
   it('shows error state when processing fails', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ error: 'Processing failed' })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ error: 'Processing failed' }),
+    })
 
     const user = userEvent.setup()
     render(<AudioRecorder {...defaultProps} />)
@@ -218,8 +217,10 @@ describe('AudioRecorder — stop and process', () => {
   it('shows retry button in error state and resets to idle', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ error: 'Some error' })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ error: 'Some error' }),
+    })
 
     const user = userEvent.setup()
     render(<AudioRecorder {...defaultProps} />)
@@ -233,10 +234,9 @@ describe('AudioRecorder — stop and process', () => {
     })
   })
 
-  it('calls processInformeFromTranscript with base64 audio', async () => {
+  it('calls fetch /api/process-informe with FormData on successful processing', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -247,36 +247,63 @@ describe('AudioRecorder — stop and process', () => {
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
-    expect(mockProcessInforme).toHaveBeenCalledWith('i-1', expect.any(String), undefined, undefined, 'es')
+    expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.objectContaining({
+      method: 'POST',
+      body: expect.any(FormData),
+    }))
     jest.useRealTimers()
   })
 
-  it('continues when audio encoding fails', async () => {
+  it('shows insufficient_content state when API returns insufficientContent', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockProcessInforme.mockResolvedValue({ success: true })
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-
-    // Make Buffer.from throw to simulate encoding failure
-    const origFrom = Buffer.from
-    const bufferSpy = jest.spyOn(Buffer, 'from').mockImplementation((...args: unknown[]) => {
-      if (args[0] instanceof ArrayBuffer) throw new Error('Encoding error')
-      return origFrom.apply(Buffer, args as Parameters<typeof origFrom>)
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ insufficientContent: true }),
     })
 
-    jest.useFakeTimers()
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const user = userEvent.setup()
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => {
-      expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
+      expect(screen.getByText(/No se detectó contenido médico relevante/i)).toBeInTheDocument()
     })
-    expect(warnSpy).toHaveBeenCalledWith('Audio encoding failed, continuing without it')
-    warnSpy.mockRestore()
-    bufferSpy.mockRestore()
-    jest.useRealTimers()
+  })
+
+  it('shows transcription_failed state when API returns transcriptionFailed', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transcriptionFailed: true }),
+    })
+
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/No se pudo transcribir el audio/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows error state when fetch throws a network error', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'))
+
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Error al procesar')).toBeInTheDocument()
+      expect(screen.getByText('Network error')).toBeInTheDocument()
+    })
   })
 })
 
@@ -480,6 +507,10 @@ describe('AudioRecorder — ogg mime type', () => {
     ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
       .mockReturnValue(false)
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   afterEach(() => {
@@ -490,8 +521,6 @@ describe('AudioRecorder — ogg mime type', () => {
   it('uses ogg extension when mime type includes ogg', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -512,6 +541,10 @@ describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
     ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
       .mockImplementation((type: string) => type === 'audio/mp4')
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   afterEach(() => {
@@ -522,7 +555,6 @@ describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
   it('processes successfully when only mp4 is supported', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -563,6 +595,8 @@ describe('AudioRecorder — transcript shown while paused', () => {
       }
     })
 
+    await waitFor(() => expect(screen.getByText(/texto de prueba/i)).toBeInTheDocument())
+
     await user.click(screen.getByRole('button', { name: /Pausar/i }))
     await waitFor(() => {
       expect(screen.getByText(/Transcripción en tiempo real/i)).toBeInTheDocument()
@@ -576,13 +610,15 @@ describe('AudioRecorder — stopAndProcess with inactive mediaRecorder', () => {
     mediaRecorderState = 'inactive'
     mediaRecorderOnstop = null
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   it('resolves immediately when mediaRecorder is already inactive', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -697,7 +733,7 @@ describe('AudioRecorder — recognition.start() throws in resumeRecording', () =
   })
 })
 
-describe('AudioRecorder — audio/webm (not opus) mime type', () => {
+describe('AudioRecorder — mime type fallback (line 253 branches)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mediaRecorderState = 'inactive'
@@ -705,13 +741,115 @@ describe('AudioRecorder — audio/webm (not opus) mime type', () => {
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
   })
 
+  it('uses "webm" fallback when mimeType has no "/" character', async () => {
+    // Override isTypeSupported so the recorder picks a mime type without "/"
+    ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
+      .mockReturnValue(false)
+    mediaRecorderMimeType = 'audiowebm' // no slash → split("/")[1] is undefined → fallback "webm"
+
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
+
+    // Verify that fetch was called (blob was appended, not thrown)
+    expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.any(Object))
+    jest.useRealTimers()
+    ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported.mockReturnValue(true)
+  })
+})
+
+describe('AudioRecorder — fetch throws non-Error (line 265 branch)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+  })
+
+  it('shows fallback "Error de red" message when fetch throws a non-Error value', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    // Throw a plain string (not an Error instance) to hit the ": 'Error de red'" branch
+    ;(global.fetch as jest.Mock).mockRejectedValue('plain string error')
+
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Error al procesar')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('AudioRecorder — done state with tab param (line 282 branch)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockSearchParamsOverride = null
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
+  })
+
+  afterEach(() => {
+    mockSearchParamsOverride = null
+  })
+
+  it('redirects to informe URL with tab query param when searchParams contains a tab', async () => {
+    // Set searchParams to include a tab value so useCurrentTab returns 'informes'
+    mockSearchParamsOverride = new URLSearchParams('tab=informes')
+
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
+
+    act(() => jest.advanceTimersByTime(1200))
+    expect(mockPush).toHaveBeenCalledWith('/informes/i-1?tab=informes')
+    jest.useRealTimers()
+    mockSearchParamsOverride = null
+  })
+})
+
+describe('AudioRecorder — audio/webm (not opus) mime type', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
+  })
+
   it('uses audio/webm when opus not supported but webm is', async () => {
     ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported
       .mockImplementation((type: string) => type === 'audio/webm')
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -734,13 +872,15 @@ describe('AudioRecorder — ondataavailable with data', () => {
     mediaRecorderOnstop = null
     capturedOndataavailable = null
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   it('pushes data chunks when ondataavailable fires with data', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     const OriginalMockMediaRecorder = MockMediaRecorder
     ;(MockMediaRecorder as jest.Mock).mockImplementationOnce(() => {
@@ -782,12 +922,15 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
     mediaRecorderState = 'inactive'
     mediaRecorderOnstop = null
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
   })
 
   it('falls back to audio/webm when mimeType is empty string', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockProcessInforme.mockResolvedValue({ success: true })
 
     ;(MockMediaRecorder as jest.Mock).mockImplementationOnce(() => {
       mediaRecorderState = 'inactive'
@@ -810,7 +953,7 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
-    expect(mockProcessInforme).toHaveBeenCalled()
+    expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.objectContaining({ method: 'POST' }))
     jest.useRealTimers()
   })
 })
@@ -848,10 +991,9 @@ describe('AudioRecorder — progress text branches', () => {
   it('shows "Analizando consulta con IA..." when progress is between 40 and 80', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
-    mockUpload.mockResolvedValue({ error: null })
 
-    let resolveProcess!: (value: { success: boolean }) => void
-    mockProcessInforme.mockReturnValue(new Promise((res) => { resolveProcess = res }))
+    let resolveProcess!: (value: Response) => void
+    ;(global.fetch as jest.Mock).mockReturnValue(new Promise((res) => { resolveProcess = res }))
 
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
@@ -864,8 +1006,60 @@ describe('AudioRecorder — progress text branches', () => {
       expect(screen.getByText('Analizando consulta con IA...')).toBeInTheDocument()
     })
 
-    act(() => resolveProcess({ success: true }))
+    act(() => resolveProcess({ ok: true, json: () => Promise.resolve({ success: true }) } as unknown as Response))
     jest.useRealTimers()
   })
 
+})
+
+describe('AudioRecorder — isQuickReport branch', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    recognitionOnend = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+  })
+
+  it('calls processQuickInforme and redirects to quick-informe result on success', async () => {
+    mockProcessQuickInforme.mockResolvedValue({ informeDoctor: 'Doctor report content' })
+
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder informeId="quick-1" doctorId="doc-1" isQuickReport />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
+    })
+
+    act(() => jest.advanceTimersByTime(1200))
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining('/quick-informe/result?informe=')
+    )
+    jest.useRealTimers()
+  })
+
+  it('shows error state when processQuickInforme returns an error', async () => {
+    mockProcessQuickInforme.mockResolvedValue({ error: 'Quick report failed' })
+
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    const user = userEvent.setup()
+    render(<AudioRecorder informeId="quick-1" doctorId="doc-1" isQuickReport />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Error al procesar')).toBeInTheDocument()
+      expect(screen.getByText('Quick report failed')).toBeInTheDocument()
+    })
+  })
 })

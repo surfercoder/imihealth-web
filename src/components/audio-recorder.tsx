@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Mic, MicOff, Square, Pause, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { processInformeFromTranscript } from "@/actions/informes";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations, useLocale } from "next-intl";
@@ -29,7 +28,8 @@ type RecorderPhase =
   | "processing"
   | "done"
   | "error"
-  | "insufficient_content";
+  | "insufficient_content"
+  | "transcription_failed";
 
 interface RecorderState {
   phase: RecorderPhase;
@@ -107,7 +107,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
             <div className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 className="size-9" />
             </div>
-          ) : phase === "insufficient_content" ? (
+          ) : phase === "insufficient_content" || phase === "transcription_failed" ? (
             <div className="flex size-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
               <AlertCircle className="size-9" />
             </div>
@@ -168,6 +168,12 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
           <>
             <p className="text-base font-medium text-emerald-600">{t("stateDone")}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t("stateRedirecting")}</p>
+          </>
+        )}
+        {phase === "transcription_failed" && (
+          <>
+            <p className="text-base font-medium text-amber-600">{t("stateTranscriptionFailed")}</p>
+            <p className="mt-2 text-sm text-muted-foreground max-w-sm">{t("stateTranscriptionFailedHint")}</p>
           </>
         )}
         {phase === "insufficient_content" && (
@@ -235,27 +241,36 @@ async function uploadAndProcess(
     return;
   }
 
-  // Classic report flow - pass audio directly to server action (no storage)
+  // Classic report flow - send audio via API route (FormData) to avoid
+  // React Flight serialisation limits on large payloads.
   dispatch({ type: "SET_PROGRESS", progress: 30 });
   dispatch({ type: "SET_PHASE", phase: "transcribing" });
 
-  // Convert blob to base64 for server action transfer
-  let audioBase64: string | undefined;
-  let audioContentType: string | undefined;
-  try {
-    const arrayBuffer = await blob.arrayBuffer();
-    audioBase64 = Buffer.from(arrayBuffer).toString("base64");
-    audioContentType = blob.type;
-  } catch {
-    console.warn("Audio encoding failed, continuing without it");
-  }
+  const formData = new FormData();
+  formData.append("informeId", informeId);
+  formData.append("browserTranscript", transcriptToUse);
+  formData.append("language", locale);
+  /* v8 ignore next */
+  formData.append("audio", blob, `recording.${mimeType.split("/")[1]?.split(";")[0] || "webm"}`);
 
   dispatch({ type: "SET_PROGRESS", progress: 50 });
 
-  const result = await processInformeFromTranscript(informeId, transcriptToUse, audioBase64, audioContentType, locale);
+  let result: { success?: boolean; insufficientContent?: boolean; transcriptionFailed?: boolean; error?: string };
+  try {
+    const response = await fetch("/api/process-informe", {
+      method: "POST",
+      body: formData,
+    });
+    result = await response.json();
+  } catch (fetchErr) {
+    result = { error: fetchErr instanceof Error ? fetchErr.message : "Error de red" };
+  }
   dispatch({ type: "SET_PROGRESS", progress: 100 });
 
-  if ("insufficientContent" in result && result.insufficientContent) {
+  if (result.transcriptionFailed) {
+    dispatch({ type: "SET_PHASE", phase: "transcription_failed" });
+    toast.warning(t("transcriptionFailedTitle"), { description: t("transcriptionFailedDescription") });
+  } else if (result.insufficientContent) {
     dispatch({ type: "SET_PHASE", phase: "insufficient_content" });
     toast.warning(t("insufficientContentTitle"), { description: t("insufficientContentDescription") });
   } else if (result.error) {
@@ -337,7 +352,7 @@ function RecorderControls({ phase, isActive, isPaused, onStart, onPause, onResum
           </button>
         </>
       )}
-      {phase === "insufficient_content" && (
+      {(phase === "insufficient_content" || phase === "transcription_failed") && (
         <Button size="lg" variant="default" onClick={onRetry} className="gap-2">
           <Mic className="size-4" />
           {t("btnTryAgain")}

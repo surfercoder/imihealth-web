@@ -299,4 +299,50 @@ describe('InformePage', () => {
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByTestId('transcript-monologue')).toBeInTheDocument()
   })
+
+  it('renders quick-report breadcrumb when patient is null (no patient_id)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    // Quick report: no patient_id and no patients
+    setupMocks({ ...completedInforme, patient_id: null, patients: null })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
+    // Should render the quick-report breadcrumb (line 170 falsy branch → whatsappPhone = undefined)
+    expect(screen.getAllByText('Informe rápido').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders back link with tab query param when tab searchParam is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks(completedInforme)
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({ tab: 'misPacientes' }) }))
+    // Line 185: href includes tab param
+    const backLink = screen.getByRole('link', { name: /Juan Pérez/i })
+    expect(backLink).toHaveAttribute('href', '/patients/p-1?tab=misPacientes')
+  })
+
+  it('renders home link with tab query param for quick report when tab is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks({ ...completedInforme, patient_id: null, patients: null })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({ tab: 'informes' }) }))
+    // Line 196: quick-report back link uses /?tab=informes
+    const homeLinks = screen.getAllByRole('link', { name: /Inicio/i })
+    expect(homeLinks[0]).toHaveAttribute('href', '/?tab=informes')
+  })
+
+  it('renders top-right home button with tab query param when tab is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks(completedInforme)
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({ tab: 'informes' }) }))
+    // Line 224: home button href includes tab
+    const homeButtons = screen.getAllByRole('link', { name: /Inicio/i })
+    const tabLinks = homeButtons.filter((l) => l.getAttribute('href')?.includes('?tab='))
+    expect(tabLinks.length).toBeGreaterThan(0)
+  })
+
+  it('uses "Patient" as fallback when patient name is not available in transcript_dialog', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    // Patient exists but name is null (TypeScript allows it through type casting, covers line 296)
+    const dialog = [{ speaker: 'doctor', text: 'Hola' }]
+    setupMocks({ ...completedInforme, transcript_dialog: dialog, patients: { ...completedInforme.patients, name: null } })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
+    expect(screen.getByTestId('transcript-dialog')).toBeInTheDocument()
+  })
 })

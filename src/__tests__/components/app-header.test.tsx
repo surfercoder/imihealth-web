@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
+const mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('@/components/language-switcher', () => ({
@@ -54,5 +55,22 @@ describe('AppHeader', () => {
   it('does not render greeting when doctorName is undefined', async () => {
     render(await AppHeader({}))
     expect(screen.queryByText(/Hola,/)).not.toBeInTheDocument()
+  })
+
+  it('renders the IMI Health logo link with tab query when currentTab is set', async () => {
+    mockSearchParams.set('tab', 'informes')
+    render(await AppHeader({}))
+    const link = screen.getByText('IMI Health')
+    expect(link.closest('a')).toHaveAttribute('href', '/?tab=informes')
+    mockSearchParams.delete('tab')
+  })
+
+  it('removes imi_welcomed from sessionStorage when the logout form is submitted', async () => {
+    sessionStorage.setItem('imi_welcomed', 'true')
+    render(await AppHeader({}))
+    const form = screen.getByRole('button', { name: /Cerrar sesión/i }).closest('form')!
+    // Trigger the onSubmit handler by firing the submit event on the form
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    expect(sessionStorage.getItem('imi_welcomed')).toBeNull()
   })
 })

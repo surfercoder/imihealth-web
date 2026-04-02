@@ -32,7 +32,7 @@ describe('transcribeAudio', () => {
     expect(mockTranscribe).toHaveBeenCalledWith(
       expect.objectContaining({
         audio: 'https://example.com/audio.mp3',
-        speech_model: 'best',
+        speech_models: ['universal-3-pro', 'universal-2'],
         language_code: 'es',
         speaker_labels: true,
       })

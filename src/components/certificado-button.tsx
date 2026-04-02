@@ -71,13 +71,14 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isPending, startTransition] = useTransition();
   const [isSendingWa, setIsSendingWa] = useState(false);
-  const t = useTranslations("whatsappCertButton");
+  const tWa = useTranslations("whatsappCertButton");
+  const t = useTranslations("certificado");
   const locale = useLocale();
 
   async function handleSendWhatsApp() {
     /* v8 ignore next */
     if (!state.certUrl) return;
-    const fallbackError = t("errorMessage");
+    const fallbackError = tWa("errorMessage");
     setIsSendingWa(true);
     let data: { success?: boolean; error?: string } | null = null;
     const certOptions = {
@@ -104,12 +105,12 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
     }
 
     if (data && data.success) {
-      toast.success(t("successTitle"), {
-        description: t("successMessage", { patientName }),
+      toast.success(tWa("successTitle"), {
+        description: tWa("successMessage", { patientName }),
       });
     } else {
       const errorMsg = (data && data.error) ? data.error : fallbackError;
-      toast.error(t("errorTitle"), { description: errorMsg });
+      toast.error(tWa("errorTitle"), { description: errorMsg });
     }
     setIsSendingWa(false);
   }
@@ -129,13 +130,13 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
       });
 
       if (result?.error) {
-        toast.error("Error al generar certificado", {
+        toast.error(t("errorTitle"), {
           description: result.error,
         });
       } else if (result?.signedUrl) {
         dispatch({ type: "SET_CERT_URL", url: result.signedUrl });
-        toast.success("Certificado generado", {
-          description: `El certificado médico de ${patientName} está listo.`,
+        toast.success(t("generatedTitle"), {
+          description: t("generatedDescription", { patientName }),
         });
       }
     });
@@ -155,15 +156,15 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
         ) : (
           <Button variant="outline" size="sm">
             <FileText className="size-4 mr-1.5" />
-            Crear Certificado
+            {t("trigger")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Certificado médico</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Generá un certificado médico para {patientName} para presentar en trabajo, escuela o universidad.
+            {t("description", { patientName })}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,12 +174,12 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
               <FileText className="size-7 text-primary" />
             </div>
             <p className="text-sm text-center text-muted-foreground">
-              El certificado fue generado correctamente.
+              {t("successMessage")}
             </p>
             <Button asChild className="w-full">
               <a href={state.certUrl} target="_blank" rel="noopener noreferrer">
                 <Download className="size-4 mr-1.5" />
-                Descargar certificado
+                {t("download")}
               </a>
             </Button>
             <Button
@@ -191,55 +192,55 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
               ) : (
                 <MessageCircle className="size-4 mr-1.5" />
               )}
-              {t("label")}
+              {tWa("label")}
             </Button>
             <Button
               variant="outline"
               className="w-full"
               onClick={() => dispatch({ type: "RESET_FORM" })}
             >
-              Generar otro certificado
+              {t("generateAnother")}
             </Button>
           </div>
         ) : (
           <>
             <div className="grid gap-4 py-2">
               <div className="grid gap-1.5">
-                <Label htmlFor="daysOff">Días de reposo</Label>
+                <Label htmlFor="daysOff">{t("daysOffLabel")}</Label>
                 <Input
                   id="daysOff"
                   type="number"
                   min={1}
                   max={365}
-                  placeholder="Ej: 2"
+                  placeholder={t("daysOffPlaceholder")}
                   value={state.daysOff}
                   onChange={(e) => dispatch({ type: "SET_FIELD", field: "daysOff", value: e.target.value })}
                   disabled={isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Dejar vacío si no se indica reposo.
+                  {t("daysOffHint")}
                 </p>
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="diagnosis">Diagnóstico</Label>
+                <Label htmlFor="diagnosis">{t("diagnosisLabel")}</Label>
                 <Input
                   id="diagnosis"
-                  placeholder="Ej: Síndrome gripal"
+                  placeholder={t("diagnosisPlaceholder")}
                   value={state.diagnosis}
                   onChange={(e) => dispatch({ type: "SET_FIELD", field: "diagnosis", value: e.target.value })}
                   disabled={isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Opcional. Se incluirá en el certificado si se completa.
+                  {t("diagnosisHint")}
                 </p>
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="observations">Observaciones</Label>
+                <Label htmlFor="observations">{t("observationsLabel")}</Label>
                 <Textarea
                   id="observations"
-                  placeholder="Observaciones adicionales..."
+                  placeholder={t("observationsPlaceholder")}
                   value={state.observations}
                   onChange={(e) => dispatch({ type: "SET_FIELD", field: "observations", value: e.target.value })}
                   disabled={isPending}
@@ -254,18 +255,18 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
                 onClick={() => handleOpenChange(false)}
                 disabled={isPending}
               >
-                Cancelar
+                {t("cancel")}
               </Button>
               <Button onClick={handleGenerate} disabled={isPending}>
                 {isPending ? (
                   <>
                     <Loader2 className="size-4 mr-1.5 animate-spin" />
-                    Generando...
+                    {t("generating")}
                   </>
                 ) : (
                   <>
                     <FileText className="size-4 mr-1.5" />
-                    Generar certificado
+                    {t("generate")}
                   </>
                 )}
               </Button>

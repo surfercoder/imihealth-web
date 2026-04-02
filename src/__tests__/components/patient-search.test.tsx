@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 
 const mockPush = jest.fn()
+const mockSearchParams = new URLSearchParams()
 
 jest.mock('next-intl', () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -12,7 +13,7 @@ jest.mock('next-intl', () => ({
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('@/actions/patients', () => ({
@@ -595,6 +596,31 @@ describe('PatientSearch', () => {
 
     // Should show no results state (data ?? [] results in empty array)
     expect(screen.getByText('noResults:{"query":"test"}')).toBeInTheDocument()
+  })
+
+  it('navigates with tab param in URL when currentTab is set', async () => {
+    mockSearchPatients.mockResolvedValue({
+      data: [makeResult({ id: 'p-88', name: 'Tab Patient' })],
+    })
+    mockSearchParams.set('tab', 'pacientes')
+
+    render(<PatientSearch />)
+    const input = screen.getByRole('combobox')
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'Tab' } })
+    })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+
+    const resultButton = screen.getByText('Tab Patient').closest('button')!
+    await act(async () => {
+      fireEvent.click(resultButton)
+    })
+
+    expect(mockPush).toHaveBeenCalledWith('/patients/p-88?tab=pacientes')
+    mockSearchParams.delete('tab')
   })
 
   it('applies className prop', () => {

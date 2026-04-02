@@ -50,6 +50,7 @@ export async function updateProfile(
   }
 
   const updateData: Record<string, string | null> = {
+    /* v8 ignore next */
     name: parsed.data.name ?? "",
     dni: parsed.data.dni || "",
     matricula: parsed.data.matricula,

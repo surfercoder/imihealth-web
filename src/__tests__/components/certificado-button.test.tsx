@@ -232,6 +232,74 @@ describe('CertificadoButton', () => {
     expect(screen.getByText('Certificado médico')).toBeInTheDocument()
   })
 
+  it('shows error toast with API error message when WhatsApp send returns error', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: false, error: 'WhatsApp API error' }),
+    })
+    global.fetch = mockFetch
+    mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
+    await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ description: 'WhatsApp API error' }),
+      )
+    })
+  })
+
+  it('shows fallback error toast when WhatsApp fetch throws a network error', async () => {
+    const mockFetch = jest.fn().mockRejectedValue(new Error('Network failure'))
+    global.fetch = mockFetch
+    mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
+    await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
+    // After the network error, data stays null so fallback error toast is shown
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalled()
+    })
+    // Button should be re-enabled
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).not.toBeDisabled()
+    })
+  })
+
+  it('sends WhatsApp with daysOff parsed as integer when daysOff field is filled', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true }),
+    })
+    global.fetch = mockFetch
+    mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
+    const user = userEvent.setup()
+    render(<CertificadoButton {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
+    await user.type(screen.getByLabelText(/Días de reposo/i), '5')
+    await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i }))
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/send-whatsapp', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.certOptions.daysOff).toBe(5)
+  })
+
   it('resets certUrl when dialog is closed after successful generation', async () => {
     mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
     const user = userEvent.setup()

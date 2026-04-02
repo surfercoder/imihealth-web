@@ -165,6 +165,15 @@ describe('generateInformePDF', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
+  it('handles null patientPhone gracefully (sanitizeForPdf falsy branch)', async () => {
+    const result = await generateInformePDF({
+      ...baseOptions,
+      patientPhone: null,
+    })
+    expect(result).toBeInstanceOf(Uint8Array)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
   it('handles invalid firma digital gracefully (falls back)', async () => {
     const result = await generateInformePDF({
       ...baseOptions,

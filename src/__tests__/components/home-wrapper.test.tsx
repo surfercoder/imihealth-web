@@ -55,6 +55,16 @@ describe('HomeWrapper', () => {
     expect(screen.getByTestId('welcome-screen')).toBeInTheDocument()
   })
 
+  it('does not show WelcomeScreen when already welcomed (sessionStorage flag set)', () => {
+    sessionStorage.setItem('imi_welcomed', '1')
+    render(
+      <HomeWrapper userName="Dr. Test" showWelcome>
+        <div>Hello</div>
+      </HomeWrapper>
+    )
+    expect(screen.queryByTestId('welcome-screen')).not.toBeInTheDocument()
+  })
+
   it('hides WelcomeScreen when onDone is called', () => {
     render(
       <HomeWrapper showWelcome>

@@ -3,9 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockPush = jest.fn()
+const mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 const mockCreateInforme = jest.fn()
@@ -122,6 +123,18 @@ describe('NewInformeForPatientButton', () => {
     const btn = screen.getByRole('button')
     expect(btn).toBeDisabled()
     expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
+  })
+
+  it('navigates with tab param in URL when currentTab is set', async () => {
+    mockCreateInforme.mockResolvedValue({ data: { id: 'i-77' } })
+    mockSearchParams.set('tab', 'pacientes')
+    const user = userEvent.setup()
+    renderWithPlan(<NewInformeForPatientButton patientId="p-1" />)
+    await user.click(screen.getByRole('button'))
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/informes/i-77/grabar?tab=pacientes')
+    })
+    mockSearchParams.delete('tab')
   })
 
   it('shows fallback error when createInforme returns undefined error and undefined data', async () => {

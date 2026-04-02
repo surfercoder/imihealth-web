@@ -78,7 +78,7 @@ export async function signup(
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/?welcome=true")}`,
       data: {
         name: parsed.data.name ?? "",
         dni: parsed.data.dni,

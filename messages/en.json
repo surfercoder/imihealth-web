@@ -11,7 +11,9 @@
     "error": "Error",
     "noContent": "No content",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "copyToClipboard": "Copy to clipboard",
+    "copiedToClipboard": "Copied to clipboard"
   },
   "nav": {
     "greeting": "Hello, {name}",
@@ -244,6 +246,10 @@
     "step4": "AI will analyze the conversation and automatically generate the reports",
     "yearsOld": "years old"
   },
+  "quickInformePage": {
+    "step2": "Dictate all the patient information and consultation details",
+    "step4": "AI will analyze the information and automatically generate the medical report"
+  },
   "audioRecorder": {
     "stateIdle": "Ready to record",
     "stateIdleHint": "Press the red button to start",
@@ -278,6 +284,10 @@
     "stateInsufficientContentHint": "The recording does not contain enough medical information to generate reports. This can happen if there was too much background noise, silence, or the conversation did not include relevant clinical data.",
     "insufficientContentTitle": "Insufficient content",
     "insufficientContentDescription": "The report could not be generated because the recording did not contain relevant medical information.",
+    "stateTranscriptionFailed": "Audio could not be transcribed",
+    "stateTranscriptionFailedHint": "We couldn't convert the recording to text. This can happen if the microphone didn't capture sound properly, there was too much background noise, or the recording was too short. Please bring the microphone closer and try again.",
+    "transcriptionFailedTitle": "Transcription error",
+    "transcriptionFailedDescription": "The audio could not be transcribed. Please check that your microphone is working correctly and try again.",
     "btnTryAgain": "Try again"
   },
   "informeEditor": {
@@ -299,7 +309,15 @@
     "consentLabel": "PATIENT CONSENT",
     "consentText": "{patientName} confirmed having read the report and gave consent on {patientConsentAt}.",
     "consentTextImplicit": "{patientName} was previously informed about the use of the IMI system and gave consent for the processing of the medical consultation.",
-    "whatsappNotActivated": "Patient has not yet been activated to receive reports via WhatsApp."
+    "whatsappNotActivated": "Patient has not yet been activated to receive reports via WhatsApp.",
+    "sendWhatsApp": "Send via WhatsApp",
+    "viewPdf": "View PDF",
+    "sendEmail": "Send via Email",
+    "editReport": "Edit report",
+    "createCertificate": "Create certificate",
+    "emailError": "Error sending email",
+    "emailErrorUnexpected": "An unexpected error occurred",
+    "emailSendFailed": "Could not send email"
   },
   "consentSection": {
     "title": "Patient consent",
@@ -376,7 +394,16 @@
   },
   "whatsappOptIn": {
     "activateButton": "Activate WhatsApp",
-    "description": "Confirm that the patient authorizes receiving reports via WhatsApp."
+    "description": "Confirm that the patient authorizes receiving reports via WhatsApp.",
+    "notActivatedTitle": "WhatsApp not activated",
+    "notActivatedDesc": "Patient must activate WhatsApp first to receive automatic messages.",
+    "successTitle": "WhatsApp activated!",
+    "successDesc": "You can now send reports via WhatsApp to this patient.",
+    "errorTitle": "Error",
+    "errorFallback": "Could not activate WhatsApp",
+    "connectionError": "Connection error",
+    "connectionErrorDesc": "Could not activate WhatsApp",
+    "activated": "WhatsApp activated"
   },
   "emailButton": {
     "subject": "Medical Report - {doctorName}",
@@ -387,6 +414,28 @@
     "message": "Medical report from Dr. {doctorName}:\n\n{reportContent}",
     "successTitle": "WhatsApp sent",
     "successMessage": "The report was sent via WhatsApp to {doctorName}."
+  },
+  "certificado": {
+    "trigger": "Create Certificate",
+    "title": "Medical Certificate",
+    "description": "Generate a medical certificate for {patientName} to present at work, school, or university.",
+    "successMessage": "The certificate was generated successfully.",
+    "download": "Download certificate",
+    "generateAnother": "Generate another certificate",
+    "daysOffLabel": "Rest days",
+    "daysOffPlaceholder": "E.g.: 2",
+    "daysOffHint": "Leave empty if no rest is prescribed.",
+    "diagnosisLabel": "Diagnosis",
+    "diagnosisPlaceholder": "E.g.: Flu syndrome",
+    "diagnosisHint": "Optional. Will be included in the certificate if filled in.",
+    "observationsLabel": "Observations",
+    "observationsPlaceholder": "Additional observations...",
+    "cancel": "Cancel",
+    "generating": "Generating...",
+    "generate": "Generate certificate",
+    "errorTitle": "Error generating certificate",
+    "generatedTitle": "Certificate generated",
+    "generatedDescription": "The medical certificate for {patientName} is ready."
   },
   "whatsappCertButton": {
     "label": "Send certificate via WhatsApp",
@@ -399,20 +448,60 @@
   "landing": {
     "signIn": "Sign in",
     "signUp": "Sign up",
-    "heroTitle": "AI-Powered Medical Consultation Reports",
-    "heroSubtitle": "Record your consultations, and let artificial intelligence generate detailed medical and patient reports automatically. Save time and improve documentation quality.",
+    "heroTitle": "Complete, standardized, and organized Medical Reports, powered by Artificial Intelligence",
+    "heroSubtitle": "Enhance and transform the medical evaluation with your patients. IMI processes your consultations generating an editable, structured, and secure medical report, 100% compatible with all electronic health record systems. It also generates a second report for your patient in plain language so they can go home informed and at ease. They won't forget what was discussed!",
     "getStarted": "Get started free",
     "featuresTitle": "Everything you need for better medical documentation",
-    "feature1Title": "Voice Recording",
-    "feature1Desc": "Simply record your consultation and our AI handles the rest. No typing required.",
+    "feature1Title": "Voice Processing",
+    "feature1Desc": "Simply dictate your consultation and our AI handles the rest. No typing required.",
     "feature2Title": "Dual Reports",
     "feature2Desc": "Automatically generates both a detailed medical report and a patient-friendly summary.",
-    "feature3Title": "Patient Consent",
+    "feature3Title": "Patient Safety",
     "feature3Desc": "Built-in digital consent workflow so patients can review and approve their reports.",
     "feature4Title": "WhatsApp Delivery",
     "feature4Desc": "Send patient reports directly via WhatsApp with a single click.",
-    "ctaTitle": "Ready to transform your practice?",
-    "ctaSubtitle": "Join doctors who are saving hours every week on medical documentation.",
+    "benefitsTitle": "Benefits and optimization of the medical consultation",
+    "benefit1Title": "Greater empathy and consultation quality",
+    "benefit1Desc": "Let IMI process the data while you provide active attention and listening to your patients.",
+    "benefit2Title": "Legal Security",
+    "benefit2Desc": "Enhance your reports — being standardized and complete, they give you greater peace of mind.",
+    "benefit3Title": "Treatment adherence",
+    "benefit3Desc": "Your patients will no longer forget what was discussed and will be able to follow your instructions, empowering them to take better care of their health.",
+    "benefit4Title": "Time saved",
+    "benefit4Desc": "How much real time does it take to write each consultation completely? Save that entire time to dedicate it to whatever you want.",
+    "howTitle": "How does IMI work?",
+    "howSubtitle": "You can use it in two ways.",
+    "howOption": "Option",
+    "howMethod1Title": "Post-consultation dictation",
+    "howMethod1Desc": "Tell IMI what you evaluated during the consultation, in whatever order you want and remember. IMI processes all the data and generates structured reports that comply with regulations.",
+    "howMethod2Title": "Live recording (Ambient AI)",
+    "howMethod2Desc": "Record the consultation with the patient's consent (documented in the reports) while you listen and examine them. IMI listens and only captures medical data related to their health. When finished, you'll have your reports immediately.",
+    "howEditable": "You can always REVIEW and EDIT both reports.",
+    "howDisclaimer": "IMI does not make decisions — it processes and organizes data. It is a documentation assistant. It does not replace medical judgment.",
+    "howTagline": "We enhance it.",
+    "ctaTitle": "Ready to transform your consultation?",
+    "ctaSubtitle": "Join the professionals who have already chosen to save hours every week on medical documentation.",
+    "faqTitle": "Frequently asked questions about the Intelligent Medical Report",
+    "faq1Q": "What exactly is IMI (Intelligent Medical Report)?",
+    "faq1A": "It is a system that structures, optimizes, and analyzes medical writing without replacing the clinical judgment of the professional.",
+    "faq2Q": "Does IMI make diagnoses?",
+    "faq2A": "No. IMI does not diagnose. It assists in the organization and clarity of the report.",
+    "faq3Q": "Do I lose control over my writing?",
+    "faq3A": "No. The doctor can edit, customize, and validate each report before it is issued.",
+    "faq4Q": "Do all reports look the same?",
+    "faq4A": "No. The structure is standardized, but the clinical content remains individual and editable.",
+    "faq5Q": "How does it improve the relationship with the patient?",
+    "faq5A": "It generates a clear explanatory version that improves understanding, adherence, and trust.",
+    "faq6Q": "Does IMI record the audio?",
+    "faq6A": "Definitely not. It only processes the audio, generates the reports, and these are stored per patient if you wish for future follow-ups.",
+    "faq7Q": "Is the report data used for analysis?",
+    "faq7A": "Only for your own analysis. It allows you to view your clinical statistics, useful for professional or institutional improvement.",
+    "faq8Q": "Who is legally responsible for the report?",
+    "faq8A": "Always the medical professional who validates it.",
+    "faq9Q": "Is it compatible with existing systems?",
+    "faq9A": "It is designed to integrate with any electronic health records system.",
+    "faq10Q": "What competitive advantage does it give me as a doctor?",
+    "faq10A": "Time savings, lower risk of formal errors, better communication with patients, and the possibility of advanced clinical analysis.",
     "copyright": "\u00a9 {year} IMI Health. All rights reserved."
   },
   "loginPage": {
@@ -531,6 +620,8 @@
     "captchaVerified": "Verification completed.",
     "allDone": "Everything is ready. You can create your account.",
     "back": "Back to form",
+    "verifyUnexpectedError": "Unexpected error. Please try again.",
+    "verifyFailed": "Verification failed. Please try again.",
     "verifying": "Verifying…",
     "termsLastUpdated": "Last updated: January 2025",
     "terms": {
@@ -566,7 +657,7 @@
       "s9p1": "Any dispute arising from the interpretation, application or breach of these Terms shall be submitted to the jurisdiction of the Ordinary Courts of the Autonomous City of Buenos Aires, with both parties waiving any other jurisdiction that may apply.",
       "s10Title": "10. Contact",
       "s10p1": "For inquiries, claims or notifications related to these Terms, you can contact us at",
-      "s10email": "legal@imihealth.com",
+      "s10email": "contact@imihealth.ai",
       "s10p2": "or in writing to our office located in the Autonomous City of Buenos Aires, Argentina."
     }
   },
@@ -709,6 +800,12 @@
     "finalStatement": "Because the future of medicine is not less human.",
     "finalConclusion": "It is clearer, safer, and more intelligent."
   },
+  "notifications": {
+    "newReportTitle": "New report generated",
+    "newReportDescription": "The report for {patientName} is ready",
+    "viewReport": "View report",
+    "unknownPatient": "Unknown patient"
+  },
   "profilePage": {
     "title": "My profile",
     "subtitle": "View and update your personal and professional information",
@@ -726,6 +823,17 @@
     "save": "Save changes",
     "saving": "Saving...",
     "saveSuccess": "Profile updated successfully"
+  },
+  "authError": {
+    "title": "Authentication error",
+    "description": "The link you used is invalid or has expired. Please try again.",
+    "backToLogin": "Back to sign in",
+    "requestNewLink": "Request a new link"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "autoReported": "The error has been reported automatically.",
+    "tryAgain": "Try again"
   },
   "notFound": {
     "title": "Page not found",

@@ -107,6 +107,18 @@ describe('POST /api/send-email', () => {
     expect(mockSendEmail).toHaveBeenCalledWith({ to: 'a@b.com', subject: 'Hi', text: 'Body' })
   })
 
+  it('passes html field through when provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    mockSendEmail.mockResolvedValue({ messageId: 'msg-html' })
+
+    const res = await POST(makeRequest({ to: 'a@b.com', subject: 'Hi', text: 'Body', html: '<p>Body</p>' }))
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual({ success: true, messageId: 'msg-html' })
+    expect(mockSendEmail).toHaveBeenCalledWith({ to: 'a@b.com', subject: 'Hi', text: 'Body', html: '<p>Body</p>' })
+  })
+
   it('returns 500 when sendEmail throws', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
     mockSendEmail.mockRejectedValue(new Error('SMTP failure'))

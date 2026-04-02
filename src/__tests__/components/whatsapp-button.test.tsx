@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as nextIntl from 'next-intl'
 
 import { WhatsAppButton } from '@/components/whatsapp-button'
 
@@ -67,5 +68,44 @@ describe('WhatsAppButton', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('shows error toast with fallback message when fetch throws a network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network failure'))
+
+    const user = userEvent.setup()
+    render(<WhatsAppButton {...defaultProps} isOptedIn />)
+    await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
+
+    // After the network error, data stays null so the fallback error toast is shown
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+    // Button should be re-enabled after the error
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /enviar por whatsapp/i })).not.toBeDisabled()
+    })
+  })
+
+  it('uses English template name and language code when locale is "en"', async () => {
+    ;(nextIntl.useLocale as jest.Mock).mockReturnValue('en')
+
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    })
+
+    const user = userEvent.setup()
+    render(<WhatsAppButton {...defaultProps} isOptedIn />)
+    await user.click(screen.getByRole('button', { name: /enviar por whatsapp/i }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.templateName).toBe('patient_report_en')
+    expect(body.languageCode).toBe('en')
+
+    ;(nextIntl.useLocale as jest.Mock).mockReset()
   })
 })

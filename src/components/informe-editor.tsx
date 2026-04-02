@@ -68,6 +68,7 @@ function MarkdownDisplay({ text }: { text: string }) {
 
 function WhatsAppIconButton({ phone, patientName, informeId }: { phone: string; patientName: string; informeId: string }) {
   const t = useTranslations("whatsappButton");
+  const tEditor = useTranslations("informeEditor");
   const locale = useLocale();
   const [isSending, setIsSending] = useState(false);
 
@@ -122,7 +123,7 @@ function WhatsAppIconButton({ phone, patientName, informeId }: { phone: string; 
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Enviar por WhatsApp</p>
+          <p>{tEditor("sendWhatsApp")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -136,6 +137,7 @@ function CertificadoIconButton({ informeId, patientName, phone }: { informeId: s
 }
 
 function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
+  const t = useTranslations("informeEditor");
   const handleView = () => {
     window.open(pdfUrl, "_blank", "noopener,noreferrer");
   };
@@ -154,7 +156,7 @@ function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Ver PDF</p>
+          <p>{t("viewPdf")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -163,12 +165,15 @@ function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
 
 function EmailIconButton({ email, doctorName, reportContent }: { email: string; doctorName: string; reportContent: string }) {
   const t = useTranslations("emailButton");
+  const tEditor = useTranslations("informeEditor");
   const [isSending, setIsSending] = useState(false);
 
   const handleSend = async () => {
     setIsSending(true);
     let data: { success?: boolean; error?: string } | null = null;
     try {
+      const { doctorReportEmail } = await import("@/lib/email-template");
+      const html = doctorReportEmail({ doctorName, reportContent });
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
@@ -178,12 +183,13 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
           to: email,
           subject: t("subject", { doctorName }),
           text: reportContent,
+          html,
         }),
       });
       data = await response.json();
     } catch {
-      toast.error("Error al enviar email", {
-        description: "Ocurrió un error inesperado",
+      toast.error(tEditor("emailError"), {
+        description: tEditor("emailErrorUnexpected"),
       });
     }
     if (data?.success) {
@@ -191,9 +197,9 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
         description: t("successMessage", { doctorName }),
       });
     } else if (data) {
-      toast.error("Error al enviar email", {
+      toast.error(tEditor("emailError"), {
         /* v8 ignore next */
-        description: data.error ?? "No se pudo enviar el email",
+        description: data.error ?? tEditor("emailSendFailed"),
       });
     }
     setIsSending(false);
@@ -218,7 +224,7 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Enviar por Email</p>
+          <p>{tEditor("sendEmail")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -227,6 +233,7 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
 
 function DoctorWhatsAppIconButton({ phone, doctorName, reportContent }: { phone: string; doctorName: string; reportContent: string }) {
   const t = useTranslations("doctorWhatsappButton");
+  const tEditor = useTranslations("informeEditor");
 
   const handleSend = () => {
     const message = encodeURIComponent(
@@ -253,7 +260,7 @@ function DoctorWhatsAppIconButton({ phone, doctorName, reportContent }: { phone:
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Enviar por WhatsApp</p>
+          <p>{tEditor("sendWhatsApp")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -335,11 +342,11 @@ function DoctorReportCard({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
+                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={t("editReport")} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
                       <Pencil className="size-6" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent><p>Editar informe</p></TooltipContent>
+                  <TooltipContent><p>{t("editReport")}</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               {doctorEmail && doctorName && (
@@ -454,11 +461,11 @@ function PatientReportCard({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label="Editar informe" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50">
+                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={t("editReport")} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50">
                       <Pencil className="size-6 text-emerald-600" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent><p>Editar informe</p></TooltipContent>
+                  <TooltipContent><p>{t("editReport")}</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               {pdfUrl && <ViewPdfIconButton pdfUrl={pdfUrl} />}
@@ -473,7 +480,7 @@ function PatientReportCard({
                         <CertificadoIconButton informeId={informeId} patientName={patientName} phone={whatsappPhone} />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent><p>Crear certificado</p></TooltipContent>
+                    <TooltipContent><p>{t("createCertificate")}</p></TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
@@ -491,6 +498,7 @@ function PatientReportCard({
             <WhatsAppOptInButton
               patientId={patientId}
               isOptedIn={whatsappOptedIn ?? false}
+              /* v8 ignore next */
               onOptInComplete={() => window.location.reload()}
             />
           </div>

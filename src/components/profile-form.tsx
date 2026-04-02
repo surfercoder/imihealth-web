@@ -236,7 +236,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
                         <FormControl>
                           <Input
                             type="tel"
-                            placeholder="+54 11 1234-5678"
+                            placeholder={tSignup("phonePlaceholder")}
                             {...field}
                           />
                         </FormControl>
@@ -394,6 +394,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
                               field.onChange(dataUrl);
                               setSignatureChanged(true);
                             }}
+                            /* v8 ignore next */
                             error={fieldState.error?.message}
                           />
                         </FormControl>

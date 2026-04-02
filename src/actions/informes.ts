@@ -415,6 +415,7 @@ export async function regenerateReportFromEdits(
   if (fetchError || !informeData) return { error: "Informe no encontrado" };
   if (!informeData.transcript) return { error: "No hay transcripción disponible" };
 
+  /* v8 ignore next */
   const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
   try {

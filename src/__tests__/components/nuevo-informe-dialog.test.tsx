@@ -3,9 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockPush = jest.fn()
+const mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 const mockCreatePatient = jest.fn()
@@ -270,6 +271,50 @@ describe('NuevoInformeDialog', () => {
     const btn = screen.getByRole('button')
     expect(btn).toBeDisabled()
     expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
+  })
+
+  it('redirects with tab param in URL when currentTab is set', async () => {
+    mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
+    mockCreateInforme.mockResolvedValue({ data: { id: 'i-55' } })
+    mockSearchParams.set('tab', 'informes')
+    const user = userEvent.setup()
+    renderWithPlan(<NuevoInformeDialog />)
+    await user.click(screen.getByRole('button', { name: /Nuevo Informe/i }))
+    await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
+    await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/informes/i-55/grabar?tab=informes')
+    })
+    mockSearchParams.delete('tab')
+  })
+
+  it('renders fullWidth disabled button when canCreateInforme is false and fullWidth is true', () => {
+    const limitedPlan: PlanInfo = {
+      ...defaultPlan,
+      canCreateInforme: false,
+      maxInformes: 7,
+      currentInformes: 7,
+    }
+    renderWithPlan(<NuevoInformeDialog fullWidth />, limitedPlan)
+    const btn = screen.getByRole('button')
+    expect(btn).toBeDisabled()
+    // fullWidth uses size="default" and w-full class
+    expect(btn).toHaveClass('w-full')
+  })
+
+  it('renders fullWidth trigger button without Plus icon when fullWidth is true', async () => {
+    const user = userEvent.setup()
+    const { container } = renderWithPlan(<NuevoInformeDialog fullWidth />)
+    const btn = screen.getByRole('button', { name: /Nuevo Informe/i })
+    // When fullWidth, Plus icon is NOT rendered
+    expect(btn.querySelector('.lucide-plus')).toBeNull()
+    // Button should have w-full class
+    expect(btn).toHaveClass('w-full')
+    // Dialog still opens
+    await user.click(btn)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    void container
   })
 
   it('includes email in FormData when provided', async () => {

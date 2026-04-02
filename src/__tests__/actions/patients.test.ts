@@ -15,7 +15,7 @@ jest.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }))
 
-import { searchPatients, getPatients, getPatient, updatePatient } from '@/actions/patients'
+import { searchPatients, getPatients, getPatient, updatePatient, deletePatient } from '@/actions/patients'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -527,5 +527,72 @@ describe('updatePatient', () => {
         dob: undefined,
       })
     )
+  })
+})
+
+describe('deletePatient', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('returns error when user is not authenticated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const result = await deletePatient('p-1')
+    expect(result).toEqual({ error: 'No autenticado' })
+  })
+
+  it('returns error when patient is not found (fetchError)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
+    mockFrom.mockReturnValue(chain)
+    const result = await deletePatient('p-1')
+    expect(result).toEqual({ error: 'Paciente no encontrado' })
+  })
+
+  it('returns error when patient data is null (no fetchError but no data)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: null, error: null })
+    mockFrom.mockReturnValue(chain)
+    const result = await deletePatient('p-1')
+    expect(result).toEqual({ error: 'Paciente no encontrado' })
+  })
+
+  it('returns error when delete operation fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const fetchChain = makeChain()
+    fetchChain.single.mockResolvedValue({ data: { id: 'p-1' }, error: null })
+
+    const deleteChain: Record<string, jest.Mock> = {
+      delete: jest.fn(),
+      eq: jest.fn(),
+    }
+    deleteChain.delete.mockReturnValue(deleteChain)
+    deleteChain.eq.mockReturnValueOnce(deleteChain).mockResolvedValueOnce({ error: { message: 'Delete failed' } })
+
+    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(deleteChain)
+
+    const result = await deletePatient('p-1')
+    expect(result).toEqual({ error: 'Delete failed' })
+  })
+
+  it('deletes patient and revalidates path on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const fetchChain = makeChain()
+    fetchChain.single.mockResolvedValue({ data: { id: 'p-1' }, error: null })
+
+    const deleteChain: Record<string, jest.Mock> = {
+      delete: jest.fn(),
+      eq: jest.fn(),
+    }
+    deleteChain.delete.mockReturnValue(deleteChain)
+    deleteChain.eq.mockReturnValueOnce(deleteChain).mockResolvedValueOnce({ error: null })
+
+    mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(deleteChain)
+
+    const result = await deletePatient('p-1')
+    expect(result).toEqual({ success: true })
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/')
   })
 })

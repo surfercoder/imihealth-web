@@ -335,6 +335,20 @@ describe('PatientPage', () => {
     expect(screen.getByText(/años/i)).toBeInTheDocument()
   })
 
+  it('appends tab query param to informe link when tab searchParam is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks({
+      ...basePatient,
+      informes: [
+        { id: 'i-1', status: 'completed', created_at: '2025-01-15T10:30:00Z', informe_doctor: 'Report', informe_paciente: 'Patient' },
+      ],
+    })
+    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({ tab: 'misPacientes' }) }))
+    // Line 238: href = /informes/i-1?tab=misPacientes
+    const link = screen.getByRole('link', { name: /Informe/ })
+    expect(link).toHaveAttribute('href', '/informes/i-1?tab=misPacientes')
+  })
+
   it('computes correct age when birthday month has not yet arrived', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const today = new Date()

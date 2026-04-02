@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle } from "lucide-react";
@@ -18,7 +18,6 @@ export function WhatsAppOptInButton({
   onOptInComplete
 }: WhatsAppOptInButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const locale = useLocale();
   const t = useTranslations("whatsappOptIn");
 
   const handleOptIn = async () => {
@@ -33,26 +32,19 @@ export function WhatsAppOptInButton({
       const data = await response.json();
 
       if (data.success) {
-        toast.success(
-          locale === "es" ? "WhatsApp activado!" : "WhatsApp activated!",
-          {
-            description: locale === "es"
-              ? "Ahora puedes enviar informes por WhatsApp a este paciente."
-              : "You can now send reports via WhatsApp to this patient."
-          }
-        );
+        toast.success(t("successTitle"), {
+          description: t("successDesc"),
+        });
         onOptInComplete?.();
       } else {
-        toast.error(
-          locale === "es" ? "Error" : "Error",
-          { description: data.error || "Failed to activate WhatsApp" }
-        );
+        toast.error(t("errorTitle"), {
+          description: data.error || t("errorFallback"),
+        });
       }
     } catch {
-      toast.error(
-        locale === "es" ? "Error de conexion" : "Connection error",
-        { description: locale === "es" ? "No se pudo activar WhatsApp" : "Could not activate WhatsApp" }
-      );
+      toast.error(t("connectionError"), {
+        description: t("connectionErrorDesc"),
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -62,7 +54,7 @@ export function WhatsAppOptInButton({
     return (
       <div className="flex items-center gap-2 text-sm text-green-600">
         <CheckCircle className="size-4" />
-        <span>{locale === "es" ? "WhatsApp activado" : "WhatsApp activated"}</span>
+        <span>{t("activated")}</span>
       </div>
     );
   }

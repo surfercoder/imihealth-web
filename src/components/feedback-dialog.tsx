@@ -50,13 +50,22 @@ export function FeedbackDialog({ doctorName, doctorEmail }: FeedbackDialogProps)
     setSending(true);
     try {
       const reasonLabel = t(`reasons.${reason}` as Parameters<typeof t>[0]);
+      const { feedbackEmail } = await import("@/lib/email-template");
+      const plainText = `From: ${doctorName ?? "Unknown"} (${doctorEmail ?? "No email"})\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`;
+      const html = feedbackEmail({
+        senderName: doctorName ?? "Unknown",
+        senderEmail: doctorEmail ?? "No email",
+        reason: reasonLabel,
+        message: message.trim(),
+      });
       const res = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: "support@imihealth.ai",
           subject: `[${reasonLabel}] ${t("emailSubject")}`,
-          text: `From: ${doctorName ?? "Unknown"} (${doctorEmail ?? "No email"})\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`,
+          text: plainText,
+          html,
         }),
       });
 

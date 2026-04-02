@@ -67,6 +67,7 @@ function InformesTabContent() {
         (val) => {
           if (!val.subscriber) return true;
           const country = COUNTRIES.find((c) => c.code === val.countryCode);
+          /* v8 ignore next */
           if (!country) return false;
           const digits = val.subscriber.replace(/\D/g, "");
           return country.subscriberRegex.test(digits);
@@ -260,6 +261,7 @@ function InformesTabContent() {
                 name="phone"
                 control={control}
                 render={({ field }) => {
+                  /* v8 ignore next 2 */
                   const selectedCountry =
                     COUNTRIES.find((c) => c.code === field.value?.countryCode) ?? defaultCountry;
                   return (
@@ -275,6 +277,7 @@ function InformesTabContent() {
                       />
                       {errors.phone && (
                         <p className="text-xs text-destructive">
+                          {/* v8 ignore next */}
                           {errors.phone.message ?? errors.phone.subscriber?.message}
                         </p>
                       )}

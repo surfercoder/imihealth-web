@@ -19,7 +19,7 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResult> {
   const transcriptConfig: Parameters<typeof client.transcripts.transcribe>[0] = {
     audio: audioSource,
-    speech_model: "best" as const,
+    speech_models: ["universal-3-pro", "universal-2"],
     language_code: languageCode,
     speaker_labels: true,
   };

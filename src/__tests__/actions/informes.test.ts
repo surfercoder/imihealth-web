@@ -466,6 +466,59 @@ describe('processInformeFromTranscript', () => {
     expect(mockTranscribeAudio).toHaveBeenCalled()
   })
 
+  it('falls back to browser transcript when AssemblyAI transcription throws', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+
+    // 1. status update chain
+    const updateChain = makeChain()
+    updateChain.eq.mockReturnValue(updateChain)
+
+    // 2 & 3. Promise.all: transcript save + doctor fetch
+    const transcriptSaveChain = makeChain()
+    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
+
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
+
+    // 4. final update chain
+    const finalUpdateChain = makeChain()
+    finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
+
+    mockFrom
+      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(transcriptSaveChain)
+      .mockReturnValueOnce(doctorChain)
+      .mockReturnValueOnce(finalUpdateChain)
+
+    // AssemblyAI throws
+    mockTranscribeAudio.mockRejectedValueOnce(new Error('AssemblyAI unavailable'))
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Doctor report from browser transcript',
+            informe_paciente: 'Patient report from browser transcript',
+          }),
+        },
+      ],
+    })
+
+    const audioBase64 = Buffer.from('fake audio').toString('base64')
+    const result = await processInformeFromTranscript('i-1', 'browser transcript fallback', audioBase64)
+    expect(result).toEqual({ success: true })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'AssemblyAI transcription failed, falling back to browser transcript:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
   it('stores transcript_dialog when AI response includes a dialog field', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 

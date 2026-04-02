@@ -29,12 +29,32 @@ describe('sendEmail', () => {
       auth: { user: 'test@gmail.com', pass: 'app-pass' },
     })
     expect(mockSendMail).toHaveBeenCalledWith({
-      from: 'test@gmail.com',
+      from: '"IMI Health" <test@gmail.com>',
       to: 'dest@example.com',
       subject: 'Test',
       text: 'Hello',
     })
     expect(result).toEqual({ success: true, messageId: 'msg-123' })
+  })
+
+  it('includes html field when provided', async () => {
+    mockSendMail.mockResolvedValue({ messageId: 'msg-456' })
+
+    const result = await sendEmail({
+      to: 'dest@example.com',
+      subject: 'Test',
+      text: 'Hello',
+      html: '<p>Hello</p>',
+    })
+
+    expect(mockSendMail).toHaveBeenCalledWith({
+      from: '"IMI Health" <test@gmail.com>',
+      to: 'dest@example.com',
+      subject: 'Test',
+      text: 'Hello',
+      html: '<p>Hello</p>',
+    })
+    expect(result).toEqual({ success: true, messageId: 'msg-456' })
   })
 
   it('throws "Failed to send email" when sendMail rejects', async () => {

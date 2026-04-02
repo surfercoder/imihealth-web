@@ -37,12 +37,12 @@ describe('updateSession', () => {
     expect(res.status).toBe(200)
   })
 
-  it('redirects to /login when user is unauthenticated on a protected path', async () => {
+  it('redirects to /home when user is unauthenticated on a protected path', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     const req = makeRequest('/dashboard')
     const res = await updateSession(req)
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toContain('/login')
+    expect(res.headers.get('location')).toContain('/home')
   })
 
   it('does NOT redirect on /login (public path)', async () => {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   Tooltip,
   TooltipContent,
@@ -17,11 +18,12 @@ interface CopyToClipboardButtonDoctorProps {
 
 export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDoctorProps) {
   const [copied, setCopied] = useState(false);
+  const t = useTranslations("common");
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success("Copiado al portapapeles");
+    toast.success(t("copiedToClipboard"));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -39,7 +41,7 @@ export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDocto
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Copiar al portapapeles</p>
+          <p>{t("copyToClipboard")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

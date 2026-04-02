@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
+const mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('next/link', () => {
@@ -94,6 +95,14 @@ describe('InformesList — with informes', () => {
   it('does not render phone when patients is null', () => {
     render(<InformesList informes={[makeInforme({ patients: null })]} />)
     expect(screen.queryByText('+54911234567')).not.toBeInTheDocument()
+  })
+
+  it('includes tab query param in link when currentTab is set', () => {
+    mockSearchParams.set('tab', 'informes')
+    render(<InformesList informes={[makeInforme({ id: 'i-55', status: 'completed' })]} />)
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/informes/i-55?tab=informes')
+    mockSearchParams.delete('tab')
   })
 
   it('renders multiple informes', () => {

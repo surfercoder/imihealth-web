@@ -189,4 +189,13 @@ describe('GrabarPage', () => {
     render(await GrabarPage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/May/i)).toBeInTheDocument()
   })
+
+  it('renders back link with tab query param when tab searchParam is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupFrom({ data: recordingInforme, error: null })
+    render(await GrabarPage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({ tab: 'misPacientes' }) }))
+    // Line 93: href uses /patients/${patient.id}?tab=${tab}
+    const backLink = screen.getByRole('link', { name: /Juan Pérez/i })
+    expect(backLink).toHaveAttribute('href', '/patients/p-1?tab=misPacientes')
+  })
 })

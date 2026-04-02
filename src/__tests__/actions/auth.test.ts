@@ -155,7 +155,7 @@ describe('signup', () => {
     expect(mockSignUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          emailRedirectTo: 'http://localhost:3001/auth/confirm',
+          emailRedirectTo: 'http://localhost:3001/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
           data: { name: '', dni: undefined, matricula: '123456', phone: '+54 11 1234-5678', especialidad: 'Cardiología' },
         }),
       })
@@ -176,7 +176,7 @@ describe('signup', () => {
     expect(mockSignUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          emailRedirectTo: '/auth/confirm',
+          emailRedirectTo: '/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
         }),
       })
     )

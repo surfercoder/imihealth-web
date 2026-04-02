@@ -325,7 +325,7 @@ function TermsStep({ onBack, onVerified, serverError, isPending }: TermsStepProp
     }
     if (result === null) {
       recaptchaRef.current?.reset();
-      dispatch({ type: "VERIFY_FAILED", error: "Error inesperado. Intentá de nuevo." });
+      dispatch({ type: "VERIFY_FAILED", error: t("verifyUnexpectedError") });
       return;
     }
     if (result.success) {
@@ -333,7 +333,7 @@ function TermsStep({ onBack, onVerified, serverError, isPending }: TermsStepProp
     } else {
       recaptchaRef.current?.reset();
       /* v8 ignore next */
-      dispatch({ type: "VERIFY_FAILED", error: result.error ?? "Verificación fallida. Intentá de nuevo." });
+      dispatch({ type: "VERIFY_FAILED", error: result.error ?? t("verifyFailed") });
     }
   };
 
