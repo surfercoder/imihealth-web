@@ -94,7 +94,7 @@ export function createLoginSchema(m: ValidationMessages = defaultMessages) {
   });
 }
 
-export function createSignupSchema(m: ValidationMessages = defaultMessages) {
+function createSignupSchema(m: ValidationMessages = defaultMessages) {
   return z
     .object({
       name: z.string().min(2, m.nameMin).optional(),

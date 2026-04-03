@@ -51,7 +51,7 @@ export type CountryCode =
   | "JP"
   | "CN";
 
-export type CountryData = {
+type CountryData = {
   code: CountryCode;
   name: string;
   dialCode: string;
@@ -497,6 +497,7 @@ export function PhoneInput({
             type="button"
             variant="outline"
             role="combobox"
+            aria-controls="phone-country-listbox"
             aria-expanded={open}
             disabled={disabled}
             className="flex h-9 shrink-0 items-center gap-1.5 rounded-r-none border-r-0 px-2.5 font-normal bg-popover text-popover-foreground hover:bg-muted border-border"
@@ -511,7 +512,7 @@ export function PhoneInput({
         <PopoverContent className="w-72 p-0" align="start">
           <Command style={{ overflow: "visible" }}>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList style={{ maxHeight: "224px", overflowY: "auto" }}>
+            <CommandList id="phone-country-listbox" style={{ maxHeight: "224px", overflowY: "auto" }}>
               <CommandEmpty>{noCountryFound}</CommandEmpty>
               <CommandGroup>
                 {COUNTRIES.map((country) => (
@@ -557,17 +558,3 @@ export function PhoneInput({
   );
 }
 
-/**
- * Returns a Zod refinement that validates the subscriber part for a given country.
- * Use together with the PhoneInput component.
- */
-export function validatePhoneForCountry(
-  phoneValue: PhoneInputValue | undefined,
-  errorMessage: string
-): true | string {
-  if (!phoneValue) return errorMessage;
-  const country = COUNTRIES.find((c) => c.code === phoneValue.countryCode);
-  if (!country) return errorMessage;
-  const digits = phoneValue.subscriber.replace(/\D/g, "");
-  return country.subscriberRegex.test(digits) ? true : errorMessage;
-}

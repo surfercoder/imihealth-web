@@ -4,7 +4,7 @@ const client = new AssemblyAI({
   apiKey: process.env.ASSEMBLYAI_API_KEY!,
 });
 
-export interface TranscriptionResult {
+interface TranscriptionResult {
   text: string;
   utterances: Array<{ speaker: string; text: string }> | null;
 }
