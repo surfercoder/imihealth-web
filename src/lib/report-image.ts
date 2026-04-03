@@ -1,4 +1,35 @@
 import sharp from "sharp";
+import fs from "fs";
+import path from "path";
+
+// Load and base64-encode fonts at module level for embedding in SVGs
+const fontsDir = path.join(process.cwd(), "public", "assets", "fonts");
+let interRegularB64 = "";
+let interBoldB64 = "";
+try {
+  interRegularB64 = fs.readFileSync(path.join(fontsDir, "Inter-Regular.ttf")).toString("base64");
+  interBoldB64 = fs.readFileSync(path.join(fontsDir, "Inter-Bold.ttf")).toString("base64");
+} catch {
+  // Fonts will be missing only in test environments
+}
+
+function fontStyleBlock(): string {
+  if (!interRegularB64 || !interBoldB64) return "";
+  return `<defs><style type="text/css">
+    @font-face {
+      font-family: 'Inter';
+      font-weight: 400;
+      src: url('data:font/truetype;base64,${interRegularB64}') format('truetype');
+    }
+    @font-face {
+      font-family: 'Inter';
+      font-weight: 700;
+      src: url('data:font/truetype;base64,${interBoldB64}') format('truetype');
+    }
+  </style></defs>`;
+}
+
+const FONT_FAMILY = "Inter,Arial,Helvetica,sans-serif";
 
 function stripEmoji(str: string): string {
   return str.replace(
@@ -124,7 +155,7 @@ export async function generateInformeImage({
     if (line.isHeader) y += 8;
     const weight = line.isHeader ? ' font-weight="bold"' : "";
     textEls.push(
-      `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize}" fill="#333"${weight}>${escapeXml(line.text)}</text>`
+      `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="${fontSize}" fill="#333"${weight}>${escapeXml(line.text)}</text>`
     );
     y += lineHeight;
   }
@@ -150,19 +181,19 @@ export async function generateInformeImage({
     }
     if (doctor.name) {
       doctorEls.push(
-        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#222" font-weight="bold" text-anchor="middle">${escapeXml(doctor.name)}</text>`
+        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="${FONT_FAMILY}" font-size="12" fill="#222" font-weight="bold" text-anchor="middle">${escapeXml(doctor.name)}</text>`
       );
       offset += 16;
     }
     if (doctor.especialidad) {
       doctorEls.push(
-        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#666" text-anchor="middle">${escapeXml(doctor.especialidad)}</text>`
+        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">${escapeXml(doctor.especialidad)}</text>`
       );
       offset += 14;
     }
     if (doctor.matricula) {
       doctorEls.push(
-        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#666" text-anchor="middle">Mat. ${escapeXml(doctor.matricula)}</text>`
+        `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">Mat. ${escapeXml(doctor.matricula)}</text>`
       );
       offset += 14;
     }
@@ -173,25 +204,26 @@ export async function generateInformeImage({
   const footerH = 60;
   const height = Math.max(consentY + consentH + doctorBlockH + footerH + 10, 600);
 
-  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  ${fontStyleBlock()}
   <rect width="100%" height="100%" fill="white"/>
   <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
-  <text x="${margin}" y="35" font-family="Arial,Helvetica,sans-serif" font-size="24" fill="white" font-weight="bold">IMI Health</text>
-  <text x="${margin}" y="55" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#D9E6F7">Informe Medico</text>
-  <text x="${width - margin}" y="48" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
+  <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="24" fill="white" font-weight="bold">IMI Health</text>
+  <text x="${margin}" y="55" font-family="${FONT_FAMILY}" font-size="12" fill="#D9E6F7">Informe Medico</text>
+  <text x="${width - margin}" y="48" font-family="${FONT_FAMILY}" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
   <rect x="${margin}" y="${headerH + 10}" width="${contentWidth}" height="${patientBoxH}" fill="#F2F2F5" stroke="#DDDDE0" stroke-width="1" rx="4"/>
-  <text x="${margin + 12}" y="${headerH + 30}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#666">Paciente:</text>
-  <text x="${margin + 12}" y="${headerH + 46}" font-family="Arial,Helvetica,sans-serif" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>
-  <text x="${margin + 12}" y="${headerH + 60}" font-family="Arial,Helvetica,sans-serif" font-size="9" fill="#888">Tel: ${escapeXml(patientPhone || "")}</text>
+  <text x="${margin + 12}" y="${headerH + 30}" font-family="${FONT_FAMILY}" font-size="10" fill="#666">Paciente:</text>
+  <text x="${margin + 12}" y="${headerH + 46}" font-family="${FONT_FAMILY}" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>
+  <text x="${margin + 12}" y="${headerH + 60}" font-family="${FONT_FAMILY}" font-size="9" fill="#888">Tel: ${escapeXml(patientPhone || "")}</text>
   ${textEls.join("\n  ")}
   <rect x="${margin}" y="${consentY}" width="${contentWidth}" height="${consentH}" fill="#EBF5F4" stroke="#38998F" stroke-width="0.8" rx="4"/>
-  <text x="${margin + 10}" y="${consentY + 16}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#38998F" font-weight="bold">Consentimiento informado</text>
-  <text x="${margin + 10}" y="${consentY + 32}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#333">${escapeXml(`El/la paciente ${patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health`)}</text>
-  <text x="${margin + 10}" y="${consentY + 44}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#333">y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.</text>
-  <text x="${margin + 10}" y="${consentY + 58}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#666">Fecha de consulta: ${escapeXml(date)}</text>
+  <text x="${margin + 10}" y="${consentY + 16}" font-family="${FONT_FAMILY}" font-size="10" fill="#38998F" font-weight="bold">Consentimiento informado</text>
+  <text x="${margin + 10}" y="${consentY + 32}" font-family="${FONT_FAMILY}" font-size="8" fill="#333">${escapeXml(`El/la paciente ${patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health`)}</text>
+  <text x="${margin + 10}" y="${consentY + 44}" font-family="${FONT_FAMILY}" font-size="8" fill="#333">y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.</text>
+  <text x="${margin + 10}" y="${consentY + 58}" font-family="${FONT_FAMILY}" font-size="8" fill="#666">Fecha de consulta: ${escapeXml(date)}</text>
   <line x1="${margin}" y1="${height - 50}" x2="${width - margin}" y2="${height - 50}" stroke="#CCC" stroke-width="0.5"/>
-  <text x="${margin}" y="${height - 35}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#999">Este informe fue generado automaticamente por IMI Health.</text>
-  <text x="${margin}" y="${height - 23}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#999">Ante cualquier duda, consulte a su medico.</text>
+  <text x="${margin}" y="${height - 35}" font-family="${FONT_FAMILY}" font-size="8" fill="#999">Este informe fue generado automaticamente por IMI Health.</text>
+  <text x="${margin}" y="${height - 23}" font-family="${FONT_FAMILY}" font-size="8" fill="#999">Ante cualquier duda, consulte a su medico.</text>
   ${doctorEls.join("\n  ")}
 </svg>`;
 
@@ -245,7 +277,7 @@ export async function generateCertificadoImage({
   const bodyLines = wrapLines(bodyText, 80);
   for (const line of bodyLines) {
     bodyParts.push(
-      `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#141420">${escapeXml(line.text)}</text>`
+      `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="12" fill="#141420">${escapeXml(line.text)}</text>`
     );
     y += 17;
   }
@@ -266,7 +298,7 @@ export async function generateCertificadoImage({
     let daysY = y + 16;
     for (const line of daysLines) {
       daysEls.push(
-        `<text x="${margin + 12}" y="${daysY}" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#145A9E">${escapeXml(line.text)}</text>`
+        `<text x="${margin + 12}" y="${daysY}" font-family="${FONT_FAMILY}" font-size="11" fill="#145A9E">${escapeXml(line.text)}</text>`
       );
       daysY += 14;
     }
@@ -277,13 +309,13 @@ export async function generateCertificadoImage({
   const diagEls: string[] = [];
   if (diagnosis) {
     diagEls.push(
-      `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#141420" font-weight="bold">Diagnostico:</text>`
+      `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="11" fill="#141420" font-weight="bold">Diagnostico:</text>`
     );
     y += 15;
     const diagLines = wrapLines(diagnosis, 80);
     for (const line of diagLines) {
       diagEls.push(
-        `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#333">${escapeXml(line.text)}</text>`
+        `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="11" fill="#333">${escapeXml(line.text)}</text>`
       );
       y += 14;
     }
@@ -294,13 +326,13 @@ export async function generateCertificadoImage({
   const obsEls: string[] = [];
   if (observations) {
     obsEls.push(
-      `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#141420" font-weight="bold">Observaciones:</text>`
+      `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="11" fill="#141420" font-weight="bold">Observaciones:</text>`
     );
     y += 15;
     const obsLines = wrapLines(observations, 80);
     for (const line of obsLines) {
       obsEls.push(
-        `<text x="${margin}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#333">${escapeXml(line.text)}</text>`
+        `<text x="${margin}" y="${y}" font-family="${FONT_FAMILY}" font-size="11" fill="#333">${escapeXml(line.text)}</text>`
       );
       y += 14;
     }
@@ -326,19 +358,19 @@ export async function generateCertificadoImage({
     }
     if (doctor.name) {
       doctorEls.push(
-        `<text x="${certSigCenterX}" y="${y + offset}" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#222" font-weight="bold" text-anchor="middle">${escapeXml(doctor.name)}</text>`
+        `<text x="${certSigCenterX}" y="${y + offset}" font-family="${FONT_FAMILY}" font-size="12" fill="#222" font-weight="bold" text-anchor="middle">${escapeXml(doctor.name)}</text>`
       );
       offset += 16;
     }
     if (doctor.especialidad) {
       doctorEls.push(
-        `<text x="${certSigCenterX}" y="${y + offset}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#666" text-anchor="middle">${escapeXml(doctor.especialidad)}</text>`
+        `<text x="${certSigCenterX}" y="${y + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">${escapeXml(doctor.especialidad)}</text>`
       );
       offset += 14;
     }
     if (doctor.matricula) {
       doctorEls.push(
-        `<text x="${certSigCenterX}" y="${y + offset}" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#666" text-anchor="middle">Mat. ${escapeXml(doctor.matricula)}</text>`
+        `<text x="${certSigCenterX}" y="${y + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">Mat. ${escapeXml(doctor.matricula)}</text>`
       );
       offset += 14;
     }
@@ -349,24 +381,25 @@ export async function generateCertificadoImage({
   const certDoctorBlockH = doctor ? certSigH + 20 : 0;
   const height = Math.max(y + certDoctorBlockH + 60, 600);
 
-  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  ${fontStyleBlock()}
   <rect width="100%" height="100%" fill="white"/>
   <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
-  <text x="${margin}" y="35" font-family="Arial,Helvetica,sans-serif" font-size="22" fill="white" font-weight="bold">IMI Health</text>
-  <text x="${margin}" y="55" font-family="Arial,Helvetica,sans-serif" font-size="11" fill="#D9E6F7">Certificado Medico</text>
-  <text x="${width - margin}" y="48" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
-  <text x="${width / 2}" y="${headerH + 28}" font-family="Arial,Helvetica,sans-serif" font-size="18" fill="#145A9E" font-weight="bold" text-anchor="middle">CERTIFICADO MEDICO</text>
+  <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="22" fill="white" font-weight="bold">IMI Health</text>
+  <text x="${margin}" y="55" font-family="${FONT_FAMILY}" font-size="11" fill="#D9E6F7">Certificado Medico</text>
+  <text x="${width - margin}" y="48" font-family="${FONT_FAMILY}" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
+  <text x="${width / 2}" y="${headerH + 28}" font-family="${FONT_FAMILY}" font-size="18" fill="#145A9E" font-weight="bold" text-anchor="middle">CERTIFICADO MEDICO</text>
   <line x1="${margin + 40}" y1="${headerH + 34}" x2="${width - margin - 40}" y2="${headerH + 34}" stroke="#145A9E" stroke-width="1"/>
   <rect x="${margin}" y="${patientBoxTop}" width="${contentWidth}" height="64" fill="#F2F2F5" stroke="#DDDDE0" stroke-width="1" rx="4"/>
-  <text x="${margin + 12}" y="${patientBoxTop + 14}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#666">DATOS DEL PACIENTE</text>
-  <text x="${margin + 12}" y="${patientBoxTop + 30}" font-family="Arial,Helvetica,sans-serif" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>
-  ${patientDob ? `<text x="${margin + 12}" y="${patientBoxTop + 46}" font-family="Arial,Helvetica,sans-serif" font-size="9" fill="#666">Fecha de nacimiento: ${escapeXml(patientDob)}</text>` : ""}
+  <text x="${margin + 12}" y="${patientBoxTop + 14}" font-family="${FONT_FAMILY}" font-size="8" fill="#666">DATOS DEL PACIENTE</text>
+  <text x="${margin + 12}" y="${patientBoxTop + 30}" font-family="${FONT_FAMILY}" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>
+  ${patientDob ? `<text x="${margin + 12}" y="${patientBoxTop + 46}" font-family="${FONT_FAMILY}" font-size="9" fill="#666">Fecha de nacimiento: ${escapeXml(patientDob)}</text>` : ""}
   ${bodyParts.join("\n  ")}
   ${daysEls.join("\n  ")}
   ${diagEls.join("\n  ")}
   ${obsEls.join("\n  ")}
   <line x1="${margin}" y1="${height - 50}" x2="${width - margin}" y2="${height - 50}" stroke="#CCC" stroke-width="0.5"/>
-  <text x="${margin}" y="${height - 35}" font-family="Arial,Helvetica,sans-serif" font-size="8" fill="#999">Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.</text>
+  <text x="${margin}" y="${height - 35}" font-family="${FONT_FAMILY}" font-size="8" fill="#999">Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.</text>
   ${doctorEls.join("\n  ")}
 </svg>`;
 
