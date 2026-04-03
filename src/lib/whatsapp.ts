@@ -7,7 +7,7 @@ interface SendTemplateMessageOptions {
   parameters: string[];
 }
 
-export type WhatsAppResult =
+type WhatsAppResult =
   | { success: true; messageId: string }
   | { success: false; error: string };
 

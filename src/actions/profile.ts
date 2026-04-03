@@ -17,7 +17,7 @@ const profileSchema = z.object({
   firmaDigital: z.string().optional(),
 });
 
-export type ProfileResult = {
+type ProfileResult = {
   error?: string;
   success?: boolean;
 };

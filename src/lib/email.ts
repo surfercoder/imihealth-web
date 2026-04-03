@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export interface SendEmailOptions {
+interface SendEmailOptions {
   to: string;
   subject: string;
   /** Plain-text body (always included as fallback). */
