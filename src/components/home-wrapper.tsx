@@ -14,8 +14,9 @@ export function HomeWrapper({ children, userName, showWelcome: initialShowWelcom
     if (!initialShowWelcome) return false;
     /* v8 ignore next */
     if (typeof window === "undefined") return false;
-    if (sessionStorage.getItem("imi_welcomed") === "1") return false;
-    sessionStorage.setItem("imi_welcomed", "1");
+    const shownAt = sessionStorage.getItem("imi_welcomed");
+    if (shownAt && Date.now() - Number(shownAt) > 3000) return false;
+    if (!shownAt) sessionStorage.setItem("imi_welcomed", String(Date.now()));
     window.history.replaceState(null, "", window.location.pathname);
     return true;
   });

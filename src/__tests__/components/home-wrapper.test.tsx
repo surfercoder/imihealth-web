@@ -55,8 +55,8 @@ describe('HomeWrapper', () => {
     expect(screen.getByTestId('welcome-screen')).toBeInTheDocument()
   })
 
-  it('does not show WelcomeScreen when already welcomed (sessionStorage flag set)', () => {
-    sessionStorage.setItem('imi_welcomed', '1')
+  it('does not show WelcomeScreen when already welcomed (sessionStorage timestamp > 3s ago)', () => {
+    sessionStorage.setItem('imi_welcomed', String(Date.now() - 5000))
     render(
       <HomeWrapper userName="Dr. Test" showWelcome>
         <div>Hello</div>

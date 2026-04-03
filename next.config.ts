@@ -7,6 +7,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactCompiler: true,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  outputFileTracingIncludes: {
+    "/api/send-whatsapp": ["./public/assets/fonts/**/*"],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",

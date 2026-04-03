@@ -1,4 +1,66 @@
+import fs from 'fs'
 import { generateInformeImage, generateCertificadoImage } from '@/lib/report-image'
+
+describe('setupFontconfig', () => {
+  const originalEnv = process.env.FONTCONFIG_PATH
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.FONTCONFIG_PATH
+    } else {
+      process.env.FONTCONFIG_PATH = originalEnv
+    }
+    jest.restoreAllMocks()
+  })
+
+  it('creates fontconfig directory when it does not exist', () => {
+    delete process.env.FONTCONFIG_PATH
+
+    jest.spyOn(fs, 'existsSync').mockReturnValue(false)
+    const mkdirSpy = jest.spyOn(fs, 'mkdirSync').mockReturnValue(undefined)
+    jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined)
+
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('@/lib/report-image')
+    })
+
+    expect(mkdirSpy).toHaveBeenCalledWith('/tmp/fontconfig', { recursive: true })
+  })
+
+  it('skips setup when FONTCONFIG_PATH is already set', () => {
+    process.env.FONTCONFIG_PATH = '/tmp/fontconfig'
+
+    const existsSpy = jest.spyOn(fs, 'existsSync')
+
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('@/lib/report-image')
+    })
+
+    expect(existsSpy).not.toHaveBeenCalled()
+  })
+
+  it('handles error in fontconfig setup gracefully', () => {
+    delete process.env.FONTCONFIG_PATH
+
+    jest.spyOn(fs, 'existsSync').mockImplementation(() => {
+      throw new Error('Permission denied')
+    })
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('@/lib/report-image')
+    })
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[report-image] Failed to set up fontconfig:',
+      expect.any(Error)
+    )
+  })
+})
 
 describe('generateInformeImage', () => {
   const baseOptions = {

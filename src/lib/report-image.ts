@@ -2,33 +2,37 @@ import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 
-// Load and base64-encode fonts at module level for embedding in SVGs
-const fontsDir = path.join(process.cwd(), "public", "assets", "fonts");
-let interRegularB64 = "";
-let interBoldB64 = "";
-try {
-  interRegularB64 = fs.readFileSync(path.join(fontsDir, "Inter-Regular.ttf")).toString("base64");
-  interBoldB64 = fs.readFileSync(path.join(fontsDir, "Inter-Bold.ttf")).toString("base64");
-} catch {
-  // Fonts will be missing only in test environments
+// Configure fontconfig so sharp/librsvg can find our bundled Inter font.
+// sharp does NOT support embedded SVG @font-face — it relies on fontconfig.
+function setupFontconfig(): void {
+  const fontconfDir = "/tmp/fontconfig";
+
+  // Only set up once
+  if (process.env.FONTCONFIG_PATH === fontconfDir) return;
+
+  const fontsDir = path.join(process.cwd(), "public", "assets", "fonts");
+
+  const confContent = `<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>${fontsDir}</dir>
+  <cachedir>/tmp/fontconfig-cache</cachedir>
+</fontconfig>`;
+
+  try {
+    if (!fs.existsSync(fontconfDir)) {
+      fs.mkdirSync(fontconfDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(fontconfDir, "fonts.conf"), confContent);
+    process.env.FONTCONFIG_PATH = fontconfDir;
+  } catch (err) {
+    console.warn("[report-image] Failed to set up fontconfig:", err);
+  }
 }
 
-function fontStyleBlock(): string {
-  if (!interRegularB64 || !interBoldB64) return "";
-  return `<defs><style type="text/css">
-    @font-face {
-      font-family: 'Inter';
-      font-weight: 400;
-      src: url('data:font/truetype;base64,${interRegularB64}') format('truetype');
-    }
-    @font-face {
-      font-family: 'Inter';
-      font-weight: 700;
-      src: url('data:font/truetype;base64,${interBoldB64}') format('truetype');
-    }
-  </style></defs>`;
-}
+setupFontconfig();
 
+// Font family for SVG text elements — fontconfig resolves "Inter" to the bundled .ttf files.
 const FONT_FAMILY = "Inter,Arial,Helvetica,sans-serif";
 
 function stripEmoji(str: string): string {
@@ -205,7 +209,6 @@ export async function generateInformeImage({
   const height = Math.max(consentY + consentH + doctorBlockH + footerH + 10, 600);
 
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  ${fontStyleBlock()}
   <rect width="100%" height="100%" fill="white"/>
   <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
   <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="24" fill="white" font-weight="bold">IMI Health</text>
@@ -382,7 +385,6 @@ export async function generateCertificadoImage({
   const height = Math.max(y + certDoctorBlockH + 60, 600);
 
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  ${fontStyleBlock()}
   <rect width="100%" height="100%" fill="white"/>
   <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
   <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="22" fill="white" font-weight="bold">IMI Health</text>
