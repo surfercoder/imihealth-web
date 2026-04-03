@@ -43,7 +43,7 @@ describe('WelcomeScreen', () => {
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
     const img = screen.getByRole('img', { name: 'IMI Health' })
     expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('data-src', '/assets/images/imi-bot-welcome.png')
+    expect(img).toHaveAttribute('data-src')
   })
 
   it('renders a motivational message', () => {
@@ -74,23 +74,23 @@ describe('WelcomeScreen', () => {
     expect(overlay).toHaveClass('ws-overlay')
   })
 
-  it('does not call onDone before 6200ms', () => {
+  it('does not call onDone before 8700ms', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
 
     act(() => {
-      jest.advanceTimersByTime(6199)
+      jest.advanceTimersByTime(8699)
     })
 
     expect(onDone).not.toHaveBeenCalled()
   })
 
-  it('calls onDone after 6200ms', () => {
+  it('calls onDone after 8700ms', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
 
     act(() => {
-      jest.advanceTimersByTime(6200)
+      jest.advanceTimersByTime(8700)
     })
 
     expect(onDone).toHaveBeenCalledTimes(1)

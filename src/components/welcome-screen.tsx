@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import imiBotWelcome from "@/../public/assets/images/imi-bot-welcome.png";
 
 interface WelcomeScreenProps {
   userName?: string;
@@ -17,7 +18,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
   const firstName = userName?.split(" ")[0] || t("defaultName");
 
   useEffect(() => {
-    const doneTimer = setTimeout(() => onDone(), 6200);
+    const doneTimer = setTimeout(() => onDone(), 8700);
     return () => clearTimeout(doneTimer);
   }, [onDone]);
 
@@ -41,7 +42,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
           to   { opacity: 1; transform: translateY(0); }
         }
         .ws-overlay {
-          animation: ws-fadeIn 0.5s ease-out forwards, ws-fadeOut 0.7s ease-in 5.5s forwards;
+          animation: ws-fadeIn 0.5s ease-out forwards, ws-fadeOut 0.7s ease-in 8s forwards;
         }
         .ws-image {
           animation: ws-scaleIn 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s backwards;
@@ -60,10 +61,8 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
         {/* Image centered at natural size */}
         <div className="ws-image flex items-center justify-center">
           <Image
-            src="/assets/images/imi-bot-welcome.png"
+            src={imiBotWelcome}
             alt="IMI Health"
-            width={800}
-            height={800}
             priority
             style={{ maxWidth: "min(90vw, 500px)", height: "auto" }}
           />
