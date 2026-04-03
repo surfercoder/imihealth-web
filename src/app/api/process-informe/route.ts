@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
     const reportsResponse = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20241022",
+      model: "claude-opus-4-6",
       max_tokens: 8192,
       system: specialtyPrompt,
       messages: [

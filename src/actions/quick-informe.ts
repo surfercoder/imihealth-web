@@ -48,7 +48,7 @@ export async function processQuickInforme(
     const specialtyPrompt = getSpecialtyPrompt(doctorData?.especialidad);
 
     const response = await anthropic.messages.create({
-      model: "claude-opus-4-5",
+      model: "claude-opus-4-6",
       max_tokens: 8192,
       system: specialtyPrompt,
       messages: [
