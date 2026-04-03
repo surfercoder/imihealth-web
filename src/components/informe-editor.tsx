@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { Stethoscope, MessageCircle, Pencil, X, Save, Loader2, Eye, Mail } from "lucide-react";
-import { WhatsAppOptInButton } from "@/components/whatsapp-opt-in-button";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyToClipboardButton } from "@/components/copy-to-clipboard-button";
 import { CopyToClipboardButtonDoctor } from "@/components/copy-to-clipboard-button-doctor";
 import { CertificadoButton } from "@/components/certificado-button";
 import { updateInformeDoctorOnly, updateInformePacienteWithPdf } from "@/actions/informes";
+import { doctorReportEmail } from "@/lib/email-template";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -172,7 +172,6 @@ function EmailIconButton({ email, doctorName, reportContent }: { email: string; 
     setIsSending(true);
     let data: { success?: boolean; error?: string } | null = null;
     try {
-      const { doctorReportEmail } = await import("@/lib/email-template");
       const html = doctorReportEmail({ doctorName, reportContent });
       const response = await fetch('/api/send-email', {
         method: 'POST',
@@ -392,18 +391,14 @@ function PatientReportCard({
   informeId,
   informePaciente,
   patientName,
-  patientId,
   pdfUrl,
   whatsappPhone,
-  whatsappOptedIn,
 }: {
   informeId: string;
   informePaciente: string;
   patientName?: string;
-  patientId?: string;
   pdfUrl?: string | null;
   whatsappPhone?: string;
-  whatsappOptedIn?: boolean;
 }) {
   const t = useTranslations("informeEditor");
   const [isEditing, setIsEditing] = useState(false);
@@ -490,19 +485,6 @@ function PatientReportCard({
         </div>
       </div>
       <div className="p-5 max-h-[600px] overflow-y-auto">
-        {!whatsappOptedIn && patientId && patientName && whatsappPhone && (
-          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm font-medium text-amber-900 mb-3">
-              {t("whatsappNotActivated")}
-            </p>
-            <WhatsAppOptInButton
-              patientId={patientId}
-              isOptedIn={whatsappOptedIn ?? false}
-              /* v8 ignore next */
-              onOptInComplete={() => window.location.reload()}
-            />
-          </div>
-        )}
         {isEditing ? (
           <Textarea
             value={pacienteText}
@@ -538,10 +520,8 @@ interface InformeEditorProps {
   informeDoctor: string;
   informePaciente: string;
   patientName?: string;
-  patientId?: string;
   pdfUrl?: string | null;
   whatsappPhone?: string;
-  whatsappOptedIn?: boolean;
   doctorName?: string;
   doctorEmail?: string;
   doctorPhone?: string;
@@ -553,10 +533,8 @@ export function InformeEditor({
   informeDoctor,
   informePaciente,
   patientName,
-  patientId,
   pdfUrl,
   whatsappPhone,
-  whatsappOptedIn,
   doctorName,
   doctorEmail,
   doctorPhone,
@@ -587,10 +565,8 @@ export function InformeEditor({
             informeId={informeId}
             informePaciente={informePaciente}
             patientName={patientName}
-            patientId={patientId}
             pdfUrl={pdfUrl}
             whatsappPhone={whatsappPhone}
-            whatsappOptedIn={whatsappOptedIn}
           />
         </div>
       )}

@@ -309,7 +309,6 @@
     "consentLabel": "PATIENT CONSENT",
     "consentText": "{patientName} confirmed having read the report and gave consent on {patientConsentAt}.",
     "consentTextImplicit": "{patientName} was previously informed about the use of the IMI system and gave consent for the processing of the medical consultation.",
-    "whatsappNotActivated": "Patient has not yet been activated to receive reports via WhatsApp.",
     "sendWhatsApp": "Send via WhatsApp",
     "viewPdf": "View PDF",
     "sendEmail": "Send via Email",
@@ -391,19 +390,6 @@
     "successMessage": "The report was sent via WhatsApp to {patientName} with PDF and image attached.",
     "errorTitle": "Error sending",
     "errorMessage": "Could not send the report via WhatsApp. Please try again."
-  },
-  "whatsappOptIn": {
-    "activateButton": "Activate WhatsApp",
-    "description": "Confirm that the patient authorizes receiving reports via WhatsApp.",
-    "notActivatedTitle": "WhatsApp not activated",
-    "notActivatedDesc": "Patient must activate WhatsApp first to receive automatic messages.",
-    "successTitle": "WhatsApp activated!",
-    "successDesc": "You can now send reports via WhatsApp to this patient.",
-    "errorTitle": "Error",
-    "errorFallback": "Could not activate WhatsApp",
-    "connectionError": "Connection error",
-    "connectionErrorDesc": "Could not activate WhatsApp",
-    "activated": "WhatsApp activated"
   },
   "emailButton": {
     "subject": "Medical Report - {doctorName}",

@@ -108,7 +108,7 @@ export default async function InformePage({ params, searchParams }: Props) {
 
   const { data: informe, error } = await supabase
     .from("informes")
-    .select("*, patients(id, name, phone, dob, email, whatsapp_opted_in)")
+    .select("*, patients(id, name, phone, dob, email)")
     .eq("id", id)
     .eq("doctor_id", user.id)
     .single();
@@ -127,7 +127,6 @@ export default async function InformePage({ params, searchParams }: Props) {
     phone: string;
     dob: string | null;
     email: string | null;
-    whatsapp_opted_in: boolean;
   } | null;
 
   const dobFormatted = patient?.dob
@@ -263,10 +262,8 @@ export default async function InformePage({ params, searchParams }: Props) {
             informeDoctor={informe.informe_doctor || ""}
             informePaciente={informe.informe_paciente || ""}
             patientName={patient?.name}
-            patientId={patient?.id}
             pdfUrl={pdfUrl}
             whatsappPhone={whatsappPhone}
-            whatsappOptedIn={patient?.whatsapp_opted_in}
             doctorName={doctor?.name}
             doctorEmail={doctor?.email}
             doctorPhone={doctorWhatsappPhone}

@@ -104,7 +104,6 @@ const completedInforme = {
     phone: '+54 9 261 123 4567',
     dob: '1990-05-15',
     email: 'juan@email.com',
-    whatsapp_opted_in: false,
   },
 }
 

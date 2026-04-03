@@ -503,33 +503,6 @@ describe('InformeEditor', () => {
     ;(global.fetch as jest.Mock).mockReset()
   })
 
-  // --- WhatsApp opt-in section ---
-  it('shows WhatsApp opt-in section when whatsappOptedIn is false and required props present', () => {
-    render(
-      <InformeEditor
-        {...defaultProps}
-        whatsappPhone="5492611234567"
-        patientName="Juan Pérez"
-        patientId="p-1"
-        whatsappOptedIn={false}
-      />
-    )
-    expect(screen.getByText(/aún no tiene WhatsApp activado/i)).toBeInTheDocument()
-  })
-
-  it('shows WhatsApp opt-in section when whatsappOptedIn is undefined (covers ?? false branch)', () => {
-    render(
-      <InformeEditor
-        {...defaultProps}
-        whatsappPhone="5492611234567"
-        patientName="Juan Pérez"
-        patientId="p-1"
-        // whatsappOptedIn omitted → undefined → triggers isOptedIn={undefined ?? false}
-      />
-    )
-    expect(screen.getByText(/aún no tiene WhatsApp activado/i)).toBeInTheDocument()
-  })
-
   // --- Doctor report save success exits edit mode ---
   it('exits doctor edit mode on successful save', async () => {
     mockUpdateInformeDoctorOnly.mockResolvedValue({ success: true })

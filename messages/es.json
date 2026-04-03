@@ -309,7 +309,6 @@
     "consentLabel": "CONSENTIMIENTO DEL PACIENTE",
     "consentText": "{patientName} confirmó haber leído el informe y prestó su consentimiento el {patientConsentAt}.",
     "consentTextImplicit": "{patientName} fue informado/a previamente sobre el uso del sistema IMI y prestó su consentimiento para el procesamiento de la consulta médica.",
-    "whatsappNotActivated": "El paciente aún no tiene WhatsApp activado para recibir informes.",
     "sendWhatsApp": "Enviar por WhatsApp",
     "viewPdf": "Ver PDF",
     "sendEmail": "Enviar por Email",
@@ -391,19 +390,6 @@
     "successMessage": "El informe fue enviado por WhatsApp a {patientName} con PDF e imagen adjuntos.",
     "errorTitle": "Error al enviar",
     "errorMessage": "No se pudo enviar el informe por WhatsApp. Por favor, intente nuevamente."
-  },
-  "whatsappOptIn": {
-    "activateButton": "Activar WhatsApp",
-    "description": "Confirma que el paciente autoriza recibir informes por WhatsApp.",
-    "notActivatedTitle": "WhatsApp no activado",
-    "notActivatedDesc": "El paciente debe activar WhatsApp primero para recibir mensajes automáticos.",
-    "successTitle": "WhatsApp activado!",
-    "successDesc": "Ahora puedes enviar informes por WhatsApp a este paciente.",
-    "errorTitle": "Error",
-    "errorFallback": "No se pudo activar WhatsApp",
-    "connectionError": "Error de conexión",
-    "connectionErrorDesc": "No se pudo activar WhatsApp",
-    "activated": "WhatsApp activado"
   },
   "emailButton": {
     "subject": "Informe médico - {doctorName}",
