@@ -12,6 +12,13 @@ jest.mock('next/link', () => {
 jest.mock('@/components/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }))
+jest.mock('next/image', () => {
+  const MockImage = (props: Record<string, unknown>) => (
+    <div role="img" data-testid="mock-image" aria-label={props.alt as string} data-src={typeof props.src === 'string' ? props.src : 'mocked'} />
+  )
+  MockImage.displayName = 'MockImage'
+  return MockImage
+})
 
 import { PublicHeader } from '@/components/public-header'
 
@@ -19,9 +26,9 @@ describe('PublicHeader', () => {
   it('renders the IMI Health brand link', async () => {
     const Component = await PublicHeader()
     render(Component)
-    const brandLink = screen.getByText('IMI Health')
-    expect(brandLink).toBeInTheDocument()
-    expect(brandLink.closest('a')).toHaveAttribute('href', '/')
+    const img = screen.getByRole('img', { name: 'IMI Health' })
+    expect(img).toBeInTheDocument()
+    expect(img.closest('a')).toHaveAttribute('href', '/')
   })
 
   it('renders the LanguageSwitcher', async () => {

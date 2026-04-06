@@ -2,12 +2,14 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { logout } from "@/actions/auth";
 import { useTranslations } from "next-intl";
 import { useCurrentTab } from "@/hooks/use-current-tab";
+import logo from "@/../public/assets/images/imihealth-logo.png";
 
 interface AppHeaderProps {
   doctorName?: string | null;
@@ -22,9 +24,15 @@ function AppHeaderContent({ doctorName }: AppHeaderProps) {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link
           href={currentTab ? `/?tab=${currentTab}` : "/"}
-          className="text-lg font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
+          className="hover:opacity-80 transition-opacity"
         >
-          IMI Health
+          <Image
+            src={logo}
+            alt="IMI Health"
+            width={100}
+            priority
+            style={{ height: "auto", width: "100px" }}
+          />
         </Link>
         <LanguageSwitcher />
         <div className="flex items-center gap-2">

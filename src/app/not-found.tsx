@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import imiBotNotFound from "@/../public/assets/images/imi-bot-404.png";
 
 export async function generateMetadata() {
   const t = await getTranslations("notFound");
@@ -17,9 +18,10 @@ export default async function NotFound() {
       <div className="max-w-2xl w-full text-center space-y-8">
         <div className="relative w-96 h-96 mx-auto">
           <Image
-            src="/assets/images/imi-bot-404.png"
+            src={imiBotNotFound}
             alt="IMI Bot"
             fill
+            sizes="384px"
             className="object-contain drop-shadow-2xl"
             priority
           />

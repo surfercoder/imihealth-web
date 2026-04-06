@@ -988,7 +988,7 @@ describe('AudioRecorder — progress text branches', () => {
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
   })
 
-  it('shows "Analizando consulta con IA..." when progress is between 40 and 80', async () => {
+  it('shows processing step message when uploading/transcribing', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -1003,8 +1003,35 @@ describe('AudioRecorder — progress text branches', () => {
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Analizando consulta con IA...')).toBeInTheDocument()
+      expect(screen.getByText('Extrayendo información de la transcripción...')).toBeInTheDocument()
     })
+
+    act(() => resolveProcess({ ok: true, json: () => Promise.resolve({ success: true }) } as unknown as Response))
+    jest.useRealTimers()
+  })
+
+  it('advances processing step message after 25 seconds', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    let resolveProcess!: (value: Response) => void
+    ;(global.fetch as jest.Mock).mockReturnValue(new Promise((res) => { resolveProcess = res }))
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Extrayendo información de la transcripción...')).toBeInTheDocument()
+    })
+
+    // Advance 25s to trigger the interval and move to step 2
+    await act(async () => { jest.advanceTimersByTime(25000) })
+
+    expect(screen.getByText('Generando informe detallado para el doctor...')).toBeInTheDocument()
 
     act(() => resolveProcess({ ok: true, json: () => Promise.resolve({ success: true }) } as unknown as Response))
     jest.useRealTimers()

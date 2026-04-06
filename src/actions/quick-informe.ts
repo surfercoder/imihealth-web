@@ -48,29 +48,19 @@ export async function processQuickInforme(
     const specialtyPrompt = getSpecialtyPrompt(doctorData?.especialidad);
 
     const response = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 8192,
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
       system: specialtyPrompt,
       messages: [
         {
           role: "user",
-          content: `Basándote en la siguiente transcripción de una consulta médica, genera SOLO el informe para el doctor.
+          content: `Genera informe clínico de esta consulta. JSON puro (sin markdown):
+{"informe_doctor": "..."}
+
+Sigue ESTRICTAMENTE el formato de salida de tus instrucciones de sistema.
 
 TRANSCRIPCIÓN:
-${transcript}
-
----
-
-Genera la respuesta en el siguiente formato JSON exacto (sin markdown, solo JSON puro):
-{
-  "informe_doctor": "..."
-}
-
-INFORME PARA EL DOCTOR (informe_doctor):
-- Sigue ESTRICTAMENTE el formato de salida definido en tus instrucciones de sistema para esta especialidad
-- Detallado y técnico, con terminología médica apropiada
-- Incluye clasificaciones, scores y códigos CIE-10 según corresponda
-- Formato estructurado con secciones claras usando saltos de línea`,
+${transcript}`,
         },
       ],
     });

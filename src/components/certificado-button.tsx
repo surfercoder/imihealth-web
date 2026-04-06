@@ -2,7 +2,7 @@
 
 import { useReducer, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { FileText, Download, Loader2, MessageCircle } from "lucide-react";
+import { FileText, Loader2, MessageCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -176,12 +176,6 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
             <p className="text-sm text-center text-muted-foreground">
               {t("successMessage")}
             </p>
-            <Button asChild className="w-full">
-              <a href={state.certUrl} target="_blank" rel="noopener noreferrer">
-                <Download className="size-4 mr-1.5" />
-                {t("download")}
-              </a>
-            </Button>
             <Button
               className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white"
               onClick={handleSendWhatsApp}

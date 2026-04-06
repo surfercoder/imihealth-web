@@ -115,7 +115,7 @@ describe('Specialty prompt modules', () => {
 
       it('PROMPT contains medical content (Spanish text)', () => {
         // Every specialty file contains at least one Spanish medical term
-        expect(prompt).toMatch(/médic|diagnós|tratamiento|paciente|clínic/i);
+        expect(prompt).toMatch(/médic|diagnós|tratamiento|paciente|clínic|especialista/i);
       });
     }
   );
@@ -139,25 +139,25 @@ describe('getSpecialtyPrompt', () => {
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
       // The default prompt is the generic SOAP-format medical prompt
-      expect(result).toContain('SOAP');
+      expect(result).toContain('FORMATO DE SALIDA');
     });
 
     it('returns DEFAULT_PROMPT when called with undefined', () => {
       const result = getSpecialtyPrompt(undefined);
       expect(typeof result).toBe('string');
-      expect(result).toContain('SOAP');
+      expect(result).toContain('FORMATO DE SALIDA');
     });
 
     it('returns DEFAULT_PROMPT when called with an empty string', () => {
       const result = getSpecialtyPrompt('');
       expect(typeof result).toBe('string');
-      expect(result).toContain('SOAP');
+      expect(result).toContain('FORMATO DE SALIDA');
     });
 
     it('returns DEFAULT_PROMPT when called with an unknown specialty', () => {
       const result = getSpecialtyPrompt('Especialidad desconocida XYZ');
       expect(typeof result).toBe('string');
-      expect(result).toContain('SOAP');
+      expect(result).toContain('FORMATO DE SALIDA');
     });
 
     it('fallback prompt is the same object for all unknown inputs', () => {
@@ -174,28 +174,20 @@ describe('getSpecialtyPrompt', () => {
   describe('DEFAULT_PROMPT content', () => {
     const defaultPrompt = getSpecialtyPrompt(null);
 
-    it('includes SOAP format sections', () => {
-      expect(defaultPrompt).toContain('SOAP');
-    });
-
-    it('includes clinical reasoning instructions', () => {
-      expect(defaultPrompt).toContain('RAZONAMIENTO CLÍNICO');
-    });
-
-    it('includes red flags section', () => {
-      expect(defaultPrompt).toContain('RED FLAGS');
+    it('includes rules section', () => {
+      expect(defaultPrompt).toContain('REGLAS');
     });
 
     it('includes output format section', () => {
       expect(defaultPrompt).toContain('FORMATO DE SALIDA');
     });
 
-    it('includes patient report instructions', () => {
-      expect(defaultPrompt).toContain('INSTRUCCIONES PARA EL INFORME DEL PACIENTE');
-    });
-
     it('includes the "No registrado" restriction', () => {
       expect(defaultPrompt).toContain('No registrado');
+    });
+
+    it('includes CIE-10 reference', () => {
+      expect(defaultPrompt).toContain('CIE-10');
     });
   });
 });

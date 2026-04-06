@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
+import imiBotListening from "@/../public/assets/images/imi-bot-listening.png";
 import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface AudioRecorderProps {
@@ -72,6 +73,23 @@ const initialRecorderState: RecorderState = {
   progress: 0,
 };
 
+const stepReducer = (_: number, action: "reset" | "advance"): number =>
+  action === "reset" ? 0 : Math.min(_ + 1, 2);
+
+function useProcessingStep(active: boolean): number {
+  const [step, dispatch] = useReducer(stepReducer, 0);
+
+  useEffect(() => {
+    if (!active) return;
+    const tick = () => dispatch("advance");
+    const resetId = setTimeout(() => dispatch("reset"), 0);
+    const id = setInterval(tick, 25000);
+    return () => { clearTimeout(resetId); clearInterval(id); };
+  }, [active]);
+
+  return active ? step : 0;
+}
+
 function formatDuration(secs: number) {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
   const s = (secs % 60).toString().padStart(2, "0");
@@ -121,7 +139,7 @@ function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isP
             </div>
           ) : (isActive || isPaused) ? (
             <Image
-              src="/assets/images/imi-bot-listening.png"
+              src={imiBotListening}
               alt="IMI Bot Listening"
               width={192}
               height={192}
@@ -574,15 +592,19 @@ function AudioRecorderContent({ informeId, doctorId, isQuickReport }: AudioRecor
   const isActive = phase === "recording";
   const isPaused = phase === "paused";
 
-  /* v8 ignore next 8 */
-  const progressLabel =
-    progress < 30
-      ? t("progressUploading")
-      : progress < 50
-      ? t("progressTranscribing")
-      : progress < 80
-      ? t("progressAnalyzing")
-      : t("progressGenerating");
+  // Timed progress messages that cycle every 25 seconds during processing.
+  const processingStep = useProcessingStep(isProcessing);
+
+  const processingMessages = [
+    t("progressStep1"),
+    t("progressStep2"),
+    t("progressStep3"),
+  ];
+
+  /* v8 ignore next */
+  const progressLabel = processingMessages[processingStep] || t("progressStep3");
+  /* v8 ignore next */
+  const progressValue = isProcessing ? [25, 50, 75][processingStep] ?? 75 : progress;
 
   const handleRetry = useCallback(() => {
     dispatch({ type: "RESET" });
@@ -603,7 +625,7 @@ function AudioRecorderContent({ informeId, doctorId, isQuickReport }: AudioRecor
 
       {isProcessing && (
         <div className="space-y-1.5">
-          <Progress value={progress} className="h-1.5" />
+          <Progress value={progressValue} className="h-1.5" />
           <p className="text-center text-xs text-muted-foreground">
             {progressLabel}
           </p>

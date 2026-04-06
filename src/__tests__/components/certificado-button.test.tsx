@@ -83,7 +83,7 @@ describe('CertificadoButton', () => {
     })
   })
 
-  it('shows success toast and download view on successful generation', async () => {
+  it('shows success toast and success view on successful generation', async () => {
     mockGenerateAndSaveCertificado.mockResolvedValue({ signedUrl: 'https://example.com/cert.pdf' })
     const user = userEvent.setup()
     render(<CertificadoButton {...defaultProps} />)
@@ -95,9 +95,8 @@ describe('CertificadoButton', () => {
       })
     })
     expect(screen.getByText('El certificado fue generado correctamente.')).toBeInTheDocument()
-    const downloadLink = screen.getByRole('link', { name: /Descargar certificado/i })
-    expect(downloadLink).toHaveAttribute('href', 'https://example.com/cert.pdf')
-    expect(downloadLink).toHaveAttribute('target', '_blank')
+    expect(screen.getByRole('button', { name: /Enviar certificado por WhatsApp/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Generar otro certificado/i })).toBeInTheDocument()
   })
 
   it('shows WhatsApp button in success view', async () => {
@@ -158,7 +157,7 @@ describe('CertificadoButton', () => {
     await user.type(screen.getByLabelText(/Observaciones/i), 'Reposo')
     await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
     await waitFor(() => {
-      expect(screen.getByText(/Descargar certificado/i)).toBeInTheDocument()
+      expect(screen.getByText('El certificado fue generado correctamente.')).toBeInTheDocument()
     })
     await user.click(screen.getByRole('button', { name: /Generar otro certificado/i }))
     // Should be back to form with empty fields
@@ -307,15 +306,15 @@ describe('CertificadoButton', () => {
     await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
     await user.click(screen.getByRole('button', { name: /Generar certificado/i }))
     await waitFor(() => {
-      expect(screen.getByText(/Descargar certificado/i)).toBeInTheDocument()
+      expect(screen.getByText('El certificado fue generado correctamente.')).toBeInTheDocument()
     })
     await user.keyboard('{Escape}')
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
-    // Re-open: should show form, not download view
+    // Re-open: should show form, not success view
     await user.click(screen.getByRole('button', { name: /Crear Certificado/i }))
     expect(screen.getByLabelText(/Días de reposo/i)).toBeInTheDocument()
-    expect(screen.queryByText(/Descargar certificado/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('El certificado fue generado correctamente.')).not.toBeInTheDocument()
   })
 })

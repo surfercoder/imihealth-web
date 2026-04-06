@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,10 @@ import { Mic, FileText, Shield, Smartphone, Heart, ShieldCheck, Users, Clock, Me
 import { PublicHeader } from "@/components/public-header";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { LandingFaq } from "@/components/landing-faq";
+import imiBotFront from "@/../public/assets/images/imi-bot-look-front-transparent.webp";
+import imiBotRight from "@/../public/assets/images/imi-bot-look-right-transparent.webp";
+import imiBotLeft from "@/../public/assets/images/imi-bot-look-left-transparent.webp";
+import imiBotDown from "@/../public/assets/images/imi-boot-look-down-transparent.webp";
 
 export const metadata: Metadata = {
   title: "IMI Health",
@@ -53,6 +58,14 @@ export default async function HomePage() {
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center">
           <div className="mx-auto max-w-2xl">
+            <Image
+              src={imiBotFront}
+              alt="IMI Bot"
+              width={140}
+              height={140}
+              className="mx-auto mb-6 drop-shadow-lg "
+              priority
+            />
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               {t("heroTitle")}
             </h1>
@@ -72,9 +85,18 @@ export default async function HomePage() {
 
         <section className="border-t border-border/60 bg-muted/30">
           <div className="mx-auto max-w-5xl px-6 py-16">
-            <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight">
-              {t("featuresTitle")}
-            </h2>
+            <div className="mb-10 flex items-center justify-center gap-4">
+              <Image
+                src={imiBotRight}
+                alt="IMI Bot"
+                width={72}
+                height={72}
+                className="drop-shadow-md "
+              />
+              <h2 className="text-2xl font-semibold tracking-tight">
+                {t("featuresTitle")}
+              </h2>
+            </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {features.map((f) => (
                 <div key={f.titleKey} className="rounded-xl border bg-card p-6 shadow-sm">
@@ -90,9 +112,18 @@ export default async function HomePage() {
         </section>
 
         <section className="mx-auto max-w-5xl px-6 py-16">
-          <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight">
-            {t("benefitsTitle")}
-          </h2>
+          <div className="mb-10 flex items-center justify-center gap-4">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {t("benefitsTitle")}
+            </h2>
+            <Image
+              src={imiBotLeft}
+              alt="IMI Bot"
+              width={72}
+              height={72}
+              className="drop-shadow-md "
+            />
+          </div>
           <div className="grid gap-6 sm:grid-cols-2">
             {benefits.map((b) => (
               <div key={b.titleKey} className="rounded-xl border bg-card p-6 shadow-sm">
@@ -154,6 +185,13 @@ export default async function HomePage() {
         </section>
 
         <section className="mx-auto max-w-5xl px-6 py-16 text-center">
+          <Image
+            src={imiBotDown}
+            alt="IMI Bot"
+            width={100}
+            height={100}
+            className="mx-auto mb-4 drop-shadow-md "
+          />
           <h2 className="text-2xl font-semibold tracking-tight">{t("ctaTitle")}</h2>
           <p className="mt-2 text-foreground/60">{t("ctaSubtitle")}</p>
           <div className="mt-6">

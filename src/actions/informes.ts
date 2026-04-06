@@ -129,60 +129,23 @@ export async function processInformeFromTranscript(
     const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
     const reportsResponse = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 8192,
+      model: "claude-sonnet-4-6",
+      max_tokens: 4096,
       system: specialtyPrompt,
       messages: [
         {
           role: "user",
-          content: `Basándote en la siguiente transcripción de una consulta médica, genera DOS informes separados.
+          content: `Genera DOS informes de esta consulta médica. JSON puro (sin markdown):
+{"valid_medical_content": true/false, "transcript_type": "dialog"/"monologue", "informe_doctor": "...", "informe_paciente": "...", "dialog": [...]}
+
+- valid_medical_content=false si no hay info médica útil (ruido, pruebas, etc). En ese caso todos los campos vacíos.
+- transcript_type: "dialog" si conversan doctor y paciente, "monologue" si solo habla el doctor.
+- informe_doctor: Sigue ESTRICTAMENTE el formato de tus instrucciones de sistema. Técnico, con CIE-10 y scores.
+- informe_paciente: Lenguaje simple y cálido. Incluye resumen, medicamentos (nombre, para qué, cuándo), recomendaciones y próximos pasos.
+- dialog: Si es dialog, array de {"speaker":"doctor"/"paciente","text":"..."}. Si monologue, [].
 
 TRANSCRIPCIÓN:
-${transcript}
-
----
-
-IMPORTANTE: Primero determina si esta es una CONVERSACIÓN (diálogo entre doctor y paciente) o un MONÓLOGO (solo el doctor hablando sobre el caso del paciente).
-
-Genera la respuesta en el siguiente formato JSON exacto (sin markdown, solo JSON puro):
-{
-  "valid_medical_content": true o false,
-  "transcript_type": "dialog" o "monologue",
-  "informe_doctor": "...",
-  "informe_paciente": "...",
-  "dialog": [...]
-}
-
-VALIDACIÓN DE CONTENIDO MÉDICO (valid_medical_content):
-- true: La transcripción contiene información médica relevante (síntomas, diagnósticos, medicamentos, indicaciones, consultas médicas, etc.)
-- false: La transcripción NO contiene información médica útil. Ejemplos: silencio, ruido de fondo, conversaciones no médicas, palabras sueltas sin sentido médico, pruebas de micrófono, etc.
-- Si valid_medical_content es false, deja informe_doctor e informe_paciente como strings vacíos "" y dialog como []
-
-TIPO DE TRANSCRIPCIÓN (transcript_type):
-- "dialog": Si hay dos personas conversando (doctor haciendo preguntas y paciente respondiendo)
-- "monologue": Si solo el doctor está hablando, narrando el caso del paciente
-
-INFORME PARA EL DOCTOR (informe_doctor):
-- Sigue ESTRICTAMENTE el formato de salida definido en tus instrucciones de sistema para esta especialidad
-- Detallado y técnico, con terminología médica apropiada
-- Incluye clasificaciones, scores y códigos CIE-10 según corresponda
-- Formato estructurado con secciones claras usando saltos de línea
-
-INFORME PARA EL PACIENTE (informe_paciente):
-- Sigue las instrucciones para informe del paciente definidas en tus instrucciones de sistema
-- Lenguaje simple y amigable, fácil de entender
-- Incluye: resumen de la consulta, qué le pasa y por qué, medicamentos que debe tomar (nombre, para qué sirve, cuándo tomarlo), recomendaciones y cuidados, próximos pasos
-- Tono cálido y tranquilizador
-- Sin jerga médica compleja
-- Formato claro con secciones usando saltos de línea
-
-DIÁLOGO ESTRUCTURADO (dialog):
-- SOLO si transcript_type es "dialog":
-  - Divide la transcripción en turnos de habla individuales
-  - Infiere quién habla basándote en el contexto: el doctor hace preguntas médicas, da diagnósticos y prescripciones; el paciente describe síntomas y responde preguntas
-  - Cada elemento del array tiene "speaker" ("doctor" o "paciente") y "text" (lo que dijo)
-  - Mantén el texto original sin modificaciones, solo segméntalo por turnos
-- Si transcript_type es "monologue": deja el array "dialog" vacío []`,
+${transcript}`,
         },
       ],
     });
@@ -420,13 +383,16 @@ export async function regenerateReportFromEdits(
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 8192,
+      model: "claude-sonnet-4-6",
+      max_tokens: 4096,
       system: specialtyPrompt,
       messages: [
         {
           role: "user",
-          content: `El doctor ha editado los informes generados previamente. Basándote en la transcripción original y las ediciones del doctor, regenera ambos informes incorporando los cambios y siguiendo el formato de tu especialidad.
+          content: `Regenera ambos informes incorporando las ediciones del doctor. JSON puro (sin markdown):
+{"informe_doctor": "...", "informe_paciente": "..."}
+
+Mantén las ediciones como base, mejorando coherencia y formato según la especialidad.
 
 TRANSCRIPCIÓN ORIGINAL:
 ${informeData.transcript}
@@ -435,15 +401,7 @@ INFORME DOCTOR (editado):
 ${editedDoctor}
 
 INFORME PACIENTE (editado):
-${editedPaciente}
-
-Genera la respuesta en formato JSON exacto (sin markdown, solo JSON puro):
-{
-  "informe_doctor": "...",
-  "informe_paciente": "..."
-}
-
-Mantén las ediciones del doctor como base, mejorando coherencia y formato según el estándar de la especialidad.`,
+${editedPaciente}`,
         },
       ],
     });

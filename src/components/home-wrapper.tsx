@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { WelcomeScreen } from "./welcome-screen";
 
 interface HomeWrapperProps {
@@ -17,9 +17,16 @@ export function HomeWrapper({ children, userName, showWelcome: initialShowWelcom
     const shownAt = sessionStorage.getItem("imi_welcomed");
     if (shownAt && Date.now() - Number(shownAt) > 3000) return false;
     if (!shownAt) sessionStorage.setItem("imi_welcomed", String(Date.now()));
-    window.history.replaceState(null, "", window.location.pathname);
     return true;
   });
+
+  const handleDone = useCallback(() => {
+    setShowWelcome(false);
+    // Clean the ?welcome param from the URL only after the welcome screen finishes.
+    // Doing this earlier triggers a Next.js router sync that re-renders the server
+    // component with showWelcome=false, killing the welcome screen prematurely.
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   return (
     <>
@@ -27,7 +34,7 @@ export function HomeWrapper({ children, userName, showWelcome: initialShowWelcom
       {showWelcome && (
         <WelcomeScreen
           userName={userName}
-          onDone={() => setShowWelcome(false)}
+          onDone={handleDone}
         />
       )}
     </>

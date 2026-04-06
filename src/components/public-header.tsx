@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getTranslations } from "next-intl/server";
+import logo from "@/../public/assets/images/imihealth-logo.png";
 
 export async function PublicHeader() {
   const t = await getTranslations("nav");
@@ -11,9 +13,15 @@ export async function PublicHeader() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
+          className="hover:opacity-80 transition-opacity"
         >
-          IMI Health
+          <Image
+            src={logo}
+            alt="IMI Health"
+            width={100}
+            priority
+            style={{ height: "auto", width: "100px" }}
+          />
         </Link>
         <LanguageSwitcher />
         <div className="flex items-center gap-1">

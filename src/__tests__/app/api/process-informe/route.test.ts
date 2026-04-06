@@ -61,6 +61,7 @@ jest.mock('@/lib/transcribe', () => ({
 const mockGetSpecialtyPrompt = jest.fn().mockReturnValue('You are a medical assistant.')
 jest.mock('@/lib/prompts', () => ({
   getSpecialtyPrompt: (...args: unknown[]) => mockGetSpecialtyPrompt(...args),
+  PATIENT_REPORT_PROMPT: 'Patient report system prompt',
 }))
 
 // ─── next/cache mock ──────────────────────────────────────────────────────────
@@ -93,16 +94,38 @@ function makeClaudeResponse(payload: object): { content: Array<{ type: string; t
   }
 }
 
-const VALID_CLAUDE_RESPONSE = makeClaudeResponse({
+const VALID_DOCTOR_RESPONSE = makeClaudeResponse({
   valid_medical_content: true,
-  transcript_type: 'dialog',
   informe_doctor: 'Doctor report content here',
+})
+
+const VALID_PATIENT_RESPONSE = makeClaudeResponse({
   informe_paciente: 'Patient report content here',
+})
+
+// Background dialog response (fire-and-forget)
+const VALID_DIALOG_RESPONSE = makeClaudeResponse({
+  transcript_type: 'dialog',
   dialog: [
     { speaker: 'doctor', text: 'How are you feeling?' },
     { speaker: 'paciente', text: 'I have a headache.' },
   ],
 })
+
+/**
+ * Helper: set up Anthropic mock to return doctor, patient, and dialog responses
+ * in order (matching the Promise.all parallel calls + background dialog call).
+ */
+function setupAnthropicMock(
+  doctorResp = VALID_DOCTOR_RESPONSE,
+  patientResp = VALID_PATIENT_RESPONSE,
+  dialogResp = VALID_DIALOG_RESPONSE,
+) {
+  mockAnthropicCreate
+    .mockResolvedValueOnce(doctorResp)   // 1st call: doctor report
+    .mockResolvedValueOnce(patientResp)  // 2nd call: patient report
+    .mockResolvedValueOnce(dialogResp)   // 3rd call: background dialog
+}
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
@@ -112,6 +135,8 @@ describe('POST /api/process-informe', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    // Ensure no leftover mockResolvedValueOnce queues leak between tests
+    mockAnthropicCreate.mockReset()
 
     // Reset update chain: return this for all .eq() calls, resolve to {} for final
     mockUpdateChain.eq.mockReturnThis()
@@ -197,7 +222,7 @@ describe('POST /api/process-informe', () => {
   it('uses AssemblyAI transcript when audio file is provided and transcription succeeds', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: 'This is a valid transcript from assembly AI service.' })
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
     mockUpdateChain.eq.mockReturnThis()
     // Final update resolves without error
     const mockFinalUpdate = { eq: jest.fn().mockReturnThis(), error: null }
@@ -231,7 +256,7 @@ describe('POST /api/process-informe', () => {
   it('falls back to browserTranscript when AssemblyAI returns empty text', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: '   ' })
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
@@ -256,7 +281,7 @@ describe('POST /api/process-informe', () => {
   it('falls back to browserTranscript when AssemblyAI throws', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockTranscribeAudio.mockRejectedValue(new Error('AssemblyAI network error'))
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
@@ -281,7 +306,7 @@ describe('POST /api/process-informe', () => {
   it('uses es language code for AssemblyAI when language is not "en"', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: 'Valid transcript from assembly AI for test.' })
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
@@ -306,7 +331,7 @@ describe('POST /api/process-informe', () => {
 
   it('returns success: true for a valid dialog transcript', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -323,14 +348,10 @@ describe('POST /api/process-informe', () => {
 
   it('handles monologue transcript_type correctly', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(
-      makeClaudeResponse({
-        valid_medical_content: true,
-        transcript_type: 'monologue',
-        informe_doctor: 'Detailed doctor notes',
-        informe_paciente: 'Summary for patient here',
-        dialog: [],
-      })
+    setupAnthropicMock(
+      makeClaudeResponse({ valid_medical_content: true, informe_doctor: 'Detailed doctor notes' }),
+      makeClaudeResponse({ informe_paciente: 'Summary for patient here' }),
+      makeClaudeResponse({ transcript_type: 'monologue', dialog: [] }),
     )
 
     const req = makeFormDataRequest({
@@ -344,17 +365,9 @@ describe('POST /api/process-informe', () => {
     expect(json).toEqual({ success: true })
   })
 
-  it('saves null transcriptDialog when dialog array is empty', async () => {
+  it('saves reports without transcript_dialog in main update (dialog is background)', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(
-      makeClaudeResponse({
-        valid_medical_content: true,
-        transcript_type: 'dialog',
-        informe_doctor: 'Doctor notes content',
-        informe_paciente: 'Patient summary content',
-        dialog: [],
-      })
-    )
+    setupAnthropicMock()
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -365,16 +378,20 @@ describe('POST /api/process-informe', () => {
 
     expect(res.status).toBe(200)
     expect(json).toEqual({ success: true })
-    // The final update should have transcript_dialog: null (empty array → null)
+    // Main update should have status, informe_doctor, informe_paciente but NOT transcript_dialog
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ transcript_dialog: null })
+      expect.objectContaining({
+        status: 'completed',
+        informe_doctor: 'Doctor report content here',
+        informe_paciente: 'Patient report content here',
+      })
     )
   })
 
-  it('uses specialty prompt from getSpecialtyPrompt', async () => {
+  it('uses specialty prompt for doctor call and patient prompt for patient call', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockGetSpecialtyPrompt.mockReturnValue('Specialty system prompt for cardiologia')
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -383,8 +400,13 @@ describe('POST /api/process-informe', () => {
     await POST(req)
 
     expect(mockGetSpecialtyPrompt).toHaveBeenCalledWith('cardiologia')
+    // Doctor call uses specialty prompt
     expect(mockAnthropicCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ system: 'Specialty system prompt for cardiologia' })
+      expect.objectContaining({ system: 'Specialty system prompt for cardiologia', model: 'claude-sonnet-4-6' })
+    )
+    // Patient call uses generic patient prompt with Haiku
+    expect(mockAnthropicCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ system: 'Patient report system prompt', model: 'claude-haiku-4-5-20251001' })
     )
   })
 
@@ -392,14 +414,9 @@ describe('POST /api/process-informe', () => {
 
   it('returns insufficientContent when Claude says valid_medical_content is false and reports are empty', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(
-      makeClaudeResponse({
-        valid_medical_content: false,
-        transcript_type: 'dialog',
-        informe_doctor: '',
-        informe_paciente: '',
-        dialog: [],
-      })
+    setupAnthropicMock(
+      makeClaudeResponse({ valid_medical_content: false, informe_doctor: '' }),
+      makeClaudeResponse({ informe_paciente: '' }),
     )
 
     const req = makeFormDataRequest({
@@ -417,14 +434,9 @@ describe('POST /api/process-informe', () => {
 
   it('does NOT return insufficientContent when valid_medical_content is false but reports have content', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(
-      makeClaudeResponse({
-        valid_medical_content: false,
-        transcript_type: 'dialog',
-        informe_doctor: 'Despite the flag, the doctor report has real content',
-        informe_paciente: 'And the patient report also has content here',
-        dialog: [],
-      })
+    setupAnthropicMock(
+      makeClaudeResponse({ valid_medical_content: false, informe_doctor: 'Despite the flag, the doctor report has real content' }),
+      makeClaudeResponse({ informe_paciente: 'And the patient report also has content here' }),
     )
 
     const req = makeFormDataRequest({
@@ -443,9 +455,11 @@ describe('POST /api/process-informe', () => {
   it('uses raw text as report when Claude returns non-JSON text longer than 50 chars', async () => {
     const rawText = 'This is a very long non-JSON response from Claude that has more than fifty characters total in it.'
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'text', text: rawText }],
-    })
+    const rawResponse = { content: [{ type: 'text', text: rawText }] }
+    mockAnthropicCreate
+      .mockResolvedValueOnce(rawResponse)   // doctor
+      .mockResolvedValueOnce(rawResponse)   // patient
+      .mockResolvedValueOnce(VALID_DIALOG_RESPONSE) // dialog
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -463,9 +477,11 @@ describe('POST /api/process-informe', () => {
 
   it('handles non-text content type from Claude (falls back to "{}" parse, valid_medical_content defaults to true)', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'tool_use', text: undefined }],
-    })
+    const nonTextResponse = { content: [{ type: 'tool_use', text: undefined }] }
+    mockAnthropicCreate
+      .mockResolvedValueOnce(nonTextResponse)  // doctor
+      .mockResolvedValueOnce(nonTextResponse)  // patient
+      .mockResolvedValueOnce(VALID_DIALOG_RESPONSE) // dialog
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -481,18 +497,15 @@ describe('POST /api/process-informe', () => {
   })
 
   it('extracts JSON when Claude wraps it in markdown', async () => {
-    const payload = {
-      valid_medical_content: true,
-      transcript_type: 'dialog',
-      informe_doctor: 'Doctor report here',
-      informe_paciente: 'Patient report here',
-      dialog: [],
-    }
-    const wrappedText = `Here is the JSON:\n\`\`\`json\n${JSON.stringify(payload)}\n\`\`\``
+    const doctorPayload = { valid_medical_content: true, informe_doctor: 'Doctor report here' }
+    const patientPayload = { informe_paciente: 'Patient report here' }
+    const wrappedDoctor = `Here is the JSON:\n\`\`\`json\n${JSON.stringify(doctorPayload)}\n\`\`\``
+    const wrappedPatient = `Here is the JSON:\n\`\`\`json\n${JSON.stringify(patientPayload)}\n\`\`\``
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'text', text: wrappedText }],
-    })
+    mockAnthropicCreate
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: wrappedDoctor }] })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: wrappedPatient }] })
+      .mockResolvedValueOnce(VALID_DIALOG_RESPONSE)
 
     const req = makeFormDataRequest({
       informeId: 'inf-1',
@@ -509,7 +522,7 @@ describe('POST /api/process-informe', () => {
 
   it('returns 500 and sets status to error when final DB update fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    mockAnthropicCreate.mockResolvedValue(VALID_CLAUDE_RESPONSE)
+    setupAnthropicMock()
 
     // The first calls (status:processing, transcript save, doctor fetch) succeed
     // The final status:completed update should return an error
@@ -570,5 +583,97 @@ describe('POST /api/process-informe', () => {
 
     expect(res.status).toBe(500)
     expect(json).toEqual({ error: 'Error desconocido' })
+  })
+
+  // ── Background dialog extraction error paths ────────────────────────────────
+
+  it('handles non-text content type in background dialog response', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const nonTextDialogResponse = { content: [{ type: 'tool_use', text: undefined }] }
+    mockAnthropicCreate
+      .mockResolvedValueOnce(VALID_DOCTOR_RESPONSE)
+      .mockResolvedValueOnce(VALID_PATIENT_RESPONSE)
+      .mockResolvedValueOnce(nonTextDialogResponse) // dialog returns non-text content
+
+    const req = makeFormDataRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'Transcript that is long enough to proceed past all validation checks.',
+    })
+    const res = await POST(req)
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual({ success: true })
+
+    // Flush microtasks so the fire-and-forget .then() executes
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+
+    // Non-text content falls back to "{}" which parses as empty object
+    // transcript_type defaults to "dialog", dialog is null (empty array check fails)
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ transcript_dialog: null, transcript_type: 'dialog' })
+    )
+  })
+
+  it('catches inner error when background dialog response has invalid JSON', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const invalidJsonResponse = { content: [{ type: 'text', text: 'not valid json at all' }] }
+    mockAnthropicCreate
+      .mockResolvedValueOnce(VALID_DOCTOR_RESPONSE)
+      .mockResolvedValueOnce(VALID_PATIENT_RESPONSE)
+      .mockResolvedValueOnce(invalidJsonResponse) // dialog call returns unparseable text
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation()
+
+    const req = makeFormDataRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'Transcript that is long enough to proceed past all validation checks.',
+    })
+    const res = await POST(req)
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual({ success: true })
+
+    // Flush microtasks so the fire-and-forget .then() executes
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[process-informe] Background dialog extraction failed:',
+      expect.any(Error)
+    )
+    warnSpy.mockRestore()
+  })
+
+  it('catches outer error when background dialog Anthropic call rejects', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockAnthropicCreate
+      .mockResolvedValueOnce(VALID_DOCTOR_RESPONSE)
+      .mockResolvedValueOnce(VALID_PATIENT_RESPONSE)
+      .mockRejectedValueOnce(new Error('Dialog API failed')) // dialog call itself rejects
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation()
+
+    const req = makeFormDataRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'Transcript that is long enough to proceed past all validation checks.',
+    })
+    const res = await POST(req)
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual({ success: true })
+
+    // Flush microtasks so the fire-and-forget .catch() executes
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[process-informe] Background dialog extraction failed:',
+      expect.any(Error)
+    )
+    warnSpy.mockRestore()
   })
 })
