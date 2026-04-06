@@ -78,18 +78,18 @@
   },
   "welcome": {
     "greeting": "Hello, {name}!",
-    "messages": [
-      "Wishing you a day full of success!",
-      "Your dedication makes a difference every day.",
-      "Today is a great day to help your patients!",
-      "Your work transforms lives. Keep going!",
-      "Let's start this day with positive energy!",
-      "Every patient is an opportunity to do good.",
-      "Your expertise and care are invaluable.",
-      "May it be a productive and fulfilling day!",
-      "Your commitment inspires the whole team.",
-      "Today will be an excellent day in medicine!"
-    ],
+    "messages": {
+      "0": "Wishing you a day full of success!",
+      "1": "Your dedication makes a difference every day.",
+      "2": "Today is a great day to help your patients!",
+      "3": "Your work transforms lives. Keep going!",
+      "4": "Let's start this day with positive energy!",
+      "5": "Every patient is an opportunity to do good.",
+      "6": "Your expertise and care are invaluable.",
+      "7": "May it be a productive and fulfilling day!",
+      "8": "Your commitment inspires the whole team.",
+      "9": "Today will be an excellent day in medicine!"
+    },
     "defaultName": "Doctor"
   },
   "welcomeScreen": {
@@ -764,13 +764,13 @@
     "historyDescription": "Variable. Scattered. Underutilized.",
     "beliefTitle": "We believe it can be better.",
     "principlesTitle": "We believe the report must:",
-    "principles": [
-      "Be clear.",
-      "Be structured.",
-      "Be secure.",
-      "Be understandable.",
-      "Be useful beyond the moment of issuance."
-    ],
+    "principles": {
+      "0": "Be clear.",
+      "1": "Be structured.",
+      "2": "Be secure.",
+      "3": "Be understandable.",
+      "4": "Be useful beyond the moment of issuance."
+    },
     "doctorFocusTitle": "The doctor should not waste time on repetitive tasks.",
     "doctorFocusDescription": "They should focus on thinking, deciding, and caring.",
     "technologyTitle": "Technology does not replace clinical judgment.",
@@ -778,12 +778,12 @@
     "imiTitle": "An Intelligent Medical Report (IMI Health) does not decide for the doctor.",
     "imiDescription": "It gives better tools to practice with precision.",
     "benefitsTitle": "Each report can be:",
-    "benefits": [
-      "Clearer for the patient.",
-      "Safer for the professional.",
-      "More useful for the institution.",
-      "More valuable as clinical data."
-    ],
+    "benefits": {
+      "0": "Clearer for the patient.",
+      "1": "Safer for the professional.",
+      "2": "More useful for the institution.",
+      "3": "More valuable as clinical data."
+    },
     "conclusion1": "IMI Health does not automate medicine.",
     "conclusion2": "It optimizes its documentary expression.",
     "finalStatement": "Because the future of medicine is not less human.",

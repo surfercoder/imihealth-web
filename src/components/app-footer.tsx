@@ -11,7 +11,7 @@ export async function AppFooter({ doctorName, doctorEmail }: AppFooterProps) {
   
   return (
     <footer className="border-t border-border/60">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 text-sm text-foreground/50">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 text-sm text-foreground/60">
         {t("common.copyright", { year: new Date().getFullYear() })}
         <FeedbackDialog doctorName={doctorName} doctorEmail={doctorEmail} />
       </div>

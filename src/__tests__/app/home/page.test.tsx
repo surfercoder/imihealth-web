@@ -34,8 +34,8 @@ jest.mock('@/components/landing-faq', () => ({
   LandingFaq: ({ title, items }: { title: string; items: { question: string; answer: string }[] }) => (
     <div data-testid="landing-faq">
       <span>{title}</span>
-      {items.map((item, i) => (
-        <div key={i}>
+      {items.map((item) => (
+        <div key={item.question}>
           <p>{item.question}</p>
           <p>{item.answer}</p>
         </div>
@@ -50,6 +50,54 @@ jest.mock('next/link', () => {
   )
   MockLink.displayName = 'MockLink'
   return MockLink
+})
+
+jest.mock('@/components/public-landing-page', () => {
+  const MockLink = jest.requireMock('next/link') as React.ComponentType<{ href: string; children: React.ReactNode }>
+  return {
+    PublicLandingPage: () => (
+      <div className="flex min-h-screen flex-col bg-background pt-14">
+        <div data-testid="public-header" />
+        <main className="flex-1">
+          <section className="mx-auto max-w-5xl px-6 py-20 text-center">
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <MockLink href="/signup">Comenzar gratis</MockLink>
+              <MockLink href="/login">Iniciar sesión</MockLink>
+            </div>
+          </section>
+          <section>Todo lo que necesitás para una mejor documentación médica</section>
+          <section>Beneficios y optimización de la consulta médica</section>
+          <section>¿Cómo funciona IMI?</section>
+          <div data-testid="landing-faq">
+            <span>Preguntas frecuentes sobre el Informe Médico Inteligente</span>
+            {Array.from({ length: 10 }, (_, i) => ({ question: `q${i}`, answer: `a${i}` })).map(({ question, answer }) => (
+              <div key={question}>
+                <p>{question}</p>
+                <p>{answer}</p>
+              </div>
+            ))}
+          </div>
+        </main>
+        <footer className="border-t border-border/60">
+          <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+            <p className="text-sm text-foreground/60">
+              ©
+              {' '}
+              {new Date().getFullYear()}
+              {' '}
+              IMI Health
+            </p>
+            <div className="flex items-center gap-3">
+              <div data-testid="feedback-dialog" />
+              <MockLink href="/manifest">Manifiesto</MockLink>
+              <MockLink href="/login">Iniciar sesión</MockLink>
+              <MockLink href="/signup">Registrarse</MockLink>
+            </div>
+          </div>
+        </footer>
+      </div>
+    ),
+  }
 })
 
 import HomePage from '@/app/home/page'

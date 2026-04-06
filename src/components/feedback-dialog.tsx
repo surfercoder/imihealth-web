@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { feedbackEmail } from "@/lib/email-template";
 
 const REASON_KEYS = [
   "feedback",
@@ -48,44 +49,42 @@ export function FeedbackDialog({ doctorName, doctorEmail }: FeedbackDialogProps)
     if (!reason || !message.trim()) return;
 
     setSending(true);
-    try {
-      const reasonLabel = t(`reasons.${reason}` as Parameters<typeof t>[0]);
-      const { feedbackEmail } = await import("@/lib/email-template");
-      const plainText = `From: ${doctorName ?? "Unknown"} (${doctorEmail ?? "No email"})\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`;
-      const html = feedbackEmail({
-        senderName: doctorName ?? "Unknown",
-        senderEmail: doctorEmail ?? "No email",
-        reason: reasonLabel,
-        message: message.trim(),
-      });
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: "support@imihealth.ai",
-          subject: `[${reasonLabel}] ${t("emailSubject")}`,
-          text: plainText,
-          html,
-        }),
-      });
+    const reasonLabel = t(`reasons.${reason}` as Parameters<typeof t>[0]);
+    const plainText = `From: ${doctorName ?? "Unknown"} (${doctorEmail ?? "No email"})\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`;
+    const html = feedbackEmail({
+      senderName: doctorName ?? "Unknown",
+      senderEmail: doctorEmail ?? "No email",
+      reason: reasonLabel,
+      message: message.trim(),
+    });
+    const res = await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: "support@imihealth.ai",
+        subject: `[${reasonLabel}] ${t("emailSubject")}`,
+        text: plainText,
+        html,
+      }),
+    }).catch(() => null);
 
-      if (!res.ok) throw new Error("Failed to send");
-
-      toast.success(t("successTitle"), { description: t("successMessage") });
-      setOpen(false);
-      setReason("");
-      setMessage("");
-    } catch {
+    if (!res || !res.ok) {
       toast.error(t("errorTitle"), { description: t("errorMessage") });
-    } finally {
       setSending(false);
+      return;
     }
+
+    toast.success(t("successTitle"), { description: t("successMessage") });
+    setOpen(false);
+    setReason("");
+    setMessage("");
+    setSending(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="flex items-center gap-1.5 text-sm text-foreground/50 hover:text-foreground transition-colors cursor-pointer">
+        <button className="flex items-center gap-1.5 text-sm text-foreground/60 hover:text-foreground transition-colors cursor-pointer">
           <MessageSquareText className="size-3.5" />
           {t("trigger")}
         </button>

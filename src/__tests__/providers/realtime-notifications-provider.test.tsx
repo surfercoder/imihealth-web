@@ -57,6 +57,7 @@ jest.mock('@/utils/supabase/client', () => ({
 }))
 
 import { RealtimeNotificationsProvider } from '@/providers/realtime-notifications-provider'
+import { RealtimeNotificationsContent } from '@/providers/realtime-notifications-content'
 
 describe('RealtimeNotificationsProvider', () => {
   beforeEach(() => {
@@ -77,9 +78,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('renders children', () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div data-testid="child">Hello</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
   })
@@ -87,26 +88,42 @@ describe('RealtimeNotificationsProvider', () => {
   it('does not create a channel when userId is null', () => {
     render(
       <RealtimeNotificationsProvider userId={null}>
-        <div>child</div>
+        <div data-testid="null-child">child</div>
       </RealtimeNotificationsProvider>
     )
+    // Provider short-circuits for null userId, rendering children directly
+    expect(screen.getByTestId('null-child')).toBeInTheDocument()
     expect(mockChannel).not.toHaveBeenCalled()
+  })
+
+  it('mounts realtime content inside Suspense when userId is set', async () => {
+    render(
+      <RealtimeNotificationsProvider userId="user-xyz">
+        <div data-testid="auth-child">child</div>
+      </RealtimeNotificationsProvider>
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-child')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(mockChannel).toHaveBeenCalledWith('doctor-notifications:user-xyz')
+    })
   })
 
   it('creates a realtime channel for the given userId', () => {
     render(
-      <RealtimeNotificationsProvider userId="user-abc">
+      <RealtimeNotificationsContent userId="user-abc">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
     expect(mockChannel).toHaveBeenCalledWith('doctor-notifications:user-abc')
   })
 
   it('subscribes to postgres_changes on informes table', () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
     expect(mockOn).toHaveBeenCalledWith(
       'postgres_changes',
@@ -123,9 +140,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('shows a toast when informe status changes to completed', async () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     expect(registeredPayloadCallback).not.toBeNull()
@@ -144,9 +161,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('does not show a toast when old status is already completed', async () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -161,9 +178,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('does not show a toast when new status is not completed', async () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -178,9 +195,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('does not show duplicate notifications for the same informe id', async () => {
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -207,9 +224,9 @@ describe('RealtimeNotificationsProvider', () => {
     mockSingleFn.mockResolvedValueOnce({ data: null })
 
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -228,9 +245,9 @@ describe('RealtimeNotificationsProvider', () => {
     mockGet.mockReturnValue('informes')
 
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -249,9 +266,9 @@ describe('RealtimeNotificationsProvider', () => {
     mockGet.mockReturnValue(null)
 
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -280,9 +297,9 @@ describe('RealtimeNotificationsProvider', () => {
     mockGet.mockReturnValue('dashboard')
 
     render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     await act(async () => {
@@ -308,9 +325,9 @@ describe('RealtimeNotificationsProvider', () => {
 
   it('removes the channel on unmount', () => {
     const { unmount } = render(
-      <RealtimeNotificationsProvider userId="user-1">
+      <RealtimeNotificationsContent userId="user-1">
         <div>child</div>
-      </RealtimeNotificationsProvider>
+      </RealtimeNotificationsContent>
     )
 
     unmount()

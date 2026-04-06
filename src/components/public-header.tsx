@@ -13,7 +13,7 @@ export async function PublicHeader() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link
           href="/"
-          className="hover:opacity-80 transition-opacity"
+          className="flex items-center min-h-11 hover:opacity-80 transition-opacity"
         >
           <Image
             src={logo}

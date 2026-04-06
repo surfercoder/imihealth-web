@@ -1,21 +1,26 @@
 import * as Sentry from "@sentry/nextjs";
 
+const integrations = [
+  Sentry.browserTracingIntegration(),
+  ...(process.env.NEXT_PUBLIC_SENTRY_DSN
+    ? [
+        Sentry.replayIntegration({
+          maskAllText: true,
+          blockAllMedia: true,
+        }),
+      ]
+    : []),
+];
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   environment: process.env.NODE_ENV,
 
-  integrations: [
-    Sentry.replayIntegration({
-      // Mask all text and block all media for privacy
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
-    Sentry.browserTracingIntegration(),
-  ],
+  integrations,
 
   // Performance Monitoring — capture all traces during MVP, reduce in production
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
   // Session Replay — 10% of normal sessions, 100% of sessions with errors
   replaysSessionSampleRate: 0.1,

@@ -2,7 +2,17 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: "./src/i18n/request.ts",
+  experimental: {
+    messages: {
+      format: "json",
+      locales: ["es", "en"],
+      path: "./messages",
+      precompile: true,
+    },
+  },
+});
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -14,6 +24,16 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "25mb",
     },
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "radix-ui",
+      "@sentry/nextjs",
+      "cmdk",
+      "react-hook-form",
+      "@hookform/resolvers",
+      "zod",
+    ],
   },
   async headers() {
     return [
@@ -45,6 +65,10 @@ const nextConfig: NextConfig = {
             value:
               "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
           },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
         ],
       },
     ];
@@ -61,5 +85,16 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // Hide source maps from users while still uploading them to Sentry
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
+  },
+  // Reduce Sentry's client-side bundle size
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+    excludeReplayIframe: true,
+    excludeReplayShadowDom: true,
+  },
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
   },
 });

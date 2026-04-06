@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { HomeWrapper } from "@/components/home-wrapper";
 import { AppHeader } from "@/components/app-header";
@@ -11,11 +10,26 @@ import type { PatientWithStats } from "@/actions/patients";
 import { getPlanInfo } from "@/actions/plan";
 import { PlanProvider } from "@/contexts/plan-context";
 import { getDashboardChartData } from "@/actions/dashboard-charts";
+import { PublicLandingPage } from "@/components/public-landing-page";
 
-export const metadata: Metadata = {
-  title: "Inicio | IMI Health",
-  description: "Panel principal de IMI Health",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      title: "IMI Health",
+      description: "AI-powered medical consultation reports",
+    };
+  }
+
+  return {
+    title: "Inicio | IMI Health",
+    description: "Panel principal de IMI Health",
+  };
+}
 
 export default async function HomePage({
   searchParams,
@@ -32,7 +46,7 @@ export default async function HomePage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/home");
+    return <PublicLandingPage />;
   }
 
   const [t, { data: doctor }, { data: informes }, plan, chartData] = await Promise.all([

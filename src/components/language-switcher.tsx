@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
     });
   }
 
-  const current = locales.find((l) => l.value === locale);
+  const current = locales.find((l) => l.value === locale) ?? locales[0];
 
   return (
     <DropdownMenu>
@@ -41,10 +41,12 @@ export function LanguageSwitcher() {
           size="sm"
           className="gap-1.5 text-foreground/70 hover:text-foreground"
           disabled={isPending}
-          aria-label={t("toggle")}
+          aria-label={`${current.flag} ${current.label}. ${t("toggle")}`}
         >
           <Globe className="size-4" />
-          <span className="hidden sm:inline text-xs font-medium">{current?.flag} {current?.label}</span>
+          <span className="hidden sm:inline text-xs font-medium">
+            {current.flag} {current.label}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[130px]">

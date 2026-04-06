@@ -27,6 +27,7 @@ function buildCsp() {
       "https://api.anthropic.com",
     ],
     "frame-src": ["https://www.google.com"],
+    "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],

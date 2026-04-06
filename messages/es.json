@@ -78,18 +78,18 @@
   },
   "welcome": {
     "greeting": "¡Hola, {name}!",
-    "messages": [
-      "¡Que tengas un día lleno de éxitos!",
-      "Tu dedicación marca la diferencia cada día.",
-      "¡Hoy es un gran día para ayudar a tus pacientes!",
-      "Tu trabajo transforma vidas. ¡Adelante!",
-      "¡Comencemos este día con energía positiva!",
-      "Cada paciente es una oportunidad para hacer el bien.",
-      "Tu experiencia y cuidado son invaluables.",
-      "¡Que sea un día productivo y gratificante!",
-      "Tu compromiso inspira a todo el equipo.",
-      "¡Hoy será un excelente día en la medicina!"
-    ],
+    "messages": {
+      "0": "¡Que tengas un día lleno de éxitos!",
+      "1": "Tu dedicación marca la diferencia cada día.",
+      "2": "¡Hoy es un gran día para ayudar a tus pacientes!",
+      "3": "Tu trabajo transforma vidas. ¡Adelante!",
+      "4": "¡Comencemos este día con energía positiva!",
+      "5": "Cada paciente es una oportunidad para hacer el bien.",
+      "6": "Tu experiencia y cuidado son invaluables.",
+      "7": "¡Que sea un día productivo y gratificante!",
+      "8": "Tu compromiso inspira a todo el equipo.",
+      "9": "¡Hoy será un excelente día en la medicina!"
+    },
     "defaultName": "Doctor"
   },
   "welcomeScreen": {
@@ -764,13 +764,13 @@
     "historyDescription": "Variable. Disperso. Subutilizado.",
     "beliefTitle": "Creemos que puede ser mejor.",
     "principlesTitle": "Creemos que el informe debe:",
-    "principles": [
-      "Ser claro.",
-      "Ser estructurado.",
-      "Ser seguro.",
-      "Ser comprensible.",
-      "Ser útil más allá del momento de emisión."
-    ],
+    "principles": {
+      "0": "Ser claro.",
+      "1": "Ser estructurado.",
+      "2": "Ser seguro.",
+      "3": "Ser comprensible.",
+      "4": "Ser útil más allá del momento de emisión."
+    },
     "doctorFocusTitle": "El médico no debe perder tiempo en tareas repetitivas.",
     "doctorFocusDescription": "Debe concentrarse en pensar, decidir y cuidar.",
     "technologyTitle": "La tecnología no reemplaza el criterio clínico.",
@@ -778,12 +778,12 @@
     "imiTitle": "Un Informe Médico Inteligente (IMI Health) no decide por el médico.",
     "imiDescription": "Le da mejores herramientas para ejercer con precisión.",
     "benefitsTitle": "Cada informe puede ser:",
-    "benefits": [
-      "Más claro para el paciente.",
-      "Más seguro para el profesional.",
-      "Más útil para la institución.",
-      "Más valioso como dato clínico."
-    ],
+    "benefits": {
+      "0": "Más claro para el paciente.",
+      "1": "Más seguro para el profesional.",
+      "2": "Más útil para la institución.",
+      "3": "Más valioso como dato clínico."
+    },
     "conclusion1": "IMI Health no automatiza la medicina.",
     "conclusion2": "Optimiza su expresión documental.",
     "finalStatement": "Porque el futuro de la medicina no es menos humano.",

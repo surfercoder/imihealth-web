@@ -72,7 +72,7 @@ export default async function ManifestPage() {
               {t("principlesTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {(t.raw("principles") as string[]).map((principle) => (
+              {Object.values(t.raw("principles") as Record<string, string>).map((principle) => (
                 <Card key={principle} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ export default async function ManifestPage() {
               {t("benefitsTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {(t.raw("benefits") as string[]).map((benefit) => (
+              {Object.values(t.raw("benefits") as Record<string, string>).map((benefit) => (
                 <Card key={benefit} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
@@ -178,14 +178,14 @@ export default async function ManifestPage() {
       {/* Footer */}
       <footer className="border-t border-border/60">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <p className="text-sm text-foreground/50">
+          <p className="text-sm text-foreground/60">
             © {new Date().getFullYear()} IMI Health. All rights reserved.
           </p>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
+            <Link href="/login" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               Sign in
             </Link>
-            <Link href="/signup" className="text-sm text-foreground/50 hover:text-foreground transition-colors">
+            <Link href="/signup" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               Sign up
             </Link>
           </div>

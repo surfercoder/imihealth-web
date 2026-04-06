@@ -40,6 +40,9 @@ jest.mock('@/components/home-wrapper', () => ({
 jest.mock('@/components/home-tabs', () => ({
   HomeTabs: () => <div data-testid="home-tabs" />,
 }))
+jest.mock('@/components/public-landing-page', () => ({
+  PublicLandingPage: () => <div data-testid="public-landing-page" />,
+}))
 jest.mock('@/actions/plan', () => ({
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
@@ -52,7 +55,7 @@ jest.mock('@/actions/dashboard-charts', () => ({
   getDashboardChartData: jest.fn(() => Promise.resolve(null)),
 }))
 
-import HomePage from '@/app/page'
+import HomePage, { generateMetadata } from '@/app/page'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -97,13 +100,34 @@ function setupMocks() {
     .mockReturnValueOnce(patientsChain)
 }
 
+describe('generateMetadata (root page)', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('returns landing metadata when unauthenticated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    await expect(generateMetadata()).resolves.toEqual({
+      title: 'IMI Health',
+      description: 'AI-powered medical consultation reports',
+    })
+  })
+
+  it('returns dashboard metadata when authenticated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    await expect(generateMetadata()).resolves.toEqual({
+      title: 'Inicio | IMI Health',
+      description: 'Panel principal de IMI Health',
+    })
+  })
+})
+
 describe('HomePage', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('redirects to /home when user is not authenticated', async () => {
+  it('renders the public landing when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    try { await HomePage({ searchParams: Promise.resolve({}) }) } catch { /* redirect throws */ }
-    expect(mockRedirect).toHaveBeenCalledWith('/home')
+    render(await HomePage({ searchParams: Promise.resolve({}) }))
+    expect(screen.getByTestId('public-landing-page')).toBeInTheDocument()
+    expect(mockRedirect).not.toHaveBeenCalled()
   })
 
   it('renders the home page with app header and tabs', async () => {

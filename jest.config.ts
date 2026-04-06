@@ -25,6 +25,7 @@ const config: Config = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/app/layout.tsx',
+    '!src/components/public-landing-page.tsx',
     '!src/proxy.ts',
     '!src/types/**',
     '!src/app/auth/actions.ts',

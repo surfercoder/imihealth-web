@@ -26,8 +26,8 @@ export function LandingFaq({
           {title}
         </h2>
         <Accordion type="single" collapsible className="rounded-xl border bg-card px-6 shadow-sm">
-          {items.map((item, i) => (
-            <AccordionItem key={i} value={`faq-${i}`}>
+          {items.map((item) => (
+            <AccordionItem key={item.question} value={item.question}>
               <AccordionTrigger>{item.question}</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">{item.answer}</p>

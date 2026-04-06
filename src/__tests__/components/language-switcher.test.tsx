@@ -22,16 +22,24 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
+import { useLocale } from 'next-intl'
 import { LanguageSwitcher } from '@/components/language-switcher'
 
 describe('LanguageSwitcher', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    ;(useLocale as jest.Mock).mockReturnValue('es')
   })
 
-  it('renders the toggle button', () => {
+  it('renders the toggle button with an accessible name that includes the current locale', () => {
     render(<LanguageSwitcher />)
-    expect(screen.getByRole('button', { name: /Cambiar idioma/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /🇦🇷 Español\. Cambiar idioma/ })).toBeInTheDocument()
+  })
+
+  it('falls back to Spanish when the active locale is not in the supported list', () => {
+    ;(useLocale as jest.Mock).mockReturnValue('xx')
+    render(<LanguageSwitcher />)
+    expect(screen.getByRole('button', { name: /🇦🇷 Español\. Cambiar idioma/ })).toBeInTheDocument()
   })
 
   it('renders language options', () => {

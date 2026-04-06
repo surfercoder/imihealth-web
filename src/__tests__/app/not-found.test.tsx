@@ -2,9 +2,9 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
 jest.mock('next/image', () => {
+  const Img = 'img' as unknown as React.ElementType
   const MockImage = ({ alt, src }: { alt: string; src: string }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img alt={alt} src={src} />
+    <Img alt={alt} src={src} />
   )
   MockImage.displayName = 'MockImage'
   return MockImage
