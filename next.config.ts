@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Security & performance headers for all routes
         source: "/(.*)",
         headers: [
           {
@@ -71,6 +72,16 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Cache public image/font assets
+        source: "/assets/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
     ];
   },
 };
@@ -91,6 +102,7 @@ export default withSentryConfig(withNextIntl(nextConfig), {
     excludeDebugStatements: true,
     excludeReplayIframe: true,
     excludeReplayShadowDom: true,
+    excludeReplayWorker: true,
   },
   webpack: {
     treeshake: {

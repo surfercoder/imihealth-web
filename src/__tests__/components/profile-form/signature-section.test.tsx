@@ -5,17 +5,15 @@ import { useForm } from 'react-hook-form'
 import { Form } from '@/components/ui/form'
 
 jest.mock('next/image', () => {
-  const MockImage = ({
-    src,
-    alt,
-    ...rest
-  }: {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react')
+  const MockImage = (props: {
     src: string
     alt: string
     width?: number
     height?: number
     className?: string
-  }) => <picture><img src={src} alt={alt} {...rest} /></picture>
+  }) => React.createElement('img', props)
   MockImage.displayName = 'MockImage'
   return MockImage
 })

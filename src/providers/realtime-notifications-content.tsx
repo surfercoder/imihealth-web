@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -14,8 +14,8 @@ function RealtimeNotificationsContentInner({
   children: React.ReactNode;
   userId: string;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const nav = useRouter();
+  const searchParams = useNextSearchParams();
   const t = useTranslations("notifications");
   const channelRef = useRef<RealtimeChannel | null>(null);
   const shownNotificationsRef = useRef<Set<string>>(new Set());
@@ -69,7 +69,7 @@ function RealtimeNotificationsContentInner({
                 label: t("viewReport"),
                 onClick: () => {
                   const url = currentTab ? `/informes/${newData.id}?tab=${currentTab}` : `/informes/${newData.id}`;
-                  router.push(url);
+                  nav.push(url);
                 },
               },
               duration: 10000,
@@ -86,7 +86,7 @@ function RealtimeNotificationsContentInner({
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [userId, router, t, searchParams]);
+  }, [userId, nav, t, searchParams]);
 
   return <>{children}</>;
 }

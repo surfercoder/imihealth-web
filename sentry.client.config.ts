@@ -1,28 +1,16 @@
 import * as Sentry from "@sentry/nextjs";
 
-const integrations = [
-  Sentry.browserTracingIntegration(),
-  ...(process.env.NEXT_PUBLIC_SENTRY_DSN
-    ? [
-        Sentry.replayIntegration({
-          maskAllText: true,
-          blockAllMedia: true,
-        }),
-      ]
-    : []),
-];
-
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   environment: process.env.NODE_ENV,
 
-  integrations,
+  integrations: [Sentry.browserTracingIntegration()],
 
   // Performance Monitoring — capture all traces during MVP, reduce in production
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
-  // Session Replay — 10% of normal sessions, 100% of sessions with errors
+  // Session Replay — configured below via lazy-loading to avoid blocking initial render
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
 
@@ -66,3 +54,25 @@ Sentry.init({
     return event;
   },
 });
+
+// Lazy-load Session Replay after the page is fully interactive so it doesn't
+// compete with LCP or block the main thread during initial render.
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  const initReplay = async () => {
+    try {
+      const { replayIntegration } = await import("@sentry/nextjs");
+      Sentry.addIntegration(
+        replayIntegration({ maskAllText: true, blockAllMedia: true })
+      );
+    } catch {
+      // Silently ignore — replay is non-critical
+    }
+  };
+
+  if (document.readyState === "complete") {
+    // Already loaded, defer slightly to let main thread settle
+    setTimeout(initReplay, 2000);
+  } else {
+    window.addEventListener("load", () => setTimeout(initReplay, 2000));
+  }
+}

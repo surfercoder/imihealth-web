@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InformesTab } from "@/components/tabs/informes-tab";
 import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
@@ -38,7 +38,7 @@ function HomeTabsContent({
   translations,
 }: HomeTabsProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useNextSearchParams();
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());

@@ -24,7 +24,7 @@ function AppHeaderContent({ doctorName }: AppHeaderProps) {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link
           href={currentTab ? `/?tab=${currentTab}` : "/"}
-          className="flex items-center min-h-11 hover:opacity-80 transition-opacity"
+          className="flex items-center min-h-11 min-w-[44px] flex-shrink-0 hover:opacity-80 transition-opacity"
         >
           <Image
             src={logo}

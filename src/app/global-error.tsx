@@ -15,7 +15,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
+    <html lang="es">
       <body>
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <h2>Algo salió mal</h2>
