@@ -34,12 +34,12 @@ jest.mock('@/components/app-footer', () => ({
   ),
 }))
 
-jest.mock('@/components/audio-recorder', () => ({
-  AudioRecorder: ({ informeId, doctorId, isQuickReport }: { informeId: string; doctorId: string; isQuickReport: boolean }) => (
+jest.mock('@/components/quick-informe-flow', () => ({
+  QuickInformeFlow: ({ informeId, doctorId }: { informeId: string; doctorId: string }) => (
     <div data-testid="audio-recorder">
       <span data-testid="informe-id">{informeId}</span>
       <span data-testid="doctor-id">{doctorId}</span>
-      <span data-testid="is-quick">{String(isQuickReport)}</span>
+      <span data-testid="is-quick">true</span>
     </div>
   ),
 }))

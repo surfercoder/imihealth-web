@@ -110,7 +110,6 @@ export default async function HomePage({
                 informes: t("tabs.informes"),
                 misPacientes: t("tabs.misPacientes"),
                 dashboard: t("tabs.dashboard"),
-                plantillas: t("tabs.plantillas"),
               }}
             />
             </Suspense>

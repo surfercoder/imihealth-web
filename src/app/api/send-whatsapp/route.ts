@@ -5,8 +5,18 @@ import {
   sendWhatsAppTemplateWithDocument,
   sendWhatsAppTemplateWithImage,
 } from "@/lib/whatsapp";
-import { generateInformePDF, generateCertificadoPDF } from "@/lib/pdf";
-import { generateInformeImage, generateCertificadoImage } from "@/lib/report-image";
+import {
+  CertOptions,
+  PatientRelation,
+  formatEsArDate,
+  getDocFilename,
+  getDocTemplateName,
+  getImgTemplateName,
+  getLanguageCode,
+  getPngFilename,
+  mapDoctorInfo,
+} from "./helpers";
+import { generateCertificadoMedia, generateInformeMedia, GeneratedMedia } from "./media";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,17 +45,10 @@ export async function POST(request: NextRequest) {
     }
 
     const isInforme = type === "informe";
-    const langCode = locale === "es" ? "es_AR" : "en";
+    const langCode = getLanguageCode(locale);
+    const docTemplateName = getDocTemplateName(isInforme, locale);
+    const imgTemplateName = getImgTemplateName(isInforme, locale);
 
-    const docTemplateName = isInforme
-      ? locale === "es" ? "informe_con_documento_es" : "informe_con_documento_en"
-      : locale === "es" ? "certificado_con_documento_es" : "certificado_con_documento_en";
-
-    const imgTemplateName = isInforme
-      ? locale === "es" ? "informe_imagen_es" : "informe_imagen_en"
-      : locale === "es" ? "certificado_imagen_es" : "certificado_imagen_en";
-
-    // Fetch informe + patient + doctor data from DB
     const { data: informe } = await supabase
       .from("informes")
       .select("informe_paciente, created_at, patients(name, phone, dob, dni)")
@@ -66,33 +69,13 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    const patient = informe.patients as unknown as {
-      name: string;
-      phone: string;
-      dob: string | null;
-      dni: string | null;
-    } | null;
+    const patient = informe.patients as unknown as PatientRelation | null;
+    const dateStr = formatEsArDate(informe.created_at);
+    const doctorInfo = mapDoctorInfo(doctorData);
 
-    const dateStr = new Date(informe.created_at).toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-
-    const doctorInfo = doctorData
-      ? {
-          name: doctorData.name,
-          matricula: doctorData.matricula,
-          especialidad: doctorData.especialidad,
-          firmaDigital: doctorData.firma_digital,
-        }
-      : null;
-
-    let pdfBytes: Uint8Array;
-    let pngBuffer: Buffer;
+    let media: GeneratedMedia;
 
     if (isInforme) {
-      // ─── Generate informe PDF + PNG from DB data ───
       if (!informe.informe_paciente) {
         return NextResponse.json(
           { success: false, error: "Informe content not found" },
@@ -100,64 +83,26 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      pdfBytes = await generateInformePDF({
-        patientName: patient?.name ?? patientName,
-        patientPhone: patient?.phone ?? null,
-        date: dateStr,
+      media = await generateInformeMedia({
+        patient,
+        patientNameFallback: patientName,
+        dateStr,
         content: informe.informe_paciente,
-        doctor: doctorInfo,
-      });
-
-      pngBuffer = await generateInformeImage({
-        patientName: patient?.name ?? patientName,
-        patientPhone: patient?.phone ?? null,
-        date: dateStr,
-        content: informe.informe_paciente,
-        doctor: doctorInfo,
+        doctorInfo,
       });
     } else {
-      // ─── Generate certificado PDF + PNG from DB data + client options ───
-      const { certOptions } = body as {
-        certOptions?: {
-          daysOff?: number | null;
-          diagnosis?: string | null;
-          observations?: string | null;
-        };
-      };
-
-      const patientDob = patient?.dob
-        ? new Date(patient.dob + "T00:00:00").toLocaleDateString("es-AR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          })
-        : null;
-
-      pdfBytes = await generateCertificadoPDF({
-        patientName: patient?.name ?? patientName,
-        patientDni: patient?.dni ?? null,
-        patientDob,
-        date: dateStr,
-        diagnosis: certOptions?.diagnosis ?? null,
-        daysOff: certOptions?.daysOff ?? null,
-        observations: certOptions?.observations ?? null,
-        doctor: doctorInfo,
-      });
-
-      pngBuffer = await generateCertificadoImage({
-        patientName: patient?.name ?? patientName,
-        patientDob,
-        date: dateStr,
-        diagnosis: certOptions?.diagnosis ?? null,
-        daysOff: certOptions?.daysOff ?? null,
-        observations: certOptions?.observations ?? null,
-        doctor: doctorInfo,
+      const { certOptions } = body as { certOptions?: CertOptions };
+      media = await generateCertificadoMedia({
+        patient,
+        patientNameFallback: patientName,
+        dateStr,
+        doctorInfo,
+        certOptions,
       });
     }
 
-    // ─── Upload PDF to Meta ───
-    const docFilename = isInforme ? "informe-medico.pdf" : "certificado-medico.pdf";
-    const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", docFilename);
+    const docFilename = getDocFilename(isInforme);
+    const pdfUpload = await uploadMediaToWhatsApp(media.pdfBytes, "application/pdf", docFilename);
 
     if (!pdfUpload.success) {
       return NextResponse.json(
@@ -166,15 +111,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── Upload PNG to Meta ───
-    const pngFilename = isInforme ? "informe-medico.png" : "certificado-medico.png";
-    const pngUpload = await uploadMediaToWhatsApp(pngBuffer, "image/png", pngFilename);
+    const pngFilename = getPngFilename(isInforme);
+    const pngUpload = await uploadMediaToWhatsApp(media.pngBuffer, "image/png", pngFilename);
 
     if (!pngUpload.success) {
       console.error("[WhatsApp] PNG upload failed:", pngUpload.error);
     }
 
-    // ─── Send template with DOCUMENT header ───
     const docResult = await sendWhatsAppTemplateWithDocument({
       to,
       templateName: docTemplateName,
@@ -191,7 +134,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── Send template with IMAGE header ───
     let imageSent = false;
     if (pngUpload.success) {
       const imgResult = await sendWhatsAppTemplateWithImage({

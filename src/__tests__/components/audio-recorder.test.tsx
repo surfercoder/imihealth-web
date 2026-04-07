@@ -1003,14 +1003,14 @@ describe('AudioRecorder — progress text branches', () => {
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Extrayendo información de la transcripción...')).toBeInTheDocument()
+      expect(screen.getByText('Capturando información de la transcripción...')).toBeInTheDocument()
     })
 
     act(() => resolveProcess({ ok: true, json: () => Promise.resolve({ success: true }) } as unknown as Response))
     jest.useRealTimers()
   })
 
-  it('advances processing step message after 25 seconds', async () => {
+  it('advances processing step message after 10 seconds', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -1025,13 +1025,13 @@ describe('AudioRecorder — progress text branches', () => {
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Extrayendo información de la transcripción...')).toBeInTheDocument()
+      expect(screen.getByText('Capturando información de la transcripción...')).toBeInTheDocument()
     })
 
-    // Advance 25s to trigger the interval and move to step 2
-    await act(async () => { jest.advanceTimersByTime(25000) })
+    // Advance 15s to trigger the interval and move to step 2
+    await act(async () => { jest.advanceTimersByTime(15000) })
 
-    expect(screen.getByText('Generando informe detallado para el doctor...')).toBeInTheDocument()
+    expect(screen.getByText('Analizando secciones a incluir en los informes...')).toBeInTheDocument()
 
     act(() => resolveProcess({ ok: true, json: () => Promise.resolve({ success: true }) } as unknown as Response))
     jest.useRealTimers()
@@ -1048,15 +1048,23 @@ describe('AudioRecorder — isQuickReport branch', () => {
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
   })
 
-  it('calls processQuickInforme and redirects to quick-informe result on success', async () => {
+  it('calls processQuickInforme and invokes onQuickReportComplete with the report on success', async () => {
     mockProcessQuickInforme.mockResolvedValue({ informeDoctor: 'Doctor report content' })
 
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
 
+    const onQuickReportComplete = jest.fn()
     jest.useFakeTimers()
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-    render(<AudioRecorder informeId="quick-1" doctorId="doc-1" isQuickReport />)
+    render(
+      <AudioRecorder
+        informeId="quick-1"
+        doctorId="doc-1"
+        isQuickReport
+        onQuickReportComplete={onQuickReportComplete}
+      />,
+    )
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
@@ -1066,9 +1074,8 @@ describe('AudioRecorder — isQuickReport branch', () => {
     })
 
     act(() => jest.advanceTimersByTime(1200))
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.stringContaining('/quick-informe/result?informe=')
-    )
+    expect(onQuickReportComplete).toHaveBeenCalledWith('Doctor report content')
+    expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/quick-informe/result'))
     jest.useRealTimers()
   })
 

@@ -212,6 +212,24 @@ describe('InformePage', () => {
     setupMocks({ ...completedInforme, status: 'error', pdf_path: null })
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
     expect(screen.getByText('Error al procesar')).toBeInTheDocument()
+    // Non-quick report → record-again link points to plain grabar
+    const recordAgain = screen.getByRole('link', { name: /Grabar nuevamente/i })
+    expect(recordAgain).toHaveAttribute('href', '/informes/i-1/grabar')
+  })
+
+  it('renders error state with quick-report record-again link', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    setupMocks({
+      ...completedInforme,
+      status: 'error',
+      pdf_path: null,
+      patient_id: null,
+      patients: null,
+    })
+    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
+    // Quick report error → href includes ?type=quick (covers previously-uncovered branch)
+    const recordAgain = screen.getByRole('link', { name: /Grabar nuevamente/i })
+    expect(recordAgain).toHaveAttribute('href', '/informes/i-1/grabar?type=quick')
   })
 
   it('renders unknown status using error config', async () => {

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import imiBotNotFound from "@/../public/assets/images/imi-bot-404.png";
+import imiBotNotFound from "@/../public/assets/images/imi-bot-404.webp";
 
 export async function generateMetadata() {
   const t = await getTranslations("notFound");

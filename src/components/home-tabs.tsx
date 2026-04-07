@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InformesTab } from "@/components/tabs/informes-tab";
 import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
 import { DashboardTab } from "@/components/tabs/dashboard-tab";
-import { PlantillasTab } from "@/components/tabs/plantillas-tab";
 import type { PatientWithStats } from "@/actions/patients";
 import type { PlanInfo } from "@/actions/plan";
 import type { ChartData } from "@/actions/dashboard-charts";
@@ -24,7 +23,6 @@ interface HomeTabsProps {
     informes: string;
     misPacientes: string;
     dashboard: string;
-    plantillas: string;
   };
 }
 
@@ -50,11 +48,10 @@ function HomeTabsContent({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-4 mb-8">
+      <TabsList className="grid w-full grid-cols-3 mb-8">
         <TabsTrigger value="informes">{translations.informes}</TabsTrigger>
         <TabsTrigger value="misPacientes">{translations.misPacientes}</TabsTrigger>
         <TabsTrigger value="dashboard">{translations.dashboard}</TabsTrigger>
-        <TabsTrigger value="plantillas">{translations.plantillas}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="informes">
@@ -75,10 +72,6 @@ function HomeTabsContent({
           plan={plan}
           chartData={chartData}
         />
-      </TabsContent>
-
-      <TabsContent value="plantillas">
-        <PlantillasTab />
       </TabsContent>
     </Tabs>
   );

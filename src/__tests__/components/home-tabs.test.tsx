@@ -43,10 +43,6 @@ jest.mock('@/components/tabs/dashboard-tab', () => ({
   ),
 }))
 
-jest.mock('@/components/tabs/plantillas-tab', () => ({
-  PlantillasTab: () => <div data-testid="plantillas-tab">PlantillasTab</div>,
-}))
-
 import { HomeTabs } from '@/components/home-tabs'
 import type { PatientWithStats } from '@/actions/patients'
 import type { PlanInfo } from '@/actions/plan'
@@ -88,19 +84,17 @@ const defaultProps = {
     informes: 'Informes',
     misPacientes: 'Mis pacientes',
     dashboard: 'Dashboard',
-    plantillas: 'Plantillas',
   },
 }
 
 describe('HomeTabs', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('renders all four tab triggers', () => {
+  it('renders all three tab triggers', () => {
     render(<HomeTabs {...defaultProps} />)
     expect(screen.getByRole('tab', { name: 'Informes' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Mis pacientes' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Plantillas' })).toBeInTheDocument()
   })
 
   it('renders the active tab content (informes)', () => {
@@ -130,11 +124,6 @@ describe('HomeTabs', () => {
     expect(tab).toHaveAttribute('data-informes', '15')
   })
 
-  it('renders plantillas tab content when activeTab is plantillas', () => {
-    render(<HomeTabs {...defaultProps} activeTab="plantillas" />)
-    expect(screen.getByTestId('plantillas-tab')).toBeInTheDocument()
-  })
-
   it('calls router.push with correct tab param when a tab is clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
@@ -147,13 +136,6 @@ describe('HomeTabs', () => {
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Mis pacientes' }))
     expect(mockRouterPush).toHaveBeenCalledWith('/?tab=misPacientes')
-  })
-
-  it('calls router.push with plantillas param when plantillas tab is clicked', async () => {
-    const user = userEvent.setup()
-    render(<HomeTabs {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Plantillas' }))
-    expect(mockRouterPush).toHaveBeenCalledWith('/?tab=plantillas')
   })
 
   it('preserves existing search params when switching tabs', async () => {

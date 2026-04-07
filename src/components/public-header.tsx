@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getTranslations } from "next-intl/server";
-import logo from "@/../public/assets/images/imihealth-logo.png";
+import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 export async function PublicHeader() {
   const t = await getTranslations("nav");

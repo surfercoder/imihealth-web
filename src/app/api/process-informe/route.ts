@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
-import { transcribeAudio } from "@/lib/transcribe";
-import { getSpecialtyPrompt, PATIENT_REPORT_PROMPT } from "@/lib/prompts";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { getSpecialtyPrompt } from "@/lib/prompts";
+import {
+  resolveTranscript,
+  parseDoctorResponse,
+  parsePatientResponse,
+  generateReports,
+} from "./helpers";
+import { extractDialogInBackground } from "./dialog";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -35,25 +36,11 @@ export async function POST(request: NextRequest) {
     .eq("doctor_id", user.id);
 
   try {
-    // Transcribe audio with AssemblyAI for accurate medical transcription
-    let transcript = browserTranscript;
-    let assemblyAISucceeded = false;
-    if (audioFile && audioFile.size > 0) {
-      try {
-        const arrayBuffer = await audioFile.arrayBuffer();
-        const audioBuffer = Buffer.from(arrayBuffer);
-        const langCode = language === "en" ? "en" : "es";
-        const result = await transcribeAudio(audioBuffer, langCode);
-        if (result.text && result.text.trim().length > 0) {
-          transcript = result.text;
-          assemblyAISucceeded = true;
-        } else {
-          console.warn("[process-informe] AssemblyAI returned empty transcript");
-        }
-      } catch (transcribeError) {
-        console.error("[process-informe] AssemblyAI transcription failed:", transcribeError);
-      }
-    }
+    const { transcript, assemblyAISucceeded } = await resolveTranscript(
+      audioFile,
+      browserTranscript,
+      language,
+    );
 
     // Guard: if we have no usable transcript at all, abort early with a clear error
     const trimmedTranscript = transcript?.trim() || "";
@@ -86,71 +73,10 @@ export async function POST(request: NextRequest) {
 
     const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
 
-    // Run doctor and patient report generation in parallel for speed
-    // Doctor: Sonnet with specialty prompt | Patient: Haiku with generic prompt
-    const [doctorResponse, patientResponse] = await Promise.all([
-      anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system: specialtyPrompt,
-        messages: [
-          {
-            role: "user",
-            content: `Genera informe clínico de esta consulta. JSON puro (sin markdown):
-{"valid_medical_content": true/false, "informe_doctor": "..."}
+    const { doctorText, patientText } = await generateReports(transcript, specialtyPrompt);
 
-valid_medical_content=false si no hay info médica útil (ruido, pruebas de micrófono, etc). En ese caso informe_doctor="".
-Sigue ESTRICTAMENTE el formato de salida de tus instrucciones de sistema.
-
-TRANSCRIPCIÓN:
-${transcript}`,
-          },
-        ],
-      }),
-      anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 1500,
-        system: PATIENT_REPORT_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Genera informe para el paciente de esta consulta. JSON puro (sin markdown):
-{"informe_paciente": "..."}
-
-Si no hay info médica útil, informe_paciente="".
-
-TRANSCRIPCIÓN:
-${transcript}`,
-          },
-        ],
-      }),
-    ]);
-
-    const doctorText = doctorResponse.content[0].type === "text" ? doctorResponse.content[0].text : "{}";
-    const patientText = patientResponse.content[0].type === "text" ? patientResponse.content[0].text : "{}";
-
-    let informeDoctor = "";
-    let informePaciente = "";
-    let validMedicalContent = true;
-
-    // Parse doctor response
-    try {
-      const doctorJson = doctorText.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(doctorJson ? doctorJson[0] : doctorText);
-      validMedicalContent = parsed.valid_medical_content !== false;
-      informeDoctor = parsed.informe_doctor || "";
-    } catch {
-      if (doctorText.trim().length > 50) informeDoctor = doctorText;
-    }
-
-    // Parse patient response
-    try {
-      const patientJson = patientText.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(patientJson ? patientJson[0] : patientText);
-      informePaciente = parsed.informe_paciente || "";
-    } catch {
-      if (patientText.trim().length > 50) informePaciente = patientText;
-    }
+    const { informeDoctor, validMedicalContent } = parseDoctorResponse(doctorText);
+    const informePaciente = parsePatientResponse(patientText);
 
     const hasReports = !!(informeDoctor.trim() || informePaciente.trim());
     const isInsufficientContent = !validMedicalContent && !hasReports;
@@ -181,48 +107,7 @@ ${transcript}`,
     revalidatePath("/");
     revalidatePath(`/informes/${informeId}`);
 
-    // Fire-and-forget: extract dialog structure in background
-    anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: `Analiza esta transcripción de consulta médica y extrae el diálogo estructurado.
-
-TRANSCRIPCIÓN:
-${transcript}
-
-Responde en JSON puro (sin markdown):
-{
-  "transcript_type": "dialog" o "monologue",
-  "dialog": [{"speaker": "doctor" o "paciente", "text": "..."}]
-}
-
-- "dialog" si hay dos personas conversando, "monologue" si solo habla el doctor
-- Si es monologue, deja dialog como []
-- Infiere quién habla por contexto: doctor pregunta/diagnostica, paciente describe síntomas
-- Mantén el texto original sin modificar`,
-        },
-      ],
-    }).then(async (dialogResponse) => {
-      try {
-        const dialogText = dialogResponse.content[0].type === "text" ? dialogResponse.content[0].text : "{}";
-        const dialogJson = dialogText.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(dialogJson ? dialogJson[0] : dialogText);
-        const transcriptType = parsed.transcript_type === "monologue" ? "monologue" : "dialog";
-        const transcriptDialog = Array.isArray(parsed.dialog) && parsed.dialog.length > 0 ? parsed.dialog : null;
-        await supabase
-          .from("informes")
-          .update({ transcript_dialog: transcriptDialog, transcript_type: transcriptType })
-          .eq("id", informeId)
-          .eq("doctor_id", user.id);
-      } catch (e) {
-        console.warn("[process-informe] Background dialog extraction failed:", e);
-      }
-    }).catch((e) => {
-      console.warn("[process-informe] Background dialog extraction failed:", e);
-    });
+    extractDialogInBackground(transcript, informeId, user.id, supabase);
 
     return NextResponse.json({ success: true });
   } catch (err) {

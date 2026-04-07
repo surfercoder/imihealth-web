@@ -20,6 +20,7 @@ jest.mock('@anthropic-ai/sdk', () => {
 
 jest.mock('@/lib/prompts', () => ({
   getSpecialtyPrompt: jest.fn(() => 'default prompt'),
+  PATIENT_REPORT_PROMPT: 'patient prompt',
 }))
 
 jest.mock('@/lib/transcribe', () => ({
@@ -46,6 +47,17 @@ function makeChain(overrides: Record<string, jest.Mock> = {}) {
   return chain
 }
 
+function makeFakeBlob(): Blob {
+  const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
+  // jsdom's Blob doesn't expose arrayBuffer(), so build a minimal stand-in
+  // that satisfies the `.size` + `.arrayBuffer()` contract resolveTranscript uses.
+  return {
+    size: data.byteLength,
+    type: 'audio/webm',
+    arrayBuffer: async () => data.buffer,
+  } as unknown as Blob
+}
+
 describe('processQuickInforme', () => {
   beforeEach(() => jest.clearAllMocks())
 
@@ -66,16 +78,35 @@ describe('processQuickInforme', () => {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ informe_doctor: 'Informe médico detallado' }),
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Informe médico detallado',
+          }),
         },
       ],
     })
 
-    const result = await processQuickInforme('transcript del paciente')
+    const result = await processQuickInforme('transcript del paciente con informacion clinica')
     expect(result).toEqual({ informeDoctor: 'Informe médico detallado' })
   })
 
-  it('returns empty informeDoctor when JSON response has no informe_doctor field', async () => {
+  it('returns error when transcript is too short', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const result = await processQuickInforme('hola')
+    expect(result.error).toMatch(/transcribir el audio/i)
+    expect(mockAnthropicCreate).not.toHaveBeenCalled()
+  })
+
+  it('treats the localized browser fallback string as an empty transcript', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const result = await processQuickInforme(
+      'No se pudo transcribir la consulta automáticamente. Por favor intente nuevamente.',
+    )
+    expect(result.error).toMatch(/transcribir el audio/i)
+    expect(mockAnthropicCreate).not.toHaveBeenCalled()
+  })
+
+  it('returns error when JSON response has no informe_doctor field', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const doctorChain = makeChain()
@@ -91,11 +122,49 @@ describe('processQuickInforme', () => {
       ],
     })
 
-    const result = await processQuickInforme('transcript')
-    expect(result).toEqual({ informeDoctor: '' })
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
+    expect(result.error).toMatch(/contenido médico relevante/i)
   })
 
-  it('falls back to raw response text when JSON parsing fails', async () => {
+  it('reformats structured clinical JSON to markdown when model omits informe_doctor wrapper', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+
+    const doctorChain = makeChain()
+    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Dermatología' }, error: null })
+    mockFrom.mockReturnValue(doctorChain)
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            datos_del_encuentro: {
+              tipo_consulta: 'Consulta dermatológica por lesiones faciales',
+            },
+            subjetivo: {
+              motivo_consulta: 'Lesiones en rostro con eritema persistente',
+              sintomas: ['Fotofobia', 'Sensibilidad solar'],
+            },
+            evaluacion: {
+              diagnostico_presuntivo: { entidad: 'Rosácea', cie10: 'L71.9' },
+            },
+          }),
+        },
+      ],
+    })
+
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
+    expect(result.error).toBeUndefined()
+    expect(result.informeDoctor).toBeDefined()
+    expect(result.informeDoctor).toContain('DATOS DEL ENCUENTRO')
+    expect(result.informeDoctor).toContain('SUBJETIVO')
+    expect(result.informeDoctor).toContain('Rosácea')
+    expect(result.informeDoctor).toContain('Fotofobia, Sensibilidad solar')
+    // Should never leak raw JSON syntax
+    expect(result.informeDoctor).not.toContain('{"')
+  })
+
+  it('returns error when valid_medical_content is false', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const doctorChain = makeChain()
@@ -103,27 +172,33 @@ describe('processQuickInforme', () => {
     mockFrom.mockReturnValue(doctorChain)
 
     mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'text', text: 'plain text not json' }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ valid_medical_content: false, informe_doctor: '' }),
+        },
+      ],
     })
 
-    const result = await processQuickInforme('transcript')
-    expect(result).toEqual({ informeDoctor: 'plain text not json' })
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
+    expect(result.error).toMatch(/contenido médico relevante/i)
   })
 
-  it('handles non-text anthropic response by returning empty string', async () => {
+  it('falls back to plain-text when Anthropic returns non-JSON prose', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
     mockFrom.mockReturnValue(doctorChain)
 
+    const plainText =
+      'Paciente de 45 años que consulta por cefalea de 3 días de evolución. Examen físico sin alteraciones.'
     mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'image', source: {} }],
+      content: [{ type: 'text', text: plainText }],
     })
 
-    const result = await processQuickInforme('transcript')
-    // Non-text response => responseText = "{}" => parsed = {} => informe_doctor = ""
-    expect(result).toEqual({ informeDoctor: '' })
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
+    expect(result).toEqual({ informeDoctor: plainText })
   })
 
   it('returns error message when anthropic throws an Error', async () => {
@@ -135,7 +210,7 @@ describe('processQuickInforme', () => {
 
     mockAnthropicCreate.mockRejectedValue(new Error('API failure'))
 
-    const result = await processQuickInforme('transcript')
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
     expect(result).toEqual({ error: 'API failure' })
   })
 
@@ -148,7 +223,7 @@ describe('processQuickInforme', () => {
 
     mockAnthropicCreate.mockRejectedValue('string error')
 
-    const result = await processQuickInforme('transcript')
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
     expect(result).toEqual({ error: 'Error desconocido' })
   })
 
@@ -159,23 +234,24 @@ describe('processQuickInforme', () => {
     doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
     mockFrom.mockReturnValue(doctorChain)
 
-    mockTranscribeAudio.mockResolvedValueOnce({ text: 'AssemblyAI transcript', utterances: null })
+    mockTranscribeAudio.mockResolvedValueOnce({
+      text: 'AssemblyAI transcript con suficiente contenido',
+      utterances: null,
+    })
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ informe_doctor: 'Informe from AssemblyAI' }),
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Informe from AssemblyAI',
+          }),
         },
       ],
     })
 
-    const fakeAudioData = Buffer.from('fake audio data')
-    const fakeBlob = {
-      arrayBuffer: async () => fakeAudioData.buffer,
-    } as unknown as Blob
-
-    const result = await processQuickInforme('browser transcript', fakeBlob)
+    const result = await processQuickInforme('browser transcript', makeFakeBlob())
     expect(result).toEqual({ informeDoctor: 'Informe from AssemblyAI' })
     expect(mockTranscribeAudio).toHaveBeenCalled()
   })
@@ -193,46 +269,19 @@ describe('processQuickInforme', () => {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ informe_doctor: 'Informe from browser transcript' }),
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Informe from browser transcript',
+          }),
         },
       ],
     })
 
-    const fakeAudioData = Buffer.from('fake audio data')
-    const fakeBlob = {
-      arrayBuffer: async () => fakeAudioData.buffer,
-    } as unknown as Blob
-
-    const result = await processQuickInforme('browser transcript fallback', fakeBlob)
+    const result = await processQuickInforme(
+      'browser transcript fallback con contenido suficiente',
+      makeFakeBlob(),
+    )
     expect(result).toEqual({ informeDoctor: 'Informe from browser transcript' })
-  })
-
-  it('uses empty text from AssemblyAI as no replacement (keeps browser transcript)', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
-
-    // AssemblyAI returns empty text
-    mockTranscribeAudio.mockResolvedValueOnce({ text: '', utterances: null })
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ informe_doctor: 'Informe from browser' }),
-        },
-      ],
-    })
-
-    const fakeAudioData = Buffer.from('fake audio')
-    const fakeBlob = {
-      arrayBuffer: async () => fakeAudioData.buffer,
-    } as unknown as Blob
-
-    const result = await processQuickInforme('browser transcript', fakeBlob)
-    expect(result).toEqual({ informeDoctor: 'Informe from browser' })
   })
 
   it('passes language "en" to transcribeAudio when specified', async () => {
@@ -242,18 +291,21 @@ describe('processQuickInforme', () => {
     doctorChain.single.mockResolvedValue({ data: null, error: null })
     mockFrom.mockReturnValue(doctorChain)
 
-    mockTranscribeAudio.mockResolvedValueOnce({ text: 'English transcript', utterances: null })
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify({ informe_doctor: 'English report' }) }],
+    mockTranscribeAudio.mockResolvedValueOnce({
+      text: 'English transcript with enough content',
+      utterances: null,
     })
 
-    const fakeAudioData = Buffer.from('audio')
-    const fakeBlob = {
-      arrayBuffer: async () => fakeAudioData.buffer,
-    } as unknown as Blob
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ valid_medical_content: true, informe_doctor: 'English report' }),
+        },
+      ],
+    })
 
-    await processQuickInforme('browser', fakeBlob, 'en')
+    await processQuickInforme('browser transcript suficiente', makeFakeBlob(), 'en')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'en')
   })
 
@@ -264,18 +316,21 @@ describe('processQuickInforme', () => {
     doctorChain.single.mockResolvedValue({ data: null, error: null })
     mockFrom.mockReturnValue(doctorChain)
 
-    mockTranscribeAudio.mockResolvedValueOnce({ text: 'Spanish transcript', utterances: null })
-
-    mockAnthropicCreate.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify({ informe_doctor: 'Spanish report' }) }],
+    mockTranscribeAudio.mockResolvedValueOnce({
+      text: 'Spanish transcript con suficiente contenido',
+      utterances: null,
     })
 
-    const fakeAudioData = Buffer.from('audio')
-    const fakeBlob = {
-      arrayBuffer: async () => fakeAudioData.buffer,
-    } as unknown as Blob
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ valid_medical_content: true, informe_doctor: 'Spanish report' }),
+        },
+      ],
+    })
 
-    await processQuickInforme('browser', fakeBlob, 'es')
+    await processQuickInforme('browser transcript suficiente', makeFakeBlob(), 'es')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'es')
   })
 })

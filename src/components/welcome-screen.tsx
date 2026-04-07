@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import imiBotWelcome from "@/../public/assets/images/imi-bot-welcome.png";
+import imiBotWelcome from "@/../public/assets/images/imi-bot-welcome.webp";
 
 // Computed once per module load, stable across re-renders
 const randomMessageIndex = Math.floor(Math.random() * 10);

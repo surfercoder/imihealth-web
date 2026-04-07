@@ -46,8 +46,7 @@
   "tabs": {
     "informes": "Informes",
     "misPacientes": "Mis pacientes",
-    "dashboard": "Dashboard",
-    "plantillas": "Plantillas"
+    "dashboard": "Dashboard"
   },
   "informes": {
     "title": "Crear nuevo informe",
@@ -70,11 +69,6 @@
   "dashboard": {
     "title": "Resumen general",
     "subtitle": "Vista general de tu actividad médica"
-  },
-  "plantillas": {
-    "title": "Plantillas de informes",
-    "subtitle": "Crea y gestiona plantillas para tus informes",
-    "comingSoon": "Próximamente disponible"
   },
   "welcome": {
     "greeting": "¡Hola, {name}!",
@@ -142,8 +136,6 @@
     "optional": "opcional",
     "email": "Email (opcional)",
     "emailPlaceholder": "paciente@email.com",
-    "affiliateNumber": "Número de afiliado (opcional)",
-    "affiliateNumberPlaceholder": "Ej: 12345678",
     "cancel": "Cancelar",
     "submit": "Iniciar consulta",
     "creating": "Creando...",
@@ -229,6 +221,7 @@
     "processingHint": "La IA está analizando la consulta. Esto puede tomar unos momentos.",
     "errorProcessing": "Error al procesar",
     "errorHint": "Ocurrió un error al generar los informes. Por favor intente nuevamente.",
+    "recordAgain": "Grabar nuevamente",
     "transcript": "Transcripción de la consulta",
     "transcriptFull": "Ver texto completo",
     "interventions": "{count} intervenciones",
@@ -267,9 +260,10 @@
     "progressTranscribing": "Transcribiendo audio con AssemblyAI...",
     "progressAnalyzing": "Analizando consulta con IA...",
     "progressGenerating": "Generando informes...",
-    "progressStep1": "Extrayendo información de la transcripción...",
-    "progressStep2": "Generando informe detallado para el doctor...",
-    "progressStep3": "Generando informe amigable para el paciente...",
+    "progressStep1": "Capturando información de la transcripción...",
+    "progressStep2": "Analizando secciones a incluir en los informes...",
+    "progressStep3": "Generando los informes correspondientes...",
+    "progressStep4": "Preparando los informes para mostrar...",
     "liveTranscript": "Transcripción en tiempo real",
     "btnStart": "Iniciar grabación",
     "btnRequesting": "Accediendo al micrófono...",
@@ -397,7 +391,22 @@
   "emailButton": {
     "subject": "Informe médico - {doctorName}",
     "successTitle": "Email enviado",
-    "successMessage": "El informe médico fue enviado por email a {doctorName}."
+    "successMessage": "El informe médico fue enviado por email a {doctorName}.",
+    "emailGreeting": "Hola <strong>Dr./Dra. {doctorName}</strong>,",
+    "emailIntro": "Aquí está el informe de consulta médica generado por",
+    "emailDisclaimer": "Este informe fue generado mediante IA y debe ser revisado por un profesional médico antes de ser compartido con el paciente.",
+    "emailPreheader": "Informe médico para Dr./Dra. {doctorName}",
+    "emailFooterTagline": "Informes de consulta médica generados por IA"
+  },
+  "patientEmailButton": {
+    "subject": "Su informe médico del Dr./Dra. {doctorName}",
+    "successTitle": "Email enviado",
+    "successMessage": "El informe médico fue enviado por email a {patientName}.",
+    "emailGreeting": "Hola <strong>{patientName}</strong>,",
+    "emailIntro": "Aquí está su informe de consulta médica del Dr./Dra. {doctorName}, generado por",
+    "emailDisclaimer": "Si tiene alguna pregunta sobre este informe, por favor consulte a su médico.",
+    "emailPreheader": "Informe médico para {patientName}",
+    "emailFooterTagline": "Informes de consulta médica generados por IA"
   },
   "doctorWhatsappButton": {
     "message": "Informe médico del Dr./Dra. {doctorName}:\n\n{reportContent}",

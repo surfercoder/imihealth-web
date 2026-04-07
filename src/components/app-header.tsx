@@ -9,7 +9,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { logout } from "@/actions/auth";
 import { useTranslations } from "next-intl";
 import { useCurrentTab } from "@/hooks/use-current-tab";
-import logo from "@/../public/assets/images/imihealth-logo.png";
+import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 interface AppHeaderProps {
   doctorName?: string | null;

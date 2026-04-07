@@ -237,7 +237,7 @@ describe('InformesTab', () => {
     expect(screen.queryByText('Some error')).not.toBeInTheDocument()
   })
 
-  it('includes optional fields (dob, affiliateNumber) in FormData when provided', async () => {
+  it('includes optional fields (dob, email) in FormData when provided', async () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-1' } })
     const user = userEvent.setup()
@@ -248,14 +248,12 @@ describe('InformesTab', () => {
     await user.type(screen.getByLabelText(/Fecha de nacimiento/i), '1990-01-01')
     await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
     await user.type(screen.getByLabelText(/Email/i), 'juan@email.com')
-    await user.type(screen.getByLabelText(/Número de afiliado/i), 'AF-12345')
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
       expect(mockCreatePatient).toHaveBeenCalledWith(expect.any(FormData))
       const fd: FormData = mockCreatePatient.mock.calls[0][0]
       expect(fd.get('dob')).toBe('1990-01-01')
       expect(fd.get('email')).toBe('juan@email.com')
-      expect(fd.get('affiliateNumber')).toBe('AF-12345')
     })
   })
 })

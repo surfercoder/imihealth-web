@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { AudioRecorder } from "@/components/audio-recorder";
+import { QuickInformeFlow } from "@/components/quick-informe-flow";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -61,11 +61,9 @@ export default async function QuickInformePage() {
           </p>
         </div>
 
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <Suspense>
-            <AudioRecorder informeId={quickInformeId} doctorId={user.id} isQuickReport={true} />
-          </Suspense>
-        </div>
+        <Suspense>
+          <QuickInformeFlow informeId={quickInformeId} doctorId={user.id} />
+        </Suspense>
 
         <div className="mt-6 rounded-lg border bg-card p-4 text-sm shadow-sm">
           <p className="font-medium mb-1 text-card-foreground">{t("grabarPage.howItWorks")}</p>

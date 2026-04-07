@@ -1,13 +1,13 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { transcribeAudio } from "@/lib/transcribe";
 import { getSpecialtyPrompt } from "@/lib/prompts";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import {
+  extractTextFromContent,
+  generateDoctorReport,
+  parseDoctorResponse,
+  resolveTranscript,
+} from "@/app/api/process-informe/helpers";
 
 export async function processQuickInforme(
   browserTranscript: string,
@@ -21,24 +21,40 @@ export async function processQuickInforme(
   if (!user) return { error: "No autenticado" };
 
   try {
-    let transcript = browserTranscript;
+    // The browser may pass through a localized fallback string when its
+    // SpeechRecognition produced nothing. Treat that as "no transcript" so we
+    // don't end up sending the literal error message to AssemblyAI/Anthropic.
+    const browserFallbackMarkers = [
+      "No se pudo transcribir",
+      "could not be transcribed",
+    ];
+    const isBrowserFallback = browserFallbackMarkers.some((marker) =>
+      browserTranscript.includes(marker),
+    );
+    const cleanedBrowserTranscript = isBrowserFallback ? "" : browserTranscript;
 
-    // Transcribe audio with AssemblyAI if provided
-    if (audioBlob) {
-      try {
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = Buffer.from(arrayBuffer);
-        const langCode = language === "en" ? "en" : "es";
-        const result = await transcribeAudio(audioBuffer, langCode);
-        if (result.text) {
-          transcript = result.text;
-        }
-      } catch (transcribeError) {
-        console.warn("AssemblyAI transcription failed, using browser transcript:", transcribeError);
-      }
+    console.info(
+      `[quick-informe] start: browserTranscriptLen=${browserTranscript.length}, isBrowserFallback=${isBrowserFallback}, audioBlobSize=${audioBlob?.size ?? 0}`,
+    );
+
+    const { transcript, assemblyAISucceeded } = await resolveTranscript(
+      audioBlob ?? null,
+      cleanedBrowserTranscript,
+      language,
+    );
+
+    const trimmedTranscript = transcript?.trim() || "";
+    console.info(
+      `[quick-informe] transcript ready: len=${trimmedTranscript.length}, assemblyAISucceeded=${assemblyAISucceeded}`,
+    );
+
+    if (trimmedTranscript.length < 10) {
+      return {
+        error:
+          "No se pudo transcribir el audio. Verificá el micrófono y la conexión, y volvé a intentarlo.",
+      };
     }
 
-    // Fetch doctor's specialty for prompt selection
     const { data: doctorData } = await supabase
       .from("doctors")
       .select("especialidad")
@@ -47,42 +63,34 @@ export async function processQuickInforme(
 
     const specialtyPrompt = getSpecialtyPrompt(doctorData?.especialidad);
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: specialtyPrompt,
-      messages: [
-        {
-          role: "user",
-          content: `Genera informe clínico de esta consulta. JSON puro (sin markdown):
-{"informe_doctor": "..."}
+    const doctorResponse = await generateDoctorReport(
+      trimmedTranscript,
+      specialtyPrompt,
+    );
+    const doctorText = extractTextFromContent(doctorResponse);
 
-Sigue ESTRICTAMENTE el formato de salida de tus instrucciones de sistema.
+    const parsed = parseDoctorResponse(doctorText);
+    const { validMedicalContent } = parsed;
+    // Defensive: if a stale or buggy parser returns a non-string here, coerce
+    // to empty so the no-content branch fires instead of crashing.
+    const rawInformeDoctor: unknown = parsed.informeDoctor;
+    const informeDoctor: string =
+      typeof rawInformeDoctor === "string" ? rawInformeDoctor : "";
 
-TRANSCRIPCIÓN:
-${transcript}`,
-        },
-      ],
-    });
-
-    const responseText =
-      response.content[0].type === "text"
-        ? response.content[0].text
-        : "{}";
-
-    let informeDoctor = "";
-
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    try {
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-      informeDoctor = parsed.informe_doctor || "";
-    } catch {
-      informeDoctor = responseText;
+    if (!validMedicalContent || !informeDoctor.trim()) {
+      console.warn(
+        `[quick-informe] no usable doctor report: validMedicalContent=${validMedicalContent}, informeDoctorType=${typeof rawInformeDoctor}, informeDoctorLen=${informeDoctor.length}`,
+      );
+      return {
+        error:
+          "No se detectó contenido médico relevante en la grabación. Volvé a intentarlo.",
+      };
     }
 
     return { informeDoctor };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
+    console.error("[quick-informe] processing error:", err);
     return { error: message };
   }
 }

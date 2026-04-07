@@ -1,0 +1,94 @@
+import * as React from "react"
+
+// Format: { THEME_NAME: CSS_SELECTOR }
+export const THEMES = { light: "", dark: ".dark" } as const
+
+export const INITIAL_DIMENSION = { width: 320, height: 200 } as const
+
+export type ChartConfig = Record<
+  string,
+  {
+    label?: React.ReactNode
+    icon?: React.ComponentType
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )
+>
+
+type ChartContextProps = {
+  config: ChartConfig
+}
+
+export const ChartContext = React.createContext<ChartContextProps | null>(null)
+
+export function useChart() {
+  const context = React.useContext(ChartContext)
+
+  if (!context) {
+    throw new Error("useChart must be used within a <ChartContainer />")
+  }
+
+  return context
+}
+
+export type DefaultTooltipContentProps = {
+  active?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any[]
+  label?: React.ReactNode
+  separator?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formatter?: (value: any, name: any, item: any, index: number, payload: any) => React.ReactNode
+  labelFormatter?: (label: React.ReactNode, payload: unknown[]) => React.ReactNode
+  labelClassName?: string
+  accessibilityLayer?: boolean
+}
+
+export type DefaultLegendContentProps = {
+  payload?: Array<{
+    value?: string
+    type?: string
+    id?: string
+    color?: string
+    dataKey?: string | number
+  }>
+  verticalAlign?: "top" | "bottom" | "middle"
+}
+
+// Helper to extract item config from a payload.
+export function getPayloadConfigFromPayload(
+  config: ChartConfig,
+  payload: unknown,
+  key: string
+) {
+  if (typeof payload !== "object" || payload === null) {
+    return undefined
+  }
+
+  const payloadPayload =
+    "payload" in payload &&
+    typeof payload.payload === "object" &&
+    payload.payload !== null
+      ? payload.payload
+      : undefined
+
+  let configLabelKey: string = key
+
+  if (
+    key in payload &&
+    typeof payload[key as keyof typeof payload] === "string"
+  ) {
+    configLabelKey = payload[key as keyof typeof payload] as string
+  } else if (
+    payloadPayload &&
+    key in payloadPayload &&
+    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
+  ) {
+    configLabelKey = payloadPayload[
+      key as keyof typeof payloadPayload
+    ] as string
+  }
+
+  return configLabelKey in config ? config[configLabelKey] : config[key]
+}

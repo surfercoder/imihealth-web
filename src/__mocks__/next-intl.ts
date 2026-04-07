@@ -35,6 +35,20 @@ export function useTranslations(namespace?: string) {
     }
     return result;
   };
+  t.markup = (key: string, params?: Record<string, unknown>) => {
+    const raw = getNestedValue(base as Record<string, unknown>, key);
+    if (typeof raw !== "string") return key;
+    let result = raw;
+    if (params) {
+      result = result.replace(/<(\w+)>(.*?)<\/\1>/g, (_, tag, content) => {
+        const fn = params[tag];
+        if (typeof fn === "function") return String(fn(content));
+        return content;
+      });
+      result = result.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));
+    }
+    return result;
+  };
   return t;
 }
 

@@ -19,7 +19,7 @@ export async function sendEmail({ to, subject, text, html }: SendEmailOptions) {
   });
 
   const mailOptions: nodemailer.SendMailOptions = {
-    from: `"IMI Health" <${process.env.EMAIL_USER}>`,
+    from: `"IMI Health" <${process.env.EMAIL_FROM ?? process.env.EMAIL_USER}>`,
     to,
     subject,
     text,

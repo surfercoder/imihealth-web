@@ -3,90 +3,39 @@ import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { getTranslations, getLocale } from "next-intl/server";
-import {
-  ArrowLeft,
-  User,
-  Phone,
-  Calendar,
-  FileText,
-  Clock,
-  AlertCircle,
-  Loader2,
-  Mail,
-  Home,
-} from "lucide-react";
+import { Clock, Home } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { TranscriptDialog, type DialogTurn } from "@/components/transcript-dialog";
-import { TranscriptMonologue } from "@/components/transcript-monologue";
+import { type DialogTurn } from "@/components/transcript-dialog";
 import { InformeEditor } from "@/components/informe-editor";
+import { PatientCard } from "@/components/informe-page/patient-card";
+import { InformeBreadcrumb } from "@/components/informe-page/informe-breadcrumb";
+import {
+  InformeProcessingPanel,
+  InformeErrorPanel,
+} from "@/components/informe-page/informe-status-panel";
+import {
+  TranscriptSection,
+  buildTranscriptSummary,
+} from "@/components/informe-page/transcript-section";
+import {
+  formatDob,
+  calculateAge,
+  formatCreatedAt,
+  normalizePhone,
+} from "@/components/informe-page/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }
 
-const statusVariants: Record<string, "secondary" | "default" | "destructive"> = {
-  recording: "secondary",
-  processing: "secondary",
-  completed: "default",
-  error: "destructive",
-};
-
-const statusIcons = {
-  recording: Clock,
-  processing: Loader2,
-  completed: FileText,
-  error: AlertCircle,
-};
-
 export const metadata: Metadata = {
   title: "Informe | IMI Health",
   description: "Detalle del informe médico",
 };
-
-function PatientCard({ patient, dobFormatted, patientAge, yearsOldLabel }: {
-  patient: { name: string; phone: string; email: string | null };
-  dobFormatted: string | null;
-  patientAge: number | null;
-  yearsOldLabel: string;
-}) {
-  return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="flex items-start gap-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <User className="size-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base text-card-foreground">{patient.name}</p>
-          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Phone className="size-3.5" />
-              {patient.phone}
-            </span>
-            {dobFormatted && (
-              <span className="flex items-center gap-1.5">
-                <Calendar className="size-3.5" />
-                {dobFormatted}{patientAge !== null && ` (${patientAge} ${yearsOldLabel})`}
-              </span>
-            )}
-            {patient.email && (
-              <span className="flex items-center gap-1.5">
-                <Mail className="size-3.5" />
-                {patient.email}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 export default async function InformePage({ params, searchParams }: Props) {
   const { id } = await params;
@@ -129,46 +78,19 @@ export default async function InformePage({ params, searchParams }: Props) {
     email: string | null;
   } | null;
 
-  const dobFormatted = patient?.dob
-    ? new Date(patient.dob + "T00:00:00").toLocaleDateString(dateLocale, {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-
-  const patientAge = patient?.dob
-    ? (() => {
-        const today = new Date();
-        const birth = new Date(patient.dob + "T00:00:00");
-        let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        return age;
-      })()
-    : null;
-
-  const createdAt = new Date(informe.created_at).toLocaleDateString(dateLocale, {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const statusKey = informe.status as keyof typeof statusIcons;
-  const StatusIcon = statusIcons[statusKey] ?? AlertCircle;
-  const statusVariant = statusVariants[informe.status] ?? "destructive";
-  const statusLabel = t(`status.${statusKey}` as Parameters<typeof t>[0]);
+  const dobFormatted = formatDob(patient?.dob ?? null, dateLocale);
+  const patientAge = calculateAge(patient?.dob ?? null);
+  const createdAt = formatCreatedAt(informe.created_at, dateLocale);
+  const statusLabel = t(`status.${informe.status}` as Parameters<typeof t>[0]);
 
   // Generate PDF URL on-demand via API route (no storage)
   const pdfUrl = (informe.status === "completed" && informe.informe_paciente && patient)
     ? `/api/pdf/informe?id=${id}`
     : null;
 
-  const whatsappPhone = patient?.phone ? patient.phone.replace(/\D/g, "") : undefined;
+  const whatsappPhone = normalizePhone(patient?.phone);
   /* v8 ignore next */
-  const doctorWhatsappPhone = doctor?.phone ? doctor.phone.replace(/\D/g, "") : undefined;
+  const doctorWhatsappPhone = normalizePhone(doctor?.phone);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
@@ -176,37 +98,15 @@ export default async function InformePage({ params, searchParams }: Props) {
         <AppHeader doctorName={doctor?.name} />
       </Suspense>
 
-      <div className="border-b border-border/40">
-        <div className="mx-auto flex h-11 max-w-5xl items-center gap-3 px-6">
-          {patient ? (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={tab ? `/patients/${patient.id}?tab=${tab}` : `/patients/${patient.id}`}>
-                  <ArrowLeft className="size-4 mr-1.5" />
-                  {patient.name}
-                </Link>
-              </Button>
-              <Separator orientation="vertical" className="h-5" />
-              <span className="text-sm text-foreground/60 truncate">{t("nav.report")}</span>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={tab ? `/?tab=${tab}` : "/"}>
-                  <ArrowLeft className="size-4 mr-1.5" />
-                  {t("nav.home")}
-                </Link>
-              </Button>
-              <Separator orientation="vertical" className="h-5" />
-              <span className="text-sm text-foreground/60 truncate">{t("informes.quick")}</span>
-            </>
-          )}
-          <Badge variant={statusVariant} className="ml-auto flex items-center gap-1.5 text-xs">
-            <StatusIcon className="size-3" />
-            {statusLabel}
-          </Badge>
-        </div>
-      </div>
+      <InformeBreadcrumb
+        patient={patient}
+        tab={tab}
+        reportLabel={t("nav.report")}
+        homeLabel={t("nav.home")}
+        quickLabel={t("informes.quick")}
+        status={informe.status}
+        statusLabel={statusLabel}
+      />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -237,23 +137,20 @@ export default async function InformePage({ params, searchParams }: Props) {
         )}
 
         {informe.status === "processing" && (
-          <div className="flex flex-col items-center justify-center rounded-xl border bg-card p-16 text-center shadow-sm">
-            <Loader2 className="size-10 text-primary animate-spin mb-4" />
-            <p className="font-medium text-card-foreground">{t("informePage.processing")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("informePage.processingHint")}
-            </p>
-          </div>
+          <InformeProcessingPanel
+            processingLabel={t("informePage.processing")}
+            processingHint={t("informePage.processingHint")}
+          />
         )}
 
         {informe.status === "error" && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-16 text-center">
-            <AlertCircle className="size-10 text-destructive mb-4" />
-            <p className="font-medium text-destructive">{t("informePage.errorProcessing")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("informePage.errorHint")}
-            </p>
-          </div>
+          <InformeErrorPanel
+            informeId={id}
+            isQuickReport={isQuickReport}
+            errorLabel={t("informePage.errorProcessing")}
+            errorHint={t("informePage.errorHint")}
+            recordAgainLabel={t("informePage.recordAgain")}
+          />
         )}
 
         {informe.status === "completed" && (
@@ -262,6 +159,7 @@ export default async function InformePage({ params, searchParams }: Props) {
             informeDoctor={informe.informe_doctor || ""}
             informePaciente={informe.informe_paciente || ""}
             patientName={patient?.name}
+            patientEmail={patient?.email}
             pdfUrl={pdfUrl}
             whatsappPhone={whatsappPhone}
             doctorName={doctor?.name}
@@ -272,33 +170,21 @@ export default async function InformePage({ params, searchParams }: Props) {
         )}
 
         {informe.transcript && (
-          <details className="rounded-xl border bg-card shadow-sm overflow-hidden group">
-            <summary className="flex cursor-pointer items-center gap-2 px-5 py-4 text-sm font-medium text-card-foreground hover:bg-muted transition-colors select-none">
-              <FileText className="size-4 text-muted-foreground" />
-              {t("informePage.transcript")}
-              <span className="ml-auto text-xs text-muted-foreground">
-                {informe.transcript_dialog
-                  ? t("informePage.interventions", { count: (informe.transcript_dialog as DialogTurn[]).length })
-                  : informe.transcript_type === "monologue"
-                  ? t("informePage.monologue")
-                  : t("informePage.transcriptFull")}
-              </span>
-            </summary>
-            <div className="border-t px-5 py-6">
-              {informe.transcript_type === "monologue" ? (
-                <TranscriptMonologue transcript={informe.transcript} />
-              ) : informe.transcript_dialog ? (
-                <TranscriptDialog
-                  dialog={informe.transcript_dialog as DialogTurn[]}
-                  patientName={patient?.name ?? "Patient"}
-                />
-              ) : (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">
-                  {informe.transcript}
-                </p>
-              )}
-            </div>
-          </details>
+          <TranscriptSection
+            transcript={informe.transcript}
+            transcriptType={informe.transcript_type}
+            transcriptDialog={informe.transcript_dialog as DialogTurn[] | null}
+            patientName={patient?.name ?? null}
+            transcriptLabel={t("informePage.transcript")}
+            summaryLabel={buildTranscriptSummary({
+              transcriptDialog: informe.transcript_dialog as DialogTurn[] | null,
+              transcriptType: informe.transcript_type,
+              interventionsLabel: (count) =>
+                t("informePage.interventions", { count }),
+              monologueLabel: t("informePage.monologue"),
+              fullLabel: t("informePage.transcriptFull"),
+            })}
+          />
         )}
 
       </main>

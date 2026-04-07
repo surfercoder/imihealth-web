@@ -402,7 +402,7 @@ describe('POST /api/process-informe', () => {
     expect(mockGetSpecialtyPrompt).toHaveBeenCalledWith('cardiologia')
     // Doctor call uses specialty prompt
     expect(mockAnthropicCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ system: 'Specialty system prompt for cardiologia', model: 'claude-sonnet-4-6' })
+      expect.objectContaining({ system: 'Specialty system prompt for cardiologia', model: 'claude-haiku-4-5-20251001' })
     )
     // Patient call uses generic patient prompt with Haiku
     expect(mockAnthropicCreate).toHaveBeenCalledWith(
