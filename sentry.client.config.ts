@@ -70,9 +70,11 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
   };
 
   if (document.readyState === "complete") {
-    // Already loaded, defer slightly to let main thread settle
-    setTimeout(initReplay, 2000);
+    // Delay well past TTI (~4-5s) so Replay JS execution doesn't contribute
+    // to Total Blocking Time. The chunk executes in ~245ms and must fire
+    // after the CPU is already idle (i.e., after Time to Interactive).
+    setTimeout(initReplay, 8000);
   } else {
-    window.addEventListener("load", () => setTimeout(initReplay, 2000));
+    window.addEventListener("load", () => setTimeout(initReplay, 8000));
   }
 }
