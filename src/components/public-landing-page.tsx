@@ -135,11 +135,11 @@ export async function PublicLandingPage() {
       </main>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <p className="text-sm text-foreground/60">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-4 sm:h-14 sm:flex-row sm:justify-between sm:gap-3 sm:py-0">
+          <p className="text-center text-sm text-foreground/60 sm:text-left">
             {t("copyright", { year: new Date().getFullYear() })}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-3">
             <FeedbackDialog doctorName={null} doctorEmail={null} />
             <Link href="/manifest" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               {tNav("manifest")}

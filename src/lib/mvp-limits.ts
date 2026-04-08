@@ -7,6 +7,6 @@
  */
 
 export const MVP_LIMITS = {
-  MAX_DOCTORS: 15,
+  MAX_DOCTORS: 20,
   MAX_INFORMES_PER_DOCTOR: 10,
 } as const;
