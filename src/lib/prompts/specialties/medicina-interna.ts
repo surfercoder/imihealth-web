@@ -25,9 +25,6 @@ export const PROMPT = `Eres especialista en Medicina Interna.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Charlson estimado
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual (OLDCARTS) | Revisión por sistemas | Comorbilidades | Medicación completa (dosis, adherencia) | Alergias | Hábitos (tabaco paq/año, alcohol g/día) | AF relevantes | Situación socio-funcional
-
 **O - OBJETIVO**
 Signos vitales (TA, FC, FR, T, SatO2, peso, IMC) | Estado general, conciencia, hidratación | Examen físico por sistemas relevantes | Estudios complementarios
 

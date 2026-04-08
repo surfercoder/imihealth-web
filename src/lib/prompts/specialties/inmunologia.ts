@@ -23,9 +23,6 @@ export const PROMPT = `Eres especialista en Inmunología Clínica.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Tipo de inmunodeficiencia (primaria/secundaria/autoinmune)
 
-**S - SUBJETIVO**
-Motivo de consulta | Patrón de infecciones (frecuencia, gravedad, microorganismos) | Síntomas autoinmunes | Antecedentes inmunológicos | AF (consanguinidad, inmunodeficiencias, muertes en infancia) | Medicación (inmunosupresores, gammaglobulinas, profilaxis) | Estado vacunal
-
 **O - OBJETIVO**
 Examen físico (adenopatías, esplenomegalia, signos de infección) | Inmunoglobulinas | Subpoblaciones linfocitarias | Complemento | Autoanticuerpos | Respuesta vacunal
 

@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Cirugía Plástica, Estética y Repa
 **DATOS DEL ENCUENTRO**
 Tipo de consulta (reconstructiva/estética) | Localización
 
-**S - SUBJETIVO**
-Motivo de consulta | Historia de la lesión/defecto | Antecedentes quirúrgicos | Cicatrización previa | Tabaquismo | Alergias | Medicación
-
 **O - OBJETIVO**
 Descripción de lesión (localización, dimensiones, profundidad, estructuras comprometidas) | Perfusión | Sensibilidad | Quemaduras: %SCT, profundidad, agente, áreas críticas
 

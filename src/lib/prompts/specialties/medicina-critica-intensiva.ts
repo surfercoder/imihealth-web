@@ -23,9 +23,6 @@ export const PROMPT = `Eres especialista en Medicina Intensiva / Medicina Críti
 **DATOS DEL ENCUENTRO**
 Fecha | Día de estancia en UCI | Diagnóstico de ingreso
 
-**S - SUBJETIVO**
-Diagnósticos activos | Eventos relevantes últimas 24h
-
 **O - OBJETIVO / VALORACIÓN POR SISTEMAS**
 Neurológico: Glasgow, RASS, pupilas, sedación | Hemodinámico: FC, PA, PAM, PVC, vasopresores, balance hídrico | Respiratorio: modo ventilatorio, parámetros, gasometría, PaO2/FiO2 | Renal: creatinina, diuresis, TRR | GI/Nutricional: tolerancia, vía, aportes | Hematológico: hemograma, coagulación | Infeccioso: foco, cultivos, ATB, PCT
 

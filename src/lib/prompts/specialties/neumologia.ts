@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Neumología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Tabaquismo (paquetes/año, estado)
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas respiratorios (cronología, severidad) | Antecedentes neumológicos (diagnósticos, exacerbaciones, hospitalizaciones) | Exposiciones (tabaco, laboral, ambiental) | Medicación actual (inhaladores, O2, CPAP)
-
 **O - OBJETIVO**
 Signos vitales (SatO2) | Auscultación pulmonar | Signos de dificultad respiratoria | Función pulmonar (espirometría, DLCO, test marcha 6min) | Gasometría | Imagen (Rx/TC tórax)
 

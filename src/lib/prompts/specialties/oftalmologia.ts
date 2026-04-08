@@ -23,9 +23,6 @@ export const PROMPT = `Eres especialista en Oftalmología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Ojo afectado
 
-**S - SUBJETIVO**
-Motivo de consulta | Historia oftalmológica actual | Antecedentes oftalmológicos y cirugías oculares | Medicación tópica/sistémica | Antecedentes médicos
-
 **O - OBJETIVO**
 AV (OD/OI, sc/cc) | PIO (OD/OI) | Lámpara de hendidura (segmento anterior bilateral) | Fondo de ojo bilateral | Motilidad ocular y pupilas | Campo visual si disponible
 

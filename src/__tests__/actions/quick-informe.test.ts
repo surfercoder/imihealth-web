@@ -181,8 +181,8 @@ describe('processQuickInforme', () => {
             datos_del_encuentro: {
               tipo_consulta: 'Consulta dermatológica por lesiones faciales',
             },
-            subjetivo: {
-              motivo_consulta: 'Lesiones en rostro con eritema persistente',
+            objetivo: {
+              hallazgos: 'Lesiones en rostro con eritema persistente',
               sintomas: ['Fotofobia', 'Sensibilidad solar'],
             },
             evaluacion: {
@@ -197,7 +197,7 @@ describe('processQuickInforme', () => {
     expect(result.error).toBeUndefined()
     expect(result.informeDoctor).toBeDefined()
     expect(result.informeDoctor).toContain('DATOS DEL ENCUENTRO')
-    expect(result.informeDoctor).toContain('SUBJETIVO')
+    expect(result.informeDoctor).toContain('OBJETIVO')
     expect(result.informeDoctor).toContain('Rosácea')
     expect(result.informeDoctor).toContain('Fotofobia, Sensibilidad solar')
     expect(result.informeDoctor).not.toContain('{"')

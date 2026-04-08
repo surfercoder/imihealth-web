@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Otorrinolaringología (ORL).
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Lateralidad
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Antecedentes ORL y quirúrgicos | Alergias | Medicación | Exposición a ruido
-
 **O - OBJETIVO**
 Otoscopía bilateral | Audición (acumetría) | Endoscopía nasosinusal | Orofaringe y laringoscopía | Evaluación cervical (masas, adenopatías) | Evaluación vestibular si aplica (nistagmo, Dix-Hallpike)
 

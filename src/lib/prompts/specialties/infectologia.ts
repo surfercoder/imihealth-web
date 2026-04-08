@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Infectología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Contexto epidemiológico
 
-**S - SUBJETIVO**
-Motivo de consulta | Síndrome infeccioso (cronología, evolución) | Factores de riesgo (inmunosupresión, viajes, contactos, exposiciones) | Antecedentes infecciosos | Antimicrobianos recientes | Medicación actual
-
 **O - OBJETIVO**
 Signos vitales (T°, FC, FR, TA, SatO2) | Foco infeccioso | Hallazgos sistémicos | Resultados microbiológicos (cultivos, antibiograma, serologías, PCR)
 

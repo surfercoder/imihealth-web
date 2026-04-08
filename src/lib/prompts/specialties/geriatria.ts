@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Geriatría.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Clinical Frailty Scale
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Multimorbilidad | Medicación completa | Capacidad funcional referida | Cognición y ánimo | Contexto social (cuidador, vivienda)
-
 **O - OBJETIVO**
 Signos vitales (incluir TA ortostática) | Valoración geriátrica integral: funcional (Barthel/Katz/Lawton), cognitiva (MMSE/MoCA), afectiva (Yesavage), nutricional (MNA, peso, IMC), marcha y equilibrio | Fragilidad (Fried/CFS) | Examen físico relevante
 

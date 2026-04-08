@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Medicina del Deporte y Medicina Fís
 **DATOS DEL ENCUENTRO**
 Motivo de consulta | Contexto deportivo/funcional (actividad, nivel, objetivos)
 
-**S - SUBJETIVO**
-Mecanismo de lesión | Síntomas | Antecedentes de lesiones previas | Medicación
-
 **O - OBJETIVO**
 ROM | Fuerza (MRC) | Estabilidad articular | Pruebas especiales | Evaluación neurológica (SCAT6 si concusión) | Estudios complementarios
 

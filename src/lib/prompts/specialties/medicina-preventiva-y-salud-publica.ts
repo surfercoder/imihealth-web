@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Medicina Preventiva y Salud Pública
 **DATOS DEL ENCUENTRO**
 Tipo de evaluación (chequeo preventivo, cribado, vacunación, contacto epidemiológico)
 
-**S - SUBJETIVO**
-Factores de riesgo identificados (CV, oncológico, infeccioso, conductual) | Hábitos de vida (tabaco, alcohol, ejercicio, alimentación, sueño) | Estado vacunal (al día, pendientes, contraindicaciones) | Cribados realizados (fecha, resultado) y pendientes | Antecedentes personales y familiares relevantes
-
 **O - OBJETIVO**
 Signos vitales | Examen físico | Estratificación de riesgo (CV, oncológico)
 

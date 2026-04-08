@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Cirugía Ortopédica y Traumatologí
 **DATOS DEL ENCUENTRO**
 Tipo de consulta (primera vez/control/urgencia) | Lateralidad
 
-**S - SUBJETIVO**
-Motivo de consulta | Mecanismo lesional (cinemática) | Tiempo de evolución | Dolor (OLDCARTS, EVA) | Limitación funcional | Antecedentes traumatológicos | Tratamientos previos
-
 **O - OBJETIVO**
 Inspección (deformidad, edema, equimosis, heridas) | Palpación (puntos dolorosos, crepitación) | ROM articular (activo/pasivo, grados) | Maniobras especiales con resultado | Evaluación neurovascular distal | Hallazgos imagenológicos
 

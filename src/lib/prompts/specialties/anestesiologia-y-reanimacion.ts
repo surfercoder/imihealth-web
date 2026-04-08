@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Anestesiología y Reanimación.
 **DATOS DEL ENCUENTRO**
 Procedimiento quirúrgico programado | Clasificación ASA
 
-**S - SUBJETIVO**
-Motivo de evaluación | Antecedentes médicos relevantes (CV, respiratorios, endocrinos, hepáticos, renales) | Medicación habitual y ajustes perioperatorios | Alergias y reacciones adversas previas | Antecedentes anestésicos
-
 **O - OBJETIVO**
 Signos vitales (peso, talla, IMC) | Evaluación de vía aérea (Mallampati, DTM, apertura bucal, movilidad cervical) | Exámenes complementarios (laboratorio, ECG, Rx, ecocardiograma)
 

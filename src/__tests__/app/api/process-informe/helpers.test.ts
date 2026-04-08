@@ -92,7 +92,7 @@ describe("parseDoctorResponse", () => {
   it("renders structured clinical JSON to markdown when wrapper missing", () => {
     const text = JSON.stringify({
       datos_del_encuentro: { tipo: "Control" },
-      subjetivo: {
+      objetivo: {
         motivo: "tos",
         sintomas: ["fiebre", "tos"],
         // nested object with multiple keys → its rendered form contains "\n",
@@ -104,7 +104,7 @@ describe("parseDoctorResponse", () => {
     });
     const result = parseDoctorResponse(text);
     expect(result.informeDoctor).toContain("DATOS DEL ENCUENTRO");
-    expect(result.informeDoctor).toContain("SUBJETIVO");
+    expect(result.informeDoctor).toContain("OBJETIVO");
     expect(result.informeDoctor).toContain("fiebre, tos");
     expect(result.informeDoctor).toContain("Accion");
     expect(result.informeDoctor).toContain("Antecedentes");
@@ -120,7 +120,7 @@ describe("parseDoctorResponse", () => {
   it("returns empty array values inline as empty markdown", () => {
     // exercises the items.length === 0 branch and the !rendered.trim() continue branch
     const text = JSON.stringify({
-      subjetivo: {
+      objetivo: {
         sintomas: [],
         notas: "",
         motivo: "Dolor abdominal",
@@ -147,7 +147,7 @@ describe("parseDoctorResponse", () => {
 
   it("renders numeric and boolean values inside structured clinical JSON", () => {
     const text = JSON.stringify({
-      subjetivo: {
+      objetivo: {
         edad: 45,
         fumador: true,
       },
@@ -165,11 +165,11 @@ describe("parseDoctorResponse", () => {
   it("renders an object informe_doctor as markdown", () => {
     const text = JSON.stringify({
       valid_medical_content: true,
-      informe_doctor: { subjetivo: "dolor", objetivo: "TA 120/80" },
+      informe_doctor: { objetivo: "TA 120/80", evaluacion: "estable" },
     });
     const result = parseDoctorResponse(text);
-    expect(result.informeDoctor).toContain("SUBJETIVO");
-    expect(result.informeDoctor).toContain("dolor");
+    expect(result.informeDoctor).toContain("OBJETIVO");
+    expect(result.informeDoctor).toContain("TA 120/80");
   });
 
   it("falls back to extractJsonStringField when JSON is truncated", () => {

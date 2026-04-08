@@ -26,9 +26,6 @@ export const PROMPT = `Eres especialista en Urología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Sexo y edad
 
-**S - SUBJETIVO**
-Motivo de consulta | LUTS (almacenamiento/vaciamiento/post-miccionales) con severidad | IPSS estimado | Hematuria si presente | Síntomas asociados (dolor, fiebre, sexuales) | Antecedentes urológicos | Medicación actual | AF (cáncer próstata, litiasis)
-
 **O - OBJETIVO**
 Signos vitales | Examen abdominal (puño-percusión, globo vesical) | Examen genital | Tacto rectal | Estudios (PSA, ecografía, uroTC, urocultivo, uroflujometría)
 

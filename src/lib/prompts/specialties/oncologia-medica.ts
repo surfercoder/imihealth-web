@@ -23,9 +23,6 @@ export const PROMPT = `Eres especialista en Oncología Médica.
 **DATOS DEL ENCUENTRO**
 Diagnóstico oncológico (histología, biomarcadores, estadio TNM) | ECOG
 
-**S - SUBJETIVO**
-Motivo de consulta | Tratamiento actual (esquema, ciclo, dosis, ajustes) | Síntomas (dolor, náuseas, astenia) | Toxicidad referida
-
 **O - OBJETIVO**
 Examen físico (hallazgos oncológicos, ECOG) | Laboratorio (hemograma, función renal/hepática, marcadores tumorales) | Imagen (TC, PET-TC, RM: hallazgos y comparación con previos)
 

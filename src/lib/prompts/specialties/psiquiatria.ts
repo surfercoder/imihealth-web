@@ -23,9 +23,6 @@ export const PROMPT = `Eres especialista en Psiquiatría.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Derivado por
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas psiquiátricos (cronología, precipitantes) | Antecedentes psiquiátricos (diagnósticos, hospitalizaciones, intentos suicidio, tratamientos previos) | Uso de sustancias (tipo, cantidad, frecuencia, patrón) | AF psiquiátricos
-
 **O - OBJETIVO**
 Examen del estado mental: apariencia | conducta | habla | ánimo/afecto | pensamiento | percepción | cognición | insight/juicio | Evaluación de riesgo (suicida, heteroagresivo, autolesiones)
 

@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Cirugía Torácica.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Lateralidad
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Tabaquismo (paquetes/año) | Exposiciones | Antecedentes quirúrgicos y comorbilidades | Medicación
-
 **O - OBJETIVO**
 Signos vitales (SatO2) | Inspección torácica | Auscultación | Percusión | Enfisema subcutáneo | Función pulmonar (espirometría, DLCO)
 

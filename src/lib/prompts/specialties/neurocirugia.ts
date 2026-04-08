@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Neurocirugía.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | GCS si aplica
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Antecedentes neurológicos y quirúrgicos | Medicación (anticoagulación) | Alergias
-
 **O - OBJETIVO**
 Conciencia | Pupilas | Pares craneales | Motor (fuerza por segmentos) | Sensitivo | Reflejos | Signos meníngeos | Estudios de imagen (TC, RMN, angiografía)
 

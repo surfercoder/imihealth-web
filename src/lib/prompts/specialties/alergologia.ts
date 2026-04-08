@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Alergología e Inmunología Clínica
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Clasificación de gravedad alérgica
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas alérgicos (prurito, rinorrea, sibilancias, urticaria, edema, GI) | Cronología y estacionalidad | Relación con alérgenos específicos | Atopia personal y familiar | Medicación actual | Tratamientos previos y respuesta
-
 **O - OBJETIVO**
 Examen físico (mucosa nasal, piel, auscultación pulmonar) | Pruebas alérgicas (prick test, IgE específica) | Espirometría si aplica
 

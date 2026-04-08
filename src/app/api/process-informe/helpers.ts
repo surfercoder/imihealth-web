@@ -159,12 +159,11 @@ function renderObjectAsMarkdown(obj: object): string {
 /**
  * When the model returns a parsed JSON object with no `informe_doctor` field
  * but the object itself looks like a clinical-report structure (e.g. has keys
- * like `subjetivo`, `objetivo`, `evaluacion`, `plan`, etc.), convert the whole
+ * like `objetivo`, `evaluacion`, `plan`, etc.), convert the whole
  * object into a markdown report so the doctor sees something usable.
  */
 function looksLikeClinicalStructure(obj: Record<string, unknown>): boolean {
   const knownKeys = [
-    "subjetivo",
     "objetivo",
     "evaluacion",
     "plan",
@@ -193,7 +192,7 @@ export function parseDoctorResponse(doctorText: string): DoctorParseResult {
     validMedicalContent = parsed.valid_medical_content !== false;
     informeDoctor = coerceReportField(parsed.informe_doctor);
     // Fallback: model ignored the wrapper and returned the clinical structure
-    // directly (e.g. {datos_del_encuentro: {...}, subjetivo: {...}, ...}).
+    // directly (e.g. {datos_del_encuentro: {...}, objetivo: {...}, ...}).
     // Render the whole parsed object as markdown so the doctor still gets a
     // readable report.
     if (
@@ -271,7 +270,7 @@ REGLAS DE SALIDA (OBLIGATORIAS):
 4. Si no hay información médica útil (ruido, prueba de micrófono, etc), devolvé exactamente: {"valid_medical_content": false, "informe_doctor": ""}
 
 EJEMPLO DE RESPUESTA VÁLIDA:
-{"valid_medical_content": true, "informe_doctor": "**DATOS DEL ENCUENTRO**\\nConsulta de control...\\n\\n**S - SUBJETIVO**\\n..."}
+{"valid_medical_content": true, "informe_doctor": "**DATOS DEL ENCUENTRO**\\nConsulta de control...\\n\\n**O - OBJETIVO**\\n..."}
 
 TRANSCRIPCIÓN:
 ${transcript}`,

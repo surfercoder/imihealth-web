@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Dermatología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Fototipo de Fitzpatrick
 
-**S - SUBJETIVO**
-Motivo de consulta | Tiempo de evolución | Síntomas (prurito, ardor, dolor, sangrado) | Desencadenantes | Tratamientos previos y respuesta | Antecedentes dermatológicos | Exposición solar/ocupacional | Medicación actual
-
 **O - OBJETIVO**
 Descripción morfológica (tipo, color, forma, bordes, superficie, tamaño, número) | Distribución y topografía | Dermatoscopia | ABCDE si lesión pigmentada | Mucosas y faneras | Signos específicos
 

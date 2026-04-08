@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Nefrología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Estadio ERC KDIGO si conocido
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas nefrológicos (evolución) | Antecedentes nefrológicos (ERC, AKI, biopsias, diálisis, trasplante) | Comorbilidades (DM, HTA, autoinmunes) | Medicación actual (nefroprotección, inmunosupresores, quelantes, EPO)
-
 **O - OBJETIVO**
 TA | Edemas | Fístula AV/catéter | Laboratorio (creatinina, TFGe, electrolitos, gasometría, orina, proteinuria) | Ecografía renal | Biopsia si aplica
 

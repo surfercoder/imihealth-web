@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Reumatología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Diagnóstico reumatológico de base
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas articulares y extraarticulares | Rigidez matutina (duración) | Capacidad funcional | Antecedentes reumatológicos (tiempo evolución, tratamientos previos) | Medicación actual (FAMEs, biológicos, corticoides: dosis, adherencia, EA)
-
 **O - OBJETIVO**
 Examen articular: SJC28/TJC28, deformidades, rango movimiento | Examen extraarticular: piel, ojos, boca, Raynaud, nódulos | Laboratorio (autoanticuerpos, RFA, función renal, hemograma) | Imagen (Rx, eco articular, RM)
 

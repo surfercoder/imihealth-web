@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Medicina Familiar y Comunitaria.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Enfoque biopsicosocial
 
-**S - SUBJETIVO**
-Motivo de consulta (principal y secundarios) | Enfermedad actual (enfoque biopsicosocial) | Antecedentes personales (crónicos, cirugías, alergias) | AF relevantes | Medicación actual (adherencia, efectos adversos) | Hábitos (tabaco, alcohol, ejercicio, alimentación) | Actividades preventivas (vacunación, cribados realizados y pendientes)
-
 **O - OBJETIVO**
 Signos vitales | Examen físico (hallazgos relevantes)
 

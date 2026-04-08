@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Cirugía Pediátrica.
 **DATOS DEL PACIENTE**
 Edad exacta | Peso | Percentil | Acompañante
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Congénito vs adquirido | Antecedentes perinatales | Quirúrgicos | Vacunación | Alergias | Medicación
-
 **O - OBJETIVO**
 Examen general pediátrico | Estado nutricional e hidratación | Examen abdominal | Inguinoescrotal si aplica | Tolerancia oral
 

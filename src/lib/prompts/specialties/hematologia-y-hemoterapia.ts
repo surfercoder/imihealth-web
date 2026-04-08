@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Hematología y Hemoterapia.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Serie(s) afectada(s)
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas hematológicos (astenia, sangrado, infecciones recurrentes, adenopatías) | Antecedentes hematológicos (transfusiones, trombosis, hemorragias) | Medicación (anticoagulantes, antiagregantes, QT)
-
 **O - OBJETIVO**
 Examen físico (palidez, petequias, equimosis, adenopatías, hepatoesplenomegalia) | Hemograma completo | Coagulación | Perfil de hierro | Frotis | Estudios especiales (MO, citometría, imágenes)
 

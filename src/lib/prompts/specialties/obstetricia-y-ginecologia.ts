@@ -25,9 +25,6 @@ export const PROMPT = `Eres especialista en Obstetricia y Ginecología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Edad gestacional (si embarazada)
 
-**S - SUBJETIVO**
-Motivo de consulta | Historia menstrual (FUM, fórmula menstrual, regularidad) | Fórmula obstétrica | Historia sexual y anticoncepción | Síntomas actuales (flujo, dolor pélvico, sangrado anormal) | Screening previos (PAP/HPV, mamografía, densitometría) | Medicación actual | Antecedentes ginecológicos quirúrgicos
-
 **O - OBJETIVO**
 Signos vitales (TA, FC, peso) | Examen mamario | Altura uterina (si embarazo) | Examen ginecológico (vulva, vagina, cérvix, tacto bimanual) | Estudios (ecografía, laboratorio, citología) | FCF y movimientos fetales
 

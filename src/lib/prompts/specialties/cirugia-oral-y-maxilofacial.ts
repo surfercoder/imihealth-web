@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Cirugía Oral y Maxilofacial.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Región afectada
 
-**S - SUBJETIVO**
-Motivo de consulta | Historia del trauma/enfermedad | Antecedentes dentales y quirúrgicos | Alergias | Medicación
-
 **O - OBJETIVO**
 Examen facial (inspección, palpación ósea) | Oclusión | Apertura bucal | Nervio facial | Sensibilidad | Examen intraoral (mucosa, dentición, lesiones) | ATM si aplica
 

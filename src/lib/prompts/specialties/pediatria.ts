@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Pediatría.
 **DATOS DEL ENCUENTRO**
 Edad (años/meses/días) | Acompañante
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual (síntomas, cronología, tratamientos dados por padres) | Antecedentes perinatales (EG, peso nacer, APGAR si relevante) | Alimentación (tipo, frecuencia) | Desarrollo psicomotor (hitos según edad) | Estado vacunal | Antecedentes personales y familiares
-
 **O - OBJETIVO**
 Signos vitales (con normales para edad) | Peso/talla en percentilos | Examen segmentario | Estado de hidratación
 

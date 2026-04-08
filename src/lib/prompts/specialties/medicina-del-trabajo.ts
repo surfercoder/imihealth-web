@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Medicina del Trabajo.
 **DATOS DEL ENCUENTRO**
 Datos del trabajador (nombre, edad, sexo, puesto, empresa, antigüedad) | Tipo de evaluación
 
-**S - SUBJETIVO**
-Riesgos laborales del puesto | Anamnesis laboral (historial de puestos, exposiciones previas, accidentes) | Síntomas actuales (relación temporal con trabajo) | Antecedentes personales relevantes
-
 **O - OBJETIVO**
 Examen físico (hallazgos relevantes para el puesto) | Estudios complementarios (audiometría, espirometría, laboratorio toxicológico)
 

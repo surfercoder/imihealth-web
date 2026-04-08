@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Endocrinología y Nutrición.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Eje endocrino evaluado | IMC y perímetro abdominal
 
-**S - SUBJETIVO**
-Motivo de consulta | Evolución del cuadro endocrinológico | Síntomas por eje (poliuria/polidipsia, intolerancia frío/calor, cambios peso, astenia) | Automonitoreo glucémico | Medicación actual (dosis, adherencia, efectos adversos) | Antecedentes endocrinológicos | Patrón alimentario
-
 **O - OBJETIVO**
 Signos vitales (peso, talla, IMC, perímetro abdominal) | Signos endocrinos relevantes (tiroides, piel, distribución grasa) | Laboratorio (HbA1c, perfil tiroideo, lipídico, glucemias, Ca, vitamina D) | Estudios (ecografía tiroidea, densitometría)
 

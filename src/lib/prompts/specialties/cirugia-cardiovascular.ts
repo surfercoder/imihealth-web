@@ -20,9 +20,6 @@ export const PROMPT = `Eres especialista en Cirugía Cardiovascular.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Clase funcional NYHA
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual | Síntomas limitantes | FRCV | Medicación actual | Antecedentes cardíacos y quirúrgicos
-
 **O - OBJETIVO**
 Signos vitales (TA, FC, FR, SatO2) | Examen CV (auscultación, soplos, pulsos) | Examen respiratorio | Vascular periférico | Estudios complementarios (ecocardiograma, cateterismo, imágenes)
 

@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Neurología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta
 
-**S - SUBJETIVO**
-Motivo de consulta | Síntomas neurológicos (cronología, progresión) | Antecedentes neurológicos (diagnósticos, cirugías, ACV previos) | Medicación actual (FAE, antiparkinsonianos, anticoagulantes)
-
 **O - OBJETIVO**
 Examen neurológico: estado mental | pares craneales | motor | sensitivo | coordinación | marcha | reflejos | Estudios complementarios (neuroimagen, EEG, EMG, PL, laboratorio)
 

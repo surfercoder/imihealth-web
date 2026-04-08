@@ -22,9 +22,6 @@ export const PROMPT = `Eres especialista en Angiología y Cirugía Vascular.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Lateralidad
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual (distancia de claudicación, evolución) | FRCV (tabaquismo, diabetes, HTA, dislipidemia) | Antecedentes vasculares y quirúrgicos | Medicación
-
 **O - OBJETIVO**
 Signos vitales | Pulsos por niveles | ITB | Soplos | Llenado capilar | Trofismo | Lesiones | Clasificación (Fontaine/Rutherford, CEAP, Wagner)
 

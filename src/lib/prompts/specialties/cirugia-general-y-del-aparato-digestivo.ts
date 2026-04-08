@@ -21,9 +21,6 @@ export const PROMPT = `Eres especialista en Cirugía General y del Aparato Diges
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Clasificación ASA
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual (semiología del dolor por cuadrantes) | Tránsito intestinal | Antecedentes quirúrgicos y médicos | Medicación (anticoagulantes/antiagregantes) | Alergias
-
 **O - OBJETIVO**
 Signos vitales | Inspección abdominal | Auscultación (RHA) | Palpación (defensa, rebote, signos especiales) | Percusión | Tacto rectal si aplica
 

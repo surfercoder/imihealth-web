@@ -24,9 +24,6 @@ export const PROMPT = `Eres especialista en Cardiología.
 **DATOS DEL ENCUENTRO**
 Tipo de consulta | Riesgo CV global estimado
 
-**S - SUBJETIVO**
-Motivo de consulta | Enfermedad actual (OLDCARTS) | Clase funcional NYHA | FRCV | Medicación actual | Antecedentes CV | AF cardiovasculares
-
 **O - OBJETIVO**
 Signos vitales (TA, FC, FR, SatO2) | Examen CV (auscultación, pulsos, congestión/bajo gasto) | ECG | Estudios complementarios
 
