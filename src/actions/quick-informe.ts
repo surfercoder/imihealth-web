@@ -9,16 +9,49 @@ import {
   resolveTranscript,
 } from "@/app/api/process-informe/helpers";
 
+type ProcessQuickInformeResult = {
+  informeRapidoId?: string;
+  informeDoctor?: string;
+  error?: string;
+};
+
 export async function processQuickInforme(
   browserTranscript: string,
   audioBlob?: Blob,
   language: string = "es"
-): Promise<{ informeDoctor?: string; error?: string }> {
+): Promise<ProcessQuickInformeResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+
+  // Create the persistent record up-front so we have an id we can update at
+  // the end (which fires Supabase Realtime → notification on the client).
+  const { data: created, error: createError } = await supabase
+    .from("informes_rapidos")
+    .insert({ doctor_id: user.id, status: "processing" })
+    .select("id")
+    .single();
+
+  if (createError || !created) {
+    console.error("[quick-informe] failed to create row:", createError);
+    return { error: createError?.message || "No se pudo crear el informe rápido" };
+  }
+
+  const informeRapidoId = created.id as string;
+
+  const failWith = async (errorMessage: string) => {
+    await supabase
+      .from("informes_rapidos")
+      .update({
+        status: "error",
+        error_message: errorMessage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", informeRapidoId);
+    return { informeRapidoId, error: errorMessage };
+  };
 
   try {
     // The browser may pass through a localized fallback string when its
@@ -34,7 +67,7 @@ export async function processQuickInforme(
     const cleanedBrowserTranscript = isBrowserFallback ? "" : browserTranscript;
 
     console.info(
-      `[quick-informe] start: browserTranscriptLen=${browserTranscript.length}, isBrowserFallback=${isBrowserFallback}, audioBlobSize=${audioBlob?.size ?? 0}`,
+      `[quick-informe] start: id=${informeRapidoId}, browserTranscriptLen=${browserTranscript.length}, isBrowserFallback=${isBrowserFallback}, audioBlobSize=${audioBlob?.size ?? 0}`,
     );
 
     const { transcript, assemblyAISucceeded } = await resolveTranscript(
@@ -49,10 +82,9 @@ export async function processQuickInforme(
     );
 
     if (trimmedTranscript.length < 10) {
-      return {
-        error:
-          "No se pudo transcribir el audio. Verificá el micrófono y la conexión, y volvé a intentarlo.",
-      };
+      return await failWith(
+        "No se pudo transcribir el audio. Verificá el micrófono y la conexión, y volvé a intentarlo.",
+      );
     }
 
     const { data: doctorData } = await supabase
@@ -81,16 +113,30 @@ export async function processQuickInforme(
       console.warn(
         `[quick-informe] no usable doctor report: validMedicalContent=${validMedicalContent}, informeDoctorType=${typeof rawInformeDoctor}, informeDoctorLen=${informeDoctor.length}`,
       );
-      return {
-        error:
-          "No se detectó contenido médico relevante en la grabación. Volvé a intentarlo.",
-      };
+      return await failWith(
+        "No se detectó contenido médico relevante en la grabación. Volvé a intentarlo.",
+      );
     }
 
-    return { informeDoctor };
+    const { error: updateError } = await supabase
+      .from("informes_rapidos")
+      .update({
+        status: "completed",
+        transcript: trimmedTranscript,
+        informe_doctor: informeDoctor,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", informeRapidoId);
+
+    if (updateError) {
+      console.error("[quick-informe] failed to persist completion:", updateError);
+      return await failWith(updateError.message);
+    }
+
+    return { informeRapidoId, informeDoctor };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
     console.error("[quick-informe] processing error:", err);
-    return { error: message };
+    return await failWith(message);
   }
 }

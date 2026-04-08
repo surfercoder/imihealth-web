@@ -33,24 +33,58 @@ import { processQuickInforme } from '@/actions/quick-informe'
 const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
+const RAPIDO_ID = 'rapido-1'
 
-function makeChain(overrides: Record<string, jest.Mock> = {}) {
-  const chain: Record<string, jest.Mock> = {
-    select: jest.fn(),
-    eq: jest.fn(),
-    single: jest.fn(),
-  }
-  Object.assign(chain, overrides)
-  chain.select.mockReturnValue(chain)
-  chain.eq.mockReturnValue(chain)
-  chain.single.mockReturnValue(chain)
-  return chain
+/**
+ * Wires `supabase.from()` to return per-table chain stubs that mirror the
+ * shape used by `processQuickInforme`:
+ *   - `informes_rapidos`: insert(...).select('id').single() and update(...).eq('id', ...)
+ *   - `doctors`: select('especialidad').eq('id', ...).single()
+ */
+function mockTables({
+  doctorEspecialidad = null,
+  insertError = null,
+  updateError = null,
+}: {
+  doctorEspecialidad?: string | null
+  insertError?: { message: string } | null
+  updateError?: { message: string } | null
+} = {}) {
+  const insertSingle = jest.fn().mockResolvedValue(
+    insertError
+      ? { data: null, error: insertError }
+      : { data: { id: RAPIDO_ID }, error: null },
+  )
+  const updateEq = jest.fn().mockResolvedValue({ error: updateError })
+  const doctorSingle = jest.fn().mockResolvedValue({
+    data: doctorEspecialidad ? { especialidad: doctorEspecialidad } : null,
+    error: null,
+  })
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'informes_rapidos') {
+      return {
+        insert: jest.fn(() => ({
+          select: jest.fn(() => ({ single: insertSingle })),
+        })),
+        update: jest.fn(() => ({ eq: updateEq })),
+      }
+    }
+    if (table === 'doctors') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({ single: doctorSingle })),
+        })),
+      }
+    }
+    return {}
+  })
+
+  return { insertSingle, updateEq, doctorSingle }
 }
 
 function makeFakeBlob(): Blob {
   const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
-  // jsdom's Blob doesn't expose arrayBuffer(), so build a minimal stand-in
-  // that satisfies the `.size` + `.arrayBuffer()` contract resolveTranscript uses.
   return {
     size: data.byteLength,
     type: 'audio/webm',
@@ -67,12 +101,16 @@ describe('processQuickInforme', () => {
     expect(result).toEqual({ error: 'No autenticado' })
   })
 
-  it('returns informeDoctor on success with valid JSON response', async () => {
+  it('returns error when the persistent informes_rapidos row cannot be created', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables({ insertError: { message: 'rls denied' } })
+    const result = await processQuickInforme('transcript con suficiente contenido')
+    expect(result).toEqual({ error: 'rls denied' })
+  })
 
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+  it('returns informeDoctor and informeRapidoId on success with valid JSON response', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const { updateEq } = mockTables({ doctorEspecialidad: 'Cardiología' })
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
@@ -87,18 +125,26 @@ describe('processQuickInforme', () => {
     })
 
     const result = await processQuickInforme('transcript del paciente con informacion clinica')
-    expect(result).toEqual({ informeDoctor: 'Informe médico detallado' })
+    expect(result).toEqual({
+      informeRapidoId: RAPIDO_ID,
+      informeDoctor: 'Informe médico detallado',
+    })
+    // Persisted on success
+    expect(updateEq).toHaveBeenCalled()
   })
 
   it('returns error when transcript is too short', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables()
     const result = await processQuickInforme('hola')
     expect(result.error).toMatch(/transcribir el audio/i)
+    expect(result.informeRapidoId).toBe(RAPIDO_ID)
     expect(mockAnthropicCreate).not.toHaveBeenCalled()
   })
 
   it('treats the localized browser fallback string as an empty transcript', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables()
     const result = await processQuickInforme(
       'No se pudo transcribir la consulta automáticamente. Por favor intente nuevamente.',
     )
@@ -108,10 +154,7 @@ describe('processQuickInforme', () => {
 
   it('returns error when JSON response has no informe_doctor field', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
@@ -128,10 +171,7 @@ describe('processQuickInforme', () => {
 
   it('reformats structured clinical JSON to markdown when model omits informe_doctor wrapper', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Dermatología' }, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables({ doctorEspecialidad: 'Dermatología' })
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
@@ -160,16 +200,12 @@ describe('processQuickInforme', () => {
     expect(result.informeDoctor).toContain('SUBJETIVO')
     expect(result.informeDoctor).toContain('Rosácea')
     expect(result.informeDoctor).toContain('Fotofobia, Sensibilidad solar')
-    // Should never leak raw JSON syntax
     expect(result.informeDoctor).not.toContain('{"')
   })
 
   it('returns error when valid_medical_content is false', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
@@ -186,10 +222,7 @@ describe('processQuickInforme', () => {
 
   it('falls back to plain-text when Anthropic returns non-JSON prose', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     const plainText =
       'Paciente de 45 años que consulta por cefalea de 3 días de evolución. Examen físico sin alteraciones.'
@@ -198,41 +231,32 @@ describe('processQuickInforme', () => {
     })
 
     const result = await processQuickInforme('transcript con suficiente contenido para procesar')
-    expect(result).toEqual({ informeDoctor: plainText })
+    expect(result).toEqual({ informeRapidoId: RAPIDO_ID, informeDoctor: plainText })
   })
 
   it('returns error message when anthropic throws an Error', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockAnthropicCreate.mockRejectedValue(new Error('API failure'))
 
     const result = await processQuickInforme('transcript con suficiente contenido para procesar')
-    expect(result).toEqual({ error: 'API failure' })
+    expect(result).toEqual({ informeRapidoId: RAPIDO_ID, error: 'API failure' })
   })
 
   it('returns generic error message when a non-Error is thrown', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockAnthropicCreate.mockRejectedValue('string error')
 
     const result = await processQuickInforme('transcript con suficiente contenido para procesar')
-    expect(result).toEqual({ error: 'Error desconocido' })
+    expect(result).toEqual({ informeRapidoId: RAPIDO_ID, error: 'Error desconocido' })
   })
 
   it('uses AssemblyAI transcript when audioBlob is provided and transcription succeeds', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables({ doctorEspecialidad: 'Cardiología' })
 
     mockTranscribeAudio.mockResolvedValueOnce({
       text: 'AssemblyAI transcript con suficiente contenido',
@@ -252,16 +276,16 @@ describe('processQuickInforme', () => {
     })
 
     const result = await processQuickInforme('browser transcript', makeFakeBlob())
-    expect(result).toEqual({ informeDoctor: 'Informe from AssemblyAI' })
+    expect(result).toEqual({
+      informeRapidoId: RAPIDO_ID,
+      informeDoctor: 'Informe from AssemblyAI',
+    })
     expect(mockTranscribeAudio).toHaveBeenCalled()
   })
 
   it('falls back to browser transcript when AssemblyAI transcription fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables({ doctorEspecialidad: 'Cardiología' })
 
     mockTranscribeAudio.mockRejectedValueOnce(new Error('AssemblyAI down'))
 
@@ -281,15 +305,15 @@ describe('processQuickInforme', () => {
       'browser transcript fallback con contenido suficiente',
       makeFakeBlob(),
     )
-    expect(result).toEqual({ informeDoctor: 'Informe from browser transcript' })
+    expect(result).toEqual({
+      informeRapidoId: RAPIDO_ID,
+      informeDoctor: 'Informe from browser transcript',
+    })
   })
 
   it('passes language "en" to transcribeAudio when specified', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockTranscribeAudio.mockResolvedValueOnce({
       text: 'English transcript with enough content',
@@ -311,10 +335,7 @@ describe('processQuickInforme', () => {
 
   it('passes language "es" to transcribeAudio for non-en language', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-
-    const doctorChain = makeChain()
-    doctorChain.single.mockResolvedValue({ data: null, error: null })
-    mockFrom.mockReturnValue(doctorChain)
+    mockTables()
 
     mockTranscribeAudio.mockResolvedValueOnce({
       text: 'Spanish transcript con suficiente contenido',

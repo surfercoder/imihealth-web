@@ -18,8 +18,8 @@ jest.mock('sonner', () => ({
 
 // Track subscriptions for triggering payloads in tests
 type PayloadCallback = (payload: {
-  old: { id: string; status: string; patient_id: string } | null;
-  new: { id: string; status: string; patient_id: string };
+  old: { id: string; status: string; patient_id?: string } | null;
+  new: { id: string; status: string; patient_id?: string };
 }) => void
 
 const mockRemoveChannel = jest.fn()
@@ -27,14 +27,24 @@ const mockSubscribe = jest.fn().mockReturnThis()
 const mockOn = jest.fn().mockReturnThis()
 const mockChannel = jest.fn()
 
-// Store the registered callback so tests can invoke it
+// Track the registered callbacks per-table so tests can invoke either the
+// classic `informes` channel or the new `informes_rapidos` channel.
+const callbacksByTable = new Map<string, PayloadCallback>()
+
+// Backwards-compat handle for tests that fire the classic-channel callback.
 let registeredPayloadCallback: PayloadCallback | null = null
 
 mockOn.mockImplementation(
-  (_event: string, _filter: unknown, callback: PayloadCallback) => {
-    registeredPayloadCallback = callback
+  (
+    _event: string,
+    filter: { table: string } | unknown,
+    callback: PayloadCallback,
+  ) => {
+    const table = (filter as { table?: string })?.table
+    if (table) callbacksByTable.set(table, callback)
+    if (table === 'informes' || !table) registeredPayloadCallback = callback
     return { subscribe: mockSubscribe }
-  }
+  },
 )
 mockChannel.mockReturnValue({ on: mockOn })
 
@@ -63,15 +73,23 @@ describe('RealtimeNotificationsProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     registeredPayloadCallback = null
+    callbacksByTable.clear()
     mockGet.mockReturnValue(null)
     mockSingleFn.mockResolvedValue({ data: { name: 'Juan Pérez' } })
 
-    // Re-set up mockOn to capture callback
+    // Re-set up mockOn to capture callbacks by table.
     mockOn.mockImplementation(
-      (_event: string, _filter: unknown, callback: PayloadCallback) => {
-        registeredPayloadCallback = callback
+      (
+        _event: string,
+        filter: { table: string } | unknown,
+        callback: PayloadCallback,
+      ) => {
+        const table = (filter as { table?: string })?.table
+        if (table) callbacksByTable.set(table, callback)
+        if (table === 'informes' || !table)
+          registeredPayloadCallback = callback
         return { subscribe: mockSubscribe }
-      }
+      },
     )
     mockChannel.mockReturnValue({ on: mockOn })
   })
@@ -333,5 +351,91 @@ describe('RealtimeNotificationsProvider', () => {
     unmount()
 
     expect(mockRemoveChannel).toHaveBeenCalled()
+  })
+
+  describe('quick informes channel', () => {
+    it('subscribes to postgres_changes on informes_rapidos table', () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+      expect(mockChannel).toHaveBeenCalledWith(
+        'doctor-notifications-quick:user-1',
+      )
+      expect(mockOn).toHaveBeenCalledWith(
+        'postgres_changes',
+        expect.objectContaining({
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'informes_rapidos',
+          filter: 'doctor_id=eq.user-1',
+        }),
+        expect.any(Function),
+      )
+    })
+
+    it('shows a quick-report toast when status flips to completed', async () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      expect(quickCb).toBeDefined()
+
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-1', status: 'processing' },
+          new: { id: 'rap-1', status: 'completed' },
+        })
+      })
+
+      expect(mockToastSuccess).toHaveBeenCalled()
+    })
+
+    it('navigates to /informes-rapidos/{id} when the toast action is clicked', async () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-2', status: 'processing' },
+          new: { id: 'rap-2', status: 'completed' },
+        })
+      })
+
+      const toastOptions = mockToastSuccess.mock.calls[0][1] as {
+        action: { onClick: () => void }
+      }
+      act(() => {
+        toastOptions.action.onClick()
+      })
+
+      expect(mockPush).toHaveBeenCalledWith('/informes-rapidos/rap-2')
+    })
+
+    it('does not show a quick-report toast when status is not completed', async () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-3', status: 'processing' },
+          new: { id: 'rap-3', status: 'error' },
+        })
+      })
+
+      expect(mockToastSuccess).not.toHaveBeenCalled()
+    })
   })
 })

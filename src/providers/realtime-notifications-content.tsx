@@ -18,6 +18,7 @@ function RealtimeNotificationsContentInner({
   const searchParams = useNextSearchParams();
   const t = useTranslations("notifications");
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const quickChannelRef = useRef<RealtimeChannel | null>(null);
   const shownNotificationsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -81,9 +82,62 @@ function RealtimeNotificationsContentInner({
 
     channelRef.current = channel;
 
+    // Mirror the same notification flow for quick reports. They live in a
+    // separate table (`informes_rapidos`) so they need their own subscription.
+    const quickChannel = supabase
+      .channel(`doctor-notifications-quick:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "informes_rapidos",
+          filter: `doctor_id=eq.${userId}`,
+        },
+        (payload) => {
+          const oldData = payload.old as {
+            id: string;
+            status: string;
+          } | null;
+
+          const newData = payload.new as {
+            id: string;
+            status: string;
+          };
+
+          if (
+            newData.status === "completed" &&
+            oldData?.status !== "completed"
+          ) {
+            if (shownNotificationsRef.current.has(newData.id)) {
+              return;
+            }
+
+            shownNotificationsRef.current.add(newData.id);
+
+            toast.success(t("newQuickReportTitle"), {
+              description: t("newQuickReportDescription"),
+              action: {
+                label: t("viewReport"),
+                onClick: () => {
+                  nav.push(`/informes-rapidos/${newData.id}`);
+                },
+              },
+              duration: Infinity,
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    quickChannelRef.current = quickChannel;
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+      }
+      if (quickChannelRef.current) {
+        supabase.removeChannel(quickChannelRef.current);
       }
     };
   }, [userId, nav, t, searchParams]);

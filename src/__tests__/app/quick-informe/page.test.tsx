@@ -35,9 +35,8 @@ jest.mock('@/components/app-footer', () => ({
 }))
 
 jest.mock('@/components/quick-informe-flow', () => ({
-  QuickInformeFlow: ({ informeId, doctorId }: { informeId: string; doctorId: string }) => (
+  QuickInformeFlow: ({ doctorId }: { doctorId: string }) => (
     <div data-testid="audio-recorder">
-      <span data-testid="informe-id">{informeId}</span>
       <span data-testid="doctor-id">{doctorId}</span>
       <span data-testid="is-quick">true</span>
     </div>
@@ -110,14 +109,6 @@ describe('QuickInformePage', () => {
     mockFrom.mockReturnValue(makeChain({ data: { name: 'Dr. López' }, error: null }))
     render(await QuickInformePage())
     expect(screen.getByTestId('doctor-id')).toHaveTextContent('doctor-1')
-  })
-
-  it('renders an informeId with the "quick-" prefix', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: { name: 'Dr. López' }, error: null }))
-    render(await QuickInformePage())
-    const informeId = screen.getByTestId('informe-id').textContent ?? ''
-    expect(informeId).toMatch(/^quick-doctor-1-/)
   })
 
   it('renders back link to home (/)', async () => {

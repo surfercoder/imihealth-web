@@ -39,16 +39,31 @@ import { processQuickInforme } from '@/actions/quick-informe'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
-function makeChain() {
-  const chain: Record<string, jest.Mock> = {
-    select: jest.fn(),
-    eq: jest.fn(),
-    single: jest.fn(),
-  }
-  chain.select.mockReturnValue(chain)
-  chain.eq.mockReturnValue(chain)
-  chain.single.mockResolvedValue({ data: null, error: null })
-  return chain
+function setupTableMocks() {
+  const insertSingle = jest
+    .fn()
+    .mockResolvedValue({ data: { id: 'rapido-1' }, error: null })
+  const updateEq = jest.fn().mockResolvedValue({ error: null })
+  const doctorSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'informes_rapidos') {
+      return {
+        insert: jest.fn(() => ({
+          select: jest.fn(() => ({ single: insertSingle })),
+        })),
+        update: jest.fn(() => ({ eq: updateEq })),
+      }
+    }
+    if (table === 'doctors') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({ single: doctorSingle })),
+        })),
+      }
+    }
+    return {}
+  })
 }
 
 describe('processQuickInforme defensive coercion', () => {
@@ -56,7 +71,7 @@ describe('processQuickInforme defensive coercion', () => {
 
   it('coerces non-string informeDoctor to empty and returns no-content error', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain())
+    setupTableMocks()
 
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await processQuickInforme(

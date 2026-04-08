@@ -61,7 +61,9 @@
     "doctorReport": "Informe del Doctor",
     "copiedToClipboard": "Informe copiado al portapapeles",
     "copyError": "No se pudo copiar al portapapeles",
-    "createAnother": "Crear otro informe"
+    "createAnother": "Crear otro informe",
+    "quickProcessingHint": "Estamos generando tu informe rápido. Esto puede tardar unos segundos.",
+    "quickErrorHint": "Hubo un problema al generar el informe rápido. Volvé a intentarlo."
   },
   "patients": {
     "subtitle": "Gestiona y busca tus pacientes"
@@ -801,6 +803,8 @@
   "notifications": {
     "newReportTitle": "Nuevo informe generado",
     "newReportDescription": "El informe de {patientName} está listo",
+    "newQuickReportTitle": "Informe rápido generado",
+    "newQuickReportDescription": "Tu informe rápido está listo para copiar",
     "viewReport": "Ver informe",
     "unknownPatient": "Paciente desconocido"
   },

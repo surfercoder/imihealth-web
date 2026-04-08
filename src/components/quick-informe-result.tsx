@@ -10,10 +10,9 @@ import { toast } from "sonner";
 
 interface QuickInformeResultProps {
   informe: string;
-  onCreateAnother?: () => void;
 }
 
-export function QuickInformeResult({ informe, onCreateAnother }: QuickInformeResultProps) {
+export function QuickInformeResult({ informe }: QuickInformeResultProps) {
   const t = useTranslations();
   const router = useRouter();
   const [isCopied, setIsCopied] = useState(false);
@@ -63,7 +62,7 @@ export function QuickInformeResult({ informe, onCreateAnother }: QuickInformeRes
           {t("nav.home")}
         </Button>
         <Button
-          onClick={() => (onCreateAnother ? onCreateAnother() : router.push("/quick-informe"))}
+          onClick={() => router.push("/quick-informe")}
           className="flex-1"
         >
           {t("informes.createAnother")}

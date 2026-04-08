@@ -15,7 +15,7 @@ interface UseAudioRecordingArgs {
   informeId: string;
   doctorId: string;
   isQuickReport?: boolean;
-  onQuickReportComplete?: (informeDoctor: string) => void;
+  onQuickReportComplete?: (informeRapidoId: string) => void;
 }
 
 export function useAudioRecording({

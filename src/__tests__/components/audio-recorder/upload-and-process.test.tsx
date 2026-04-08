@@ -86,8 +86,11 @@ describe('uploadAndProcess (quick report flow)', () => {
     global.fetch = jest.fn()
   })
 
-  it('dispatches done on success and invokes onQuickReportComplete with the report', async () => {
-    mockProcessQuickInforme.mockResolvedValue({ informeDoctor: 'My report' })
+  it('dispatches done on success and invokes onQuickReportComplete with the persisted id', async () => {
+    mockProcessQuickInforme.mockResolvedValue({
+      informeRapidoId: 'rapido-1',
+      informeDoctor: 'My report',
+    })
     const dispatch = jest.fn()
     const onQuickReportComplete = jest.fn()
     jest.useFakeTimers()
@@ -108,7 +111,7 @@ describe('uploadAndProcess (quick report flow)', () => {
     )
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'done' })
     jest.advanceTimersByTime(1200)
-    expect(onQuickReportComplete).toHaveBeenCalledWith('My report')
+    expect(onQuickReportComplete).toHaveBeenCalledWith('rapido-1')
     expect((router.push as jest.Mock)).not.toHaveBeenCalled()
     jest.useRealTimers()
   })

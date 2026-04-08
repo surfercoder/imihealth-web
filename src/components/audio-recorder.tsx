@@ -12,7 +12,7 @@ interface AudioRecorderProps {
   informeId: string;
   doctorId: string;
   isQuickReport?: boolean;
-  onQuickReportComplete?: (informeDoctor: string) => void;
+  onQuickReportComplete?: (informeRapidoId: string) => void;
 }
 
 function AudioRecorderContent({

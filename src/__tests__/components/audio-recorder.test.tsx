@@ -1049,7 +1049,10 @@ describe('AudioRecorder — isQuickReport branch', () => {
   })
 
   it('calls processQuickInforme and invokes onQuickReportComplete with the report on success', async () => {
-    mockProcessQuickInforme.mockResolvedValue({ informeDoctor: 'Doctor report content' })
+    mockProcessQuickInforme.mockResolvedValue({
+      informeRapidoId: 'rapido-1',
+      informeDoctor: 'Doctor report content',
+    })
 
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
@@ -1074,7 +1077,7 @@ describe('AudioRecorder — isQuickReport branch', () => {
     })
 
     act(() => jest.advanceTimersByTime(1200))
-    expect(onQuickReportComplete).toHaveBeenCalledWith('Doctor report content')
+    expect(onQuickReportComplete).toHaveBeenCalledWith('rapido-1')
     expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/quick-informe/result'))
     jest.useRealTimers()
   })

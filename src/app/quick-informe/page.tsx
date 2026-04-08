@@ -28,9 +28,6 @@ export default async function QuickInformePage() {
     supabase.from("doctors").select("name").eq("id", user.id).single(),
   ]);
 
-  // Create a temporary informe ID for quick reports (using a special prefix)
-  const quickInformeId = `quick-${user.id}-${crypto.randomUUID()}`;
-
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
       <Suspense fallback={<AppHeader doctorName={doctor?.name} />}>
@@ -62,7 +59,7 @@ export default async function QuickInformePage() {
         </div>
 
         <Suspense>
-          <QuickInformeFlow informeId={quickInformeId} doctorId={user.id} />
+          <QuickInformeFlow doctorId={user.id} />
         </Suspense>
 
         <div className="mt-6 rounded-lg border bg-card p-4 text-sm shadow-sm">

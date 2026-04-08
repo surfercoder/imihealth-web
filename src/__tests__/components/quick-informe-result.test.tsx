@@ -150,12 +150,4 @@ describe('QuickInformeResult', () => {
     expect(mockRouterPush).toHaveBeenCalledWith('/quick-informe')
   })
 
-  it('invokes onCreateAnother callback (instead of navigating) when provided', async () => {
-    const onCreateAnother = jest.fn()
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-    render(<QuickInformeResult informe={sampleInforme} onCreateAnother={onCreateAnother} />)
-    await user.click(screen.getByRole('button', { name: /Crear otro informe/i }))
-    expect(onCreateAnother).toHaveBeenCalledTimes(1)
-    expect(mockRouterPush).not.toHaveBeenCalled()
-  })
 })

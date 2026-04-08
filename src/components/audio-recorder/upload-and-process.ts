@@ -18,7 +18,7 @@ export async function uploadAndProcess(
   locale: string,
   tab?: string | null,
   isQuickReport?: boolean,
-  onQuickReportComplete?: (informeDoctor: string) => void,
+  onQuickReportComplete?: (informeRapidoId: string) => void,
 ) {
   void doctorId;
   dispatch({ type: "SET_PHASE", phase: "uploading" });
@@ -44,15 +44,15 @@ export async function uploadAndProcess(
       dispatch({ type: "SET_ERROR", error: result.error });
       dispatch({ type: "SET_PHASE", phase: "error" });
       toast.error(t("errorProcess"), { description: result.error });
-    } else if (result.informeDoctor) {
+    } else if (result.informeDoctor && result.informeRapidoId) {
       dispatch({ type: "SET_PHASE", phase: "done" });
       toast.success(t("successTitle"), { description: t("successDescription") });
-      // Hand the report back to the parent so it can swap to the result view
-      // in-place. We deliberately avoid passing report content via the URL
-      // because reports can easily exceed URL-length limits and break
-      // decodeURIComponent on certain characters.
-      const informeDoctor = result.informeDoctor;
-      setTimeout(() => onQuickReportComplete?.(informeDoctor), 1200);
+      // The report is persisted in `informes_rapidos`; hand the row id back
+      // to the parent so it can navigate to the persistent result page.
+      // The same id is what the realtime notification subscription uses to
+      // route doctors from the toast on other devices.
+      const informeRapidoId = result.informeRapidoId;
+      setTimeout(() => onQuickReportComplete?.(informeRapidoId), 1200);
     } else {
       // Defensive: action returned neither an error nor an informe.
       // Don't leave the UI stuck on the processing spinner.

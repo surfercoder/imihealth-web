@@ -61,7 +61,9 @@
     "doctorReport": "Doctor's Report",
     "copiedToClipboard": "Report copied to clipboard",
     "copyError": "Could not copy to clipboard",
-    "createAnother": "Create another report"
+    "createAnother": "Create another report",
+    "quickProcessingHint": "We're generating your quick report. This may take a few seconds.",
+    "quickErrorHint": "There was a problem generating the quick report. Please try again."
   },
   "patients": {
     "subtitle": "Manage and search your patients"
@@ -801,6 +803,8 @@
   "notifications": {
     "newReportTitle": "New report generated",
     "newReportDescription": "The report for {patientName} is ready",
+    "newQuickReportTitle": "Quick report generated",
+    "newQuickReportDescription": "Your quick report is ready to copy",
     "viewReport": "View report",
     "unknownPatient": "Unknown patient"
   },
