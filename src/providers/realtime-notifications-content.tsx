@@ -72,7 +72,7 @@ function RealtimeNotificationsContentInner({
                   nav.push(url);
                 },
               },
-              duration: 10000,
+              duration: Infinity,
             });
           }
         }
