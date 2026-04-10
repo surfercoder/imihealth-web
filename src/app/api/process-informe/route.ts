@@ -8,7 +8,6 @@ import {
   parsePatientResponse,
   generateReports,
 } from "./helpers";
-import { extractDialogInBackground } from "./dialog";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest) {
       console.warn(`[process-informe] Transcript too short to process (${trimmedTranscript.length} chars). assemblyAI=${assemblyAISucceeded}, browserTranscript length=${browserTranscript?.length || 0}`);
       await supabase
         .from("informes")
-        .update({ status: "recording", transcript: null })
+        .update({ status: "recording" })
         .eq("id", informeId)
         .eq("doctor_id", user.id);
 
@@ -57,21 +56,13 @@ export async function POST(request: NextRequest) {
 
     console.info(`[process-informe] Processing transcript (${trimmedTranscript.length} chars, source=${assemblyAISucceeded ? "assemblyai" : "browser"})`);
 
-    // Save transcript to DB and fetch doctor's specialty in parallel
-    const [, doctorResult] = await Promise.all([
-      supabase
-        .from("informes")
-        .update({ transcript })
-        .eq("id", informeId)
-        .eq("doctor_id", user.id),
-      supabase
-        .from("doctors")
-        .select("especialidad")
-        .eq("id", user.id)
-        .single(),
-    ]);
+    const { data: doctorResult } = await supabase
+      .from("doctors")
+      .select("especialidad")
+      .eq("id", user.id)
+      .single();
 
-    const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
+    const specialtyPrompt = getSpecialtyPrompt(doctorResult?.especialidad);
 
     const { doctorText, patientText } = await generateReports(transcript, specialtyPrompt);
 
@@ -85,7 +76,7 @@ export async function POST(request: NextRequest) {
       console.warn(`[process-informe] Insufficient medical content. validMedicalContent=${validMedicalContent}, hasReports=${hasReports}, transcript length=${trimmedTranscript.length}`);
       await supabase
         .from("informes")
-        .update({ status: "recording", transcript: null })
+        .update({ status: "recording" })
         .eq("id", informeId)
         .eq("doctor_id", user.id);
 
@@ -106,8 +97,6 @@ export async function POST(request: NextRequest) {
 
     revalidatePath("/");
     revalidatePath(`/informes/${informeId}`);
-
-    extractDialogInBackground(transcript, informeId, user.id, supabase);
 
     return NextResponse.json({ success: true });
   } catch (err) {

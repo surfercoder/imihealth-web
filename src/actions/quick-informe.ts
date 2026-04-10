@@ -46,7 +46,6 @@ export async function processQuickInforme(
       .from("informes_rapidos")
       .update({
         status: "error",
-        error_message: errorMessage,
         updated_at: new Date().toISOString(),
       })
       .eq("id", informeRapidoId);
@@ -122,7 +121,6 @@ export async function processQuickInforme(
       .from("informes_rapidos")
       .update({
         status: "completed",
-        transcript: trimmedTranscript,
         informe_doctor: informeDoctor,
         updated_at: new Date().toISOString(),
       })

@@ -44,21 +44,13 @@ export async function processInformeFromTranscript(
       }
     }
 
-    // Save transcript to DB and fetch doctor's specialty in parallel
-    const [, doctorResult] = await Promise.all([
-      supabase
-        .from("informes")
-        .update({ transcript })
-        .eq("id", informeId)
-        .eq("doctor_id", user.id),
-      supabase
-        .from("doctors")
-        .select("especialidad")
-        .eq("id", user.id)
-        .single(),
-    ]);
+    const { data: doctorResult } = await supabase
+      .from("doctors")
+      .select("especialidad")
+      .eq("id", user.id)
+      .single();
 
-    const specialtyPrompt = getSpecialtyPrompt(doctorResult.data?.especialidad);
+    const specialtyPrompt = getSpecialtyPrompt(doctorResult?.especialidad);
 
     const reportsResponse = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
@@ -68,13 +60,11 @@ export async function processInformeFromTranscript(
         {
           role: "user",
           content: `Genera DOS informes de esta consulta médica. JSON puro (sin markdown):
-{"valid_medical_content": true/false, "transcript_type": "dialog"/"monologue", "informe_doctor": "...", "informe_paciente": "...", "dialog": [...]}
+{"valid_medical_content": true/false, "informe_doctor": "...", "informe_paciente": "..."}
 
 - valid_medical_content=false si no hay info médica útil (ruido, pruebas, etc). En ese caso todos los campos vacíos.
-- transcript_type: "dialog" si conversan doctor y paciente, "monologue" si solo habla el doctor.
 - informe_doctor: Sigue ESTRICTAMENTE el formato de tus instrucciones de sistema. Técnico, con CIE-10 y scores.
 - informe_paciente: Lenguaje simple y cálido. Incluye resumen, medicamentos (nombre, para qué, cuándo), recomendaciones y próximos pasos.
-- dialog: Si es dialog, array de {"speaker":"doctor"/"paciente","text":"..."}. Si monologue, [].
 
 TRANSCRIPCIÓN:
 ${transcript}`,
@@ -89,9 +79,6 @@ ${transcript}`,
 
     let informeDoctor = "";
     let informePaciente = "";
-    let transcriptDialog: Array<{ speaker: "doctor" | "paciente"; text: string }> | null = null;
-    let transcriptType: "dialog" | "monologue" = "dialog";
-
     const jsonMatch = reportsText.match(/\{[\s\S]*\}/);
     let validMedicalContent = true;
     try {
@@ -99,11 +86,6 @@ ${transcript}`,
       validMedicalContent = parsed.valid_medical_content !== false;
       informeDoctor = parsed.informe_doctor || "";
       informePaciente = parsed.informe_paciente || "";
-      /* v8 ignore next */
-      transcriptType = parsed.transcript_type === "monologue" ? "monologue" : "dialog";
-      if (Array.isArray(parsed.dialog) && parsed.dialog.length > 0) {
-        transcriptDialog = parsed.dialog;
-      }
     } catch {
       informeDoctor = reportsText;
       informePaciente = reportsText;
@@ -114,7 +96,7 @@ ${transcript}`,
       // Reset informe back to "recording" status so it doesn't pollute the DB
       await supabase
         .from("informes")
-        .update({ status: "recording", transcript: null })
+        .update({ status: "recording" })
         .eq("id", informeId)
         .eq("doctor_id", user.id);
 
@@ -127,8 +109,6 @@ ${transcript}`,
         status: "completed",
         informe_doctor: informeDoctor,
         informe_paciente: informePaciente,
-        transcript_dialog: transcriptDialog,
-        transcript_type: transcriptType,
       })
       .eq("id", informeId)
       .eq("doctor_id", user.id);

@@ -35,7 +35,7 @@ export default async function InformeRapidoPage({ params }: Props) {
 
   const { data: informe, error } = await supabase
     .from("informes_rapidos")
-    .select("id, status, informe_doctor, error_message, created_at")
+    .select("id, status, informe_doctor, created_at")
     .eq("id", id)
     .eq("doctor_id", user.id)
     .single();
@@ -94,7 +94,7 @@ export default async function InformeRapidoPage({ params }: Props) {
               {t("status.error")}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {informe.error_message || t("informes.quickErrorHint")}
+              {t("informes.quickErrorHint")}
             </p>
             <Button
               asChild

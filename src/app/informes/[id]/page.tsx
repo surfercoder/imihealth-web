@@ -8,7 +8,6 @@ import { Clock, Home } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { type DialogTurn } from "@/components/transcript-dialog";
 import { InformeEditor } from "@/components/informe-editor";
 import { PatientCard } from "@/components/informe-page/patient-card";
 import { InformeBreadcrumb } from "@/components/informe-page/informe-breadcrumb";
@@ -16,10 +15,6 @@ import {
   InformeProcessingPanel,
   InformeErrorPanel,
 } from "@/components/informe-page/informe-status-panel";
-import {
-  TranscriptSection,
-  buildTranscriptSummary,
-} from "@/components/informe-page/transcript-section";
 import {
   formatDob,
   calculateAge,
@@ -169,23 +164,6 @@ export default async function InformePage({ params, searchParams }: Props) {
           />
         )}
 
-        {informe.transcript && (
-          <TranscriptSection
-            transcript={informe.transcript}
-            transcriptType={informe.transcript_type}
-            transcriptDialog={informe.transcript_dialog as DialogTurn[] | null}
-            patientName={patient?.name ?? null}
-            transcriptLabel={t("informePage.transcript")}
-            summaryLabel={buildTranscriptSummary({
-              transcriptDialog: informe.transcript_dialog as DialogTurn[] | null,
-              transcriptType: informe.transcript_type,
-              interventionsLabel: (count) =>
-                t("informePage.interventions", { count }),
-              monologueLabel: t("informePage.monologue"),
-              fullLabel: t("informePage.transcriptFull"),
-            })}
-          />
-        )}
 
       </main>
 
