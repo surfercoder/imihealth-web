@@ -63,6 +63,6 @@ export const config = {
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - monitoring (Sentry tunnel)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|monitoring).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|monitoring|assets).*)",
   ],
 };
