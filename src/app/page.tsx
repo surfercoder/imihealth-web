@@ -103,7 +103,7 @@ export default async function HomePage({
             <HomeTabs
               activeTab={activeTab}
               patients={allPatients}
-              totalInformes={allInformes.length}
+              totalInformes={plan.currentInformes}
               completedCount={completedCount}
               processingCount={processingCount}
               errorCount={errorCount}

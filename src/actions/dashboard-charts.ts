@@ -25,7 +25,7 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
 
   if (!user) return null;
 
-  const [{ data: patients }, { data: informes }, { count: quickCount }] =
+  const [{ data: patients }, { data: informes }, { data: generationLog }] =
     await Promise.all([
       supabase
         .from("patients")
@@ -38,8 +38,8 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
         .eq("doctor_id", user.id)
         .order("created_at", { ascending: true }),
       supabase
-        .from("informes_rapidos")
-        .select("id", { count: "exact", head: true })
+        .from("inform_generation_log")
+        .select("inform_type")
         .eq("doctor_id", user.id),
     ]);
 
@@ -107,11 +107,13 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
         ) / 10
       : 0;
 
-  // 4. Inform types (classic vs quick)
-  const classicCount = allInformes.length;
+  // 4. Inform types (classic vs quick) — from immutable generation log
+  const allLog = generationLog ?? [];
+  const classicCount = allLog.filter((l) => l.inform_type === "classic").length;
+  const quickCount = allLog.filter((l) => l.inform_type === "quick").length;
   const informTypes = [
     { type: "classic", count: classicCount, fill: "var(--color-classic)" },
-    { type: "quick", count: quickCount ?? 0, fill: "var(--color-quick)" },
+    { type: "quick", count: quickCount, fill: "var(--color-quick)" },
   ];
 
   return {

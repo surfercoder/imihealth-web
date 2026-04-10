@@ -28,7 +28,7 @@ function makeChain(overrides: Record<string, jest.Mock> = {}) {
 function setupMocks(
   patientsData: unknown[] | null = [],
   informesData: unknown[] | null = [],
-  quickCount: number | null = 0
+  generationLogData: { inform_type: string }[] | null = []
 ) {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
 
@@ -38,13 +38,13 @@ function setupMocks(
   const informesChain = makeChain()
   informesChain.order.mockResolvedValue({ data: informesData })
 
-  const quickChain = makeChain()
-  quickChain.eq.mockResolvedValue({ count: quickCount })
+  const logChain = makeChain()
+  logChain.eq.mockResolvedValue({ data: generationLogData })
 
   mockFrom
     .mockReturnValueOnce(patientsChain)
     .mockReturnValueOnce(informesChain)
-    .mockReturnValueOnce(quickChain)
+    .mockReturnValueOnce(logChain)
 }
 
 describe('getDashboardChartData', () => {
@@ -57,7 +57,7 @@ describe('getDashboardChartData', () => {
   })
 
   it('returns chart data with empty arrays when no patients or informes', async () => {
-    setupMocks([], [], 0)
+    setupMocks([], [], [])
     const result = await getDashboardChartData()
     expect(result).toEqual({
       patientsOverTime: [],
@@ -172,7 +172,7 @@ describe('getDashboardChartData', () => {
     expect(result!.consultationTime.data).toHaveLength(0)
   })
 
-  it('counts classic and quick informes correctly', async () => {
+  it('counts classic and quick informes correctly from generation log', async () => {
     setupMocks(
       [],
       [
@@ -180,7 +180,16 @@ describe('getDashboardChartData', () => {
         { id: 'i-2', status: 'completed', created_at: '2025-01-01T11:00:00Z', updated_at: '2025-01-01T11:10:00Z', informe_doctor: null },
         { id: 'i-3', status: 'recording', created_at: '2025-01-01T12:00:00Z', updated_at: '2025-01-01T12:05:00Z', informe_doctor: null },
       ],
-      5
+      [
+        { inform_type: 'classic' },
+        { inform_type: 'classic' },
+        { inform_type: 'classic' },
+        { inform_type: 'quick' },
+        { inform_type: 'quick' },
+        { inform_type: 'quick' },
+        { inform_type: 'quick' },
+        { inform_type: 'quick' },
+      ]
     )
     const result = await getDashboardChartData()
     expect(result!.informTypes).toEqual([
@@ -189,9 +198,10 @@ describe('getDashboardChartData', () => {
     ])
   })
 
-  it('handles null quick count as 0', async () => {
+  it('handles null generation log data as 0 counts', async () => {
     setupMocks([], [], null)
     const result = await getDashboardChartData()
+    expect(result!.informTypes[0].count).toBe(0)
     expect(result!.informTypes[1].count).toBe(0)
   })
 })

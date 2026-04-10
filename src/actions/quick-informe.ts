@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
+import { MVP_LIMITS } from "@/lib/mvp-limits";
 import {
   extractTextFromContent,
   generateDoctorReport,
@@ -25,6 +26,15 @@ export async function processQuickInforme(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+
+  // MVP informe limit check (counts both classic & quick, based on immutable generation log)
+  const { count: informeCount } = await supabase
+    .from("inform_generation_log")
+    .select("id", { count: "exact", head: true })
+    .eq("doctor_id", user.id);
+  if ((informeCount ?? 0) >= MVP_LIMITS.MAX_INFORMES_PER_DOCTOR) {
+    return { error: `Has alcanzado el límite de ${MVP_LIMITS.MAX_INFORMES_PER_DOCTOR} informes para la prueba MVP.` };
+  }
 
   // Create the persistent record up-front so we have an id we can update at
   // the end (which fires Supabase Realtime → notification on the client).

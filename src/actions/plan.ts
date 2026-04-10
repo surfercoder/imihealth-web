@@ -25,7 +25,7 @@ export async function getPlanInfo(): Promise<PlanInfo> {
 
   if (userResult.data.user) {
     const { count: informeCount } = await supabase
-      .from("informes")
+      .from("inform_generation_log")
       .select("id", { count: "exact", head: true })
       .eq("doctor_id", userResult.data.user.id);
 

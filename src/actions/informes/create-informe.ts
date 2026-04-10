@@ -10,9 +10,9 @@ export async function createInforme(patientId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  // MVP informe limit check
+  // MVP informe limit check (counts both classic & quick, based on immutable generation log)
   const { count: informeCount } = await supabase
-    .from("informes")
+    .from("inform_generation_log")
     .select("id", { count: "exact", head: true })
     .eq("doctor_id", user.id);
   if ((informeCount ?? 0) >= MVP_LIMITS.MAX_INFORMES_PER_DOCTOR) {
