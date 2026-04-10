@@ -29,47 +29,38 @@ jest.mock('@/components/ui/chart', () => ({
   ),
 }))
 
-import { ConsultationReasonsChart } from '@/components/dashboard-charts/consultation-reasons-chart'
+import { InformTypesChart } from '@/components/dashboard-charts/consultation-reasons-chart'
 
-describe('ConsultationReasonsChart', () => {
+describe('InformTypesChart', () => {
   const baseData = [
-    { reason: 'Dolor de cabeza', count: 10 },
-    { reason: 'Fiebre', count: 7 },
+    { type: 'classic', count: 10, fill: 'var(--color-classic)' },
+    { type: 'quick', count: 7, fill: 'var(--color-quick)' },
   ]
 
   it('renders the card title', () => {
-    render(<ConsultationReasonsChart data={baseData} />)
-    expect(screen.getByText('Motivos de consulta')).toBeInTheDocument()
+    render(<InformTypesChart data={baseData} />)
+    expect(screen.getByText('Tipos de informe')).toBeInTheDocument()
   })
 
   it('renders the card description', () => {
-    render(<ConsultationReasonsChart data={baseData} />)
+    render(<InformTypesChart data={baseData} />)
     expect(
-      screen.getByText('Distribución de motivos extraídos de los informes')
+      screen.getByText('Distribución de informes clásicos vs rápidos')
     ).toBeInTheDocument()
   })
 
-  it('renders the pie chart when data has entries', () => {
-    render(<ConsultationReasonsChart data={baseData} />)
+  it('renders the pie chart when data has entries with count > 0', () => {
+    render(<InformTypesChart data={baseData} />)
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument()
   })
 
-  it('renders "noData" message when data is empty', () => {
-    render(<ConsultationReasonsChart data={[]} />)
+  it('renders "noData" message when all counts are 0', () => {
+    const emptyData = [
+      { type: 'classic', count: 0, fill: 'var(--color-classic)' },
+      { type: 'quick', count: 0, fill: 'var(--color-quick)' },
+    ]
+    render(<InformTypesChart data={emptyData} />)
     expect(screen.getByText('Sin datos suficientes')).toBeInTheDocument()
     expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument()
-  })
-
-  it('cycles CHART_COLORS when data has more than 5 items', () => {
-    const data = [
-      { reason: 'A', count: 1 },
-      { reason: 'B', count: 2 },
-      { reason: 'C', count: 3 },
-      { reason: 'D', count: 4 },
-      { reason: 'E', count: 5 },
-      { reason: 'F', count: 6 },
-    ]
-    render(<ConsultationReasonsChart data={data} />)
-    expect(screen.getByTestId('pie-chart')).toBeInTheDocument()
   })
 })

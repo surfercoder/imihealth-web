@@ -25,6 +25,28 @@ function makeChain(overrides: Record<string, jest.Mock> = {}) {
   return chain
 }
 
+function setupMocks(
+  patientsData: unknown[] | null = [],
+  informesData: unknown[] | null = [],
+  quickCount: number | null = 0
+) {
+  mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+
+  const patientsChain = makeChain()
+  patientsChain.order.mockResolvedValue({ data: patientsData })
+
+  const informesChain = makeChain()
+  informesChain.order.mockResolvedValue({ data: informesData })
+
+  const quickChain = makeChain()
+  quickChain.eq.mockResolvedValue({ count: quickCount })
+
+  mockFrom
+    .mockReturnValueOnce(patientsChain)
+    .mockReturnValueOnce(informesChain)
+    .mockReturnValueOnce(quickChain)
+}
+
 describe('getDashboardChartData', () => {
   beforeEach(() => jest.clearAllMocks())
 
@@ -35,68 +57,39 @@ describe('getDashboardChartData', () => {
   })
 
   it('returns chart data with empty arrays when no patients or informes', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({ data: [] })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+    setupMocks([], [], 0)
     const result = await getDashboardChartData()
     expect(result).toEqual({
       patientsOverTime: [],
       consultationTime: { avg: 0, min: 0, max: 0, data: [] },
       patientsAccumulator: { current: [], average: 0 },
-      consultationReasons: [],
+      informTypes: [
+        { type: 'classic', count: 0, fill: 'var(--color-classic)' },
+        { type: 'quick', count: 0, fill: 'var(--color-quick)' },
+      ],
     })
   })
 
   it('handles null data from supabase by treating as empty arrays', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: null })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({ data: null })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+    setupMocks(null, null, null)
     const result = await getDashboardChartData()
     expect(result).toEqual({
       patientsOverTime: [],
       consultationTime: { avg: 0, min: 0, max: 0, data: [] },
       patientsAccumulator: { current: [], average: 0 },
-      consultationReasons: [],
+      informTypes: [
+        { type: 'classic', count: 0, fill: 'var(--color-classic)' },
+        { type: 'quick', count: 0, fill: 'var(--color-quick)' },
+      ],
     })
   })
 
   it('computes cumulative patients over time correctly', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({
-      data: [
-        { id: 'p-1', created_at: '2025-01-01T10:00:00Z' },
-        { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
-        { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
-      ],
-    })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({ data: [] })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+    setupMocks([
+      { id: 'p-1', created_at: '2025-01-01T10:00:00Z' },
+      { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
+      { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
+    ])
     const result = await getDashboardChartData()
     expect(result!.patientsOverTime).toEqual([
       { date: '2025-01-01', total: 2 },
@@ -105,26 +98,12 @@ describe('getDashboardChartData', () => {
   })
 
   it('computes daily accumulator and average per day', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({
-      data: [
-        { id: 'p-1', created_at: '2025-01-01T10:00:00Z' },
-        { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
-        { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
-      ],
-    })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({ data: [] })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+    setupMocks([
+      { id: 'p-1', created_at: '2025-01-01T10:00:00Z' },
+      { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
+      { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
+    ])
     const result = await getDashboardChartData()
-    // 2 patients on day 1, 1 patient on day 2 => avg = (2+1)/2 = 1.5
     expect(result!.patientsAccumulator.average).toBe(1.5)
     expect(result!.patientsAccumulator.current).toEqual([
       { date: '2025-01-01', patients: 2 },
@@ -133,15 +112,9 @@ describe('getDashboardChartData', () => {
   })
 
   it('computes consultation time stats for completed informes with valid durations', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    // 10 min, 20 min durations
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
+    setupMocks(
+      [],
+      [
         {
           id: 'i-1',
           status: 'completed',
@@ -156,7 +129,6 @@ describe('getDashboardChartData', () => {
           updated_at: '2025-01-01T11:20:00Z',
           informe_doctor: null,
         },
-        // Not completed — should be filtered out
         {
           id: 'i-3',
           status: 'recording',
@@ -164,13 +136,8 @@ describe('getDashboardChartData', () => {
           updated_at: '2025-01-01T12:05:00Z',
           informe_doctor: null,
         },
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+      ]
+    )
     const result = await getDashboardChartData()
     expect(result!.consultationTime.avg).toBe(15)
     expect(result!.consultationTime.min).toBe(10)
@@ -179,15 +146,9 @@ describe('getDashboardChartData', () => {
   })
 
   it('filters out durations that are 0 or negative', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        // Same created_at and updated_at => 0 mins => excluded
+    setupMocks(
+      [],
+      [
         {
           id: 'i-1',
           status: 'completed',
@@ -195,7 +156,6 @@ describe('getDashboardChartData', () => {
           updated_at: '2025-01-01T10:00:00Z',
           informe_doctor: null,
         },
-        // More than 60 mins => excluded (likely a later edit)
         {
           id: 'i-2',
           status: 'completed',
@@ -203,13 +163,8 @@ describe('getDashboardChartData', () => {
           updated_at: '2025-01-01T11:01:00Z',
           informe_doctor: null,
         },
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+      ]
+    )
     const result = await getDashboardChartData()
     expect(result!.consultationTime.avg).toBe(0)
     expect(result!.consultationTime.min).toBe(0)
@@ -217,183 +172,26 @@ describe('getDashboardChartData', () => {
     expect(result!.consultationTime.data).toHaveLength(0)
   })
 
-  it('extracts consultation reasons from informe_doctor content', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        {
-          id: 'i-1',
-          status: 'completed',
-          created_at: '2025-01-01T10:00:00Z',
-          updated_at: '2025-01-01T10:10:00Z',
-          informe_doctor: 'MOTIVO DE CONSULTA:\ndolor de rodilla\n\nANAMNESIS',
-        },
-        {
-          id: 'i-2',
-          status: 'completed',
-          created_at: '2025-01-01T11:00:00Z',
-          updated_at: '2025-01-01T11:10:00Z',
-          informe_doctor: 'MOTIVO DE CONSULTA:\ndolor de rodilla\n\nANAMNESIS',
-        },
-        {
-          id: 'i-3',
-          status: 'completed',
-          created_at: '2025-01-01T12:00:00Z',
-          updated_at: '2025-01-01T12:10:00Z',
-          informe_doctor: 'MOTIVO DE CONSULTA:\ndolor de hombro\n\nANAMNESIS',
-        },
+  it('counts classic and quick informes correctly', async () => {
+    setupMocks(
+      [],
+      [
+        { id: 'i-1', status: 'completed', created_at: '2025-01-01T10:00:00Z', updated_at: '2025-01-01T10:10:00Z', informe_doctor: null },
+        { id: 'i-2', status: 'completed', created_at: '2025-01-01T11:00:00Z', updated_at: '2025-01-01T11:10:00Z', informe_doctor: null },
+        { id: 'i-3', status: 'recording', created_at: '2025-01-01T12:00:00Z', updated_at: '2025-01-01T12:05:00Z', informe_doctor: null },
       ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+      5
+    )
     const result = await getDashboardChartData()
-    const reasons = result!.consultationReasons
-    // rodilla x2, hombro x1 — sorted by count desc
-    expect(reasons[0]).toEqual({ reason: 'Traumatismo de rodilla', count: 2 })
-    expect(reasons[1]).toEqual({ reason: 'Dolor de hombro', count: 1 })
+    expect(result!.informTypes).toEqual([
+      { type: 'classic', count: 3, fill: 'var(--color-classic)' },
+      { type: 'quick', count: 5, fill: 'var(--color-quick)' },
+    ])
   })
 
-  it('skips informes with no informe_doctor content', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        {
-          id: 'i-1',
-          status: 'completed',
-          created_at: '2025-01-01T10:00:00Z',
-          updated_at: '2025-01-01T10:10:00Z',
-          informe_doctor: null,
-        },
-        {
-          id: 'i-2',
-          status: 'completed',
-          created_at: '2025-01-01T11:00:00Z',
-          updated_at: '2025-01-01T11:10:00Z',
-          informe_doctor: '',
-        },
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
+  it('handles null quick count as 0', async () => {
+    setupMocks([], [], null)
     const result = await getDashboardChartData()
-    expect(result!.consultationReasons).toEqual([])
-  })
-
-  it('categorizes all known keyword categories correctly', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const makeInforme = (id: string, motivo: string) => ({
-      id,
-      status: 'completed',
-      created_at: `2025-01-01T${id.padStart(2, '0')}:00:00Z`,
-      updated_at: `2025-01-01T${id.padStart(2, '0')}:10:00Z`,
-      informe_doctor: `MOTIVO DE CONSULTA:\n${motivo}\n\nANAMNESIS`,
-    })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        makeInforme('10', 'dolor de codo intenso'),
-        makeInforme('11', 'epicondilitis lateral'),
-        makeInforme('12', 'codo de tenista'),
-        makeInforme('13', 'traumatismo de tobillo'),
-        makeInforme('14', 'lesion de mano'),
-        makeInforme('15', 'dedo fracturado'),
-        makeInforme('16', 'muñeca dolorida'),
-        makeInforme('17', 'contusion costal'),
-        makeInforme('18', 'dolor dorsal'),
-        makeInforme('19', 'no disponible'),
-        makeInforme('20', 'error de sistema'),
-        makeInforme('21', 'no fue posible completar'),
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
-    const result = await getDashboardChartData()
-    const reasons = result!.consultationReasons
-    const reasonMap = Object.fromEntries(reasons.map(r => [r.reason, r.count]))
-
-    expect(reasonMap['Dolor de codo']).toBe(3) // codo, epicondilitis, tenista
-    expect(reasonMap['Traumatismo de tobillo']).toBe(1)
-    expect(reasonMap['Traumatismo de mano/dedo']).toBe(2) // mano, dedo
-    expect(reasonMap['Traumatismo de muñeca']).toBe(1)
-    expect(reasonMap['Contusión costal/dorsal']).toBe(2) // costal, dorsal
-    expect(reasonMap['Sin datos']).toBe(3) // no disponible, error, no fue posible
-  })
-
-  it('strips "Paciente femenina/masculino que" prefix from reason', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        {
-          id: 'i-1',
-          status: 'completed',
-          created_at: '2025-01-01T10:00:00Z',
-          updated_at: '2025-01-01T10:10:00Z',
-          informe_doctor: 'MOTIVO DE CONSULTA:\nPaciente femenina que presenta cefalea\n\nANAMNESIS',
-        },
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
-    const result = await getDashboardChartData()
-    expect(result!.consultationReasons[0].reason).toBe('presenta cefalea')
-  })
-
-  it('informes with no MOTIVO DE CONSULTA match do not contribute to reasons', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const patientsChain = makeChain()
-    patientsChain.order.mockResolvedValue({ data: [] })
-
-    const informesChain = makeChain()
-    informesChain.order.mockResolvedValue({
-      data: [
-        {
-          id: 'i-1',
-          status: 'completed',
-          created_at: '2025-01-01T10:00:00Z',
-          updated_at: '2025-01-01T10:10:00Z',
-          informe_doctor: 'No tiene sección de motivo de consulta aquí',
-        },
-      ],
-    })
-
-    mockFrom
-      .mockReturnValueOnce(patientsChain)
-      .mockReturnValueOnce(informesChain)
-
-    const result = await getDashboardChartData()
-    expect(result!.consultationReasons).toEqual([])
+    expect(result!.informTypes[1].count).toBe(0)
   })
 })

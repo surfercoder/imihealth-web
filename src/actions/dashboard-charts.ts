@@ -14,7 +14,7 @@ export interface ChartData {
     current: { date: string; patients: number }[];
     average: number;
   };
-  consultationReasons: { reason: string; count: number }[];
+  informTypes: { type: string; count: number; fill: string }[];
 }
 
 export async function getDashboardChartData(): Promise<ChartData | null> {
@@ -25,18 +25,23 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
 
   if (!user) return null;
 
-  const [{ data: patients }, { data: informes }] = await Promise.all([
-    supabase
-      .from("patients")
-      .select("id, created_at")
-      .eq("doctor_id", user.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("informes")
-      .select("id, created_at, updated_at, status, informe_doctor")
-      .eq("doctor_id", user.id)
-      .order("created_at", { ascending: true }),
-  ]);
+  const [{ data: patients }, { data: informes }, { count: quickCount }] =
+    await Promise.all([
+      supabase
+        .from("patients")
+        .select("id, created_at")
+        .eq("doctor_id", user.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("informes")
+        .select("id, created_at, updated_at, status, informe_doctor")
+        .eq("doctor_id", user.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("informes_rapidos")
+        .select("id", { count: "exact", head: true })
+        .eq("doctor_id", user.id),
+    ]);
 
   const allPatients = patients ?? [];
   const allInformes = informes ?? [];
@@ -102,65 +107,17 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
         ) / 10
       : 0;
 
-  // 4. Consultation reasons (extracted from informe_doctor)
-  const reasonCounts = new Map<string, number>();
-  for (const inf of allInformes) {
-    if (!inf.informe_doctor) continue;
-    const match = inf.informe_doctor.match(
-      /MOTIVO DE CONSULTA:\s*\n([\s\S]+?)(?:\n\n|\nANAMNESIS|\nEXAMEN|\nEXPLORACIÓN)/
-    );
-    if (match) {
-      let reason = match[1].trim();
-      // Clean up and normalize
-      reason = reason
-        .replace(/^Paciente (femenina |masculino )?que /i, "")
-        .replace(/^No disponible.*$/i, "Transcripción no disponible")
-        .replace(
-          /^No disponible.*$/i,
-          "Transcripción no disponible"
-        );
-
-      // Categorize by keywords for cleaner grouping
-      let category = reason;
-      const lower = reason.toLowerCase();
-      if (
-        lower.includes("codo") ||
-        lower.includes("epicondilitis") ||
-        lower.includes("tenista")
-      ) {
-        category = "Dolor de codo";
-      } else if (lower.includes("tobillo")) {
-        category = "Traumatismo de tobillo";
-      } else if (lower.includes("hombro")) {
-        category = "Dolor de hombro";
-      } else if (lower.includes("mano") || lower.includes("dedo")) {
-        category = "Traumatismo de mano/dedo";
-      } else if (lower.includes("muñeca")) {
-        category = "Traumatismo de muñeca";
-      } else if (lower.includes("rodilla")) {
-        category = "Traumatismo de rodilla";
-      } else if (lower.includes("costal") || lower.includes("dorsal")) {
-        category = "Contusión costal/dorsal";
-      } else if (
-        lower.includes("no disponible") ||
-        lower.includes("error") ||
-        lower.includes("no fue posible")
-      ) {
-        category = "Sin datos";
-      }
-
-      reasonCounts.set(category, (reasonCounts.get(category) ?? 0) + 1);
-    }
-  }
-
-  const consultationReasons = Array.from(reasonCounts.entries())
-    .map(([reason, count]) => ({ reason, count }))
-    .sort((a, b) => b.count - a.count);
+  // 4. Inform types (classic vs quick)
+  const classicCount = allInformes.length;
+  const informTypes = [
+    { type: "classic", count: classicCount, fill: "var(--color-classic)" },
+    { type: "quick", count: quickCount ?? 0, fill: "var(--color-quick)" },
+  ];
 
   return {
     patientsOverTime,
     consultationTime,
     patientsAccumulator: { current: dailyEntries, average: avgPerDay },
-    consultationReasons,
+    informTypes,
   };
 }

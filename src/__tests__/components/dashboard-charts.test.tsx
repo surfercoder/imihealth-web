@@ -85,12 +85,9 @@ const baseChartData: ChartData = {
     ],
     average: 5,
   },
-  consultationReasons: [
-    { reason: 'Dolor de cabeza', count: 10 },
-    { reason: 'Fiebre', count: 7 },
-    { reason: 'Control', count: 5 },
-    { reason: 'Gripe', count: 4 },
-    { reason: 'Consulta', count: 2 },
+  informTypes: [
+    { type: 'classic', count: 10, fill: 'var(--color-classic)' },
+    { type: 'quick', count: 5, fill: 'var(--color-quick)' },
   ],
 }
 
@@ -169,25 +166,31 @@ describe('DashboardCharts', () => {
     expect(screen.getByTestId('line-chart')).toBeInTheDocument()
   })
 
-  it('renders the ConsultationReasons card title', () => {
+  it('renders the InformTypes card title', () => {
     render(<DashboardCharts data={baseChartData} />)
-    expect(screen.getByText('Motivos de consulta')).toBeInTheDocument()
+    expect(screen.getByText('Tipos de informe')).toBeInTheDocument()
   })
 
-  it('renders the ConsultationReasons card description', () => {
+  it('renders the InformTypes card description', () => {
     render(<DashboardCharts data={baseChartData} />)
     expect(
-      screen.getByText('Distribución de motivos extraídos de los informes')
+      screen.getByText('Distribución de informes clásicos vs rápidos')
     ).toBeInTheDocument()
   })
 
-  it('renders a pie chart when consultationReasons has data', () => {
+  it('renders a pie chart when informTypes has data', () => {
     render(<DashboardCharts data={baseChartData} />)
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument()
   })
 
-  it('shows "noData" message when consultationReasons is empty', () => {
-    const data = { ...baseChartData, consultationReasons: [] }
+  it('shows "noData" message when all informTypes counts are 0', () => {
+    const data = {
+      ...baseChartData,
+      informTypes: [
+        { type: 'classic', count: 0, fill: 'var(--color-classic)' },
+        { type: 'quick', count: 0, fill: 'var(--color-quick)' },
+      ],
+    }
     render(<DashboardCharts data={data} />)
     expect(screen.getByText('Sin datos suficientes')).toBeInTheDocument()
     expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument()
@@ -198,19 +201,8 @@ describe('DashboardCharts', () => {
     expect(screen.getAllByTestId('chart-container')).toHaveLength(4)
   })
 
-  it('handles consultationReasons with more than 5 items (cycles CHART_COLORS)', () => {
-    const data = {
-      ...baseChartData,
-      consultationReasons: [
-        { reason: 'A', count: 1 },
-        { reason: 'B', count: 2 },
-        { reason: 'C', count: 3 },
-        { reason: 'D', count: 4 },
-        { reason: 'E', count: 5 },
-        { reason: 'F', count: 6 },
-      ],
-    }
-    render(<DashboardCharts data={data} />)
+  it('renders pie chart with both classic and quick types', () => {
+    render(<DashboardCharts data={baseChartData} />)
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument()
   })
 })

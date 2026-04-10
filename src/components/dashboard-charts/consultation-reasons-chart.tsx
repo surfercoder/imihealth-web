@@ -1,17 +1,11 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const {
-  Cell,
-  Pie,
-  PieChart,
-} = require("recharts") as typeof import("recharts");
+const { Pie, PieChart } = require("recharts") as typeof import("recharts");
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
@@ -23,65 +17,76 @@ import {
 } from "@/components/ui/card";
 import type { ChartData } from "@/actions/dashboard-charts";
 import { useTranslations } from "next-intl";
-import { CHART_COLORS } from "./helpers";
 
-export function ConsultationReasonsChart({
+export function InformTypesChart({
   data,
 }: {
-  data: ChartData["consultationReasons"];
+  data: ChartData["informTypes"];
 }) {
   const t = useTranslations("charts");
 
-  const chartConfig = data.reduce(
-    (acc, item, i) => {
-      acc[item.reason] = {
-        label: item.reason,
-        color: CHART_COLORS[i % CHART_COLORS.length],
-      };
-      return acc;
-    },
-    {} as Record<string, { label: string; color: string }>
-  ) satisfies ChartConfig;
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+
+  const chartConfig = {
+    count: { label: t("informTypes") },
+    classic: { label: t("classicInforms"), color: "var(--chart-1)" },
+    quick: { label: t("quickInforms"), color: "var(--chart-2)" },
+  } satisfies ChartConfig;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">
-          {t("consultationReasons")}
+          {t("informTypes")}
         </CardTitle>
-        <CardDescription>{t("consultationReasonsDesc")}</CardDescription>
+        <CardDescription>{t("informTypesDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="overflow-hidden">
-        {data.length === 0 ? (
+        {total === 0 ? (
           <p className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
             {t("noData")}
           </p>
         ) : (
-          <ChartContainer config={chartConfig} className="mx-auto h-[250px] w-full">
-            <PieChart accessibilityLayer>
-              <ChartTooltip content={<ChartTooltipContent nameKey="reason" />} />
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="reason"
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={90}
-                paddingAngle={2}
-              >
-                {data.map((item, index) => (
-                  <Cell
-                    key={item.reason}
-                    fill={CHART_COLORS[index % CHART_COLORS.length]}
+          <>
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto aspect-square max-h-[250px] px-0"
+            >
+              <PieChart>
+                <ChartTooltip
+                  content={<ChartTooltipContent nameKey="type" hideLabel />}
+                />
+                <Pie
+                  data={data}
+                  dataKey="count"
+                  nameKey="type"
+                  labelLine={false}
+                  label={((props: Record<string, unknown>) => (
+                    <text
+                      x={props.x as number}
+                      y={props.y as number}
+                      textAnchor={props.textAnchor as "start" | "middle" | "end"}
+                      dominantBaseline={props.dominantBaseline as "auto" | "middle" | "central"}
+                      fill="var(--foreground)"
+                    >
+                      {(props.payload as { count: number }).count}
+                    </text>
+                  )) as unknown as boolean}
+                />
+              </PieChart>
+            </ChartContainer>
+            <div className="flex items-center justify-center gap-4 pt-3">
+              {(["classic", "quick"] as const).map((key) => (
+                <div key={key} className="flex items-center gap-1.5 text-sm">
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: chartConfig[key].color }}
                   />
-                ))}
-              </Pie>
-              <ChartLegend
-                content={<ChartLegendContent nameKey="reason" />}
-              />
-            </PieChart>
-          </ChartContainer>
+                  {chartConfig[key].label}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

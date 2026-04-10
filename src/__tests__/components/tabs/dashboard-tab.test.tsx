@@ -94,7 +94,10 @@ describe('DashboardTab', () => {
         current: [{ date: '2025-01-01', patients: 3 }],
         average: 3,
       },
-      consultationReasons: [{ reason: 'Control', count: 3 }],
+      informTypes: [
+        { type: 'classic', count: 3, fill: 'var(--color-classic)' },
+        { type: 'quick', count: 2, fill: 'var(--color-quick)' },
+      ],
     }
     render(<DashboardTab {...defaultProps} chartData={chartData} />)
     expect(screen.getByTestId('dashboard-charts')).toBeInTheDocument()

@@ -47,7 +47,7 @@ export function ChartLegendContent({
 
           return (
             <div
-              key={key}
+              key={item.value ?? key}
               className={cn(
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
               )}

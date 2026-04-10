@@ -763,8 +763,10 @@
     "dailyPatientsDesc": "Nuevos pacientes por día · Promedio: {avg}/día",
     "newPatients": "Nuevos pacientes",
     "avg": "Prom",
-    "consultationReasons": "Motivos de consulta",
-    "consultationReasonsDesc": "Distribución de motivos extraídos de los informes",
+    "informTypes": "Tipos de informe",
+    "informTypesDesc": "Distribución de informes clásicos vs rápidos",
+    "classicInforms": "Clásicos",
+    "quickInforms": "Rápidos",
     "noData": "Sin datos suficientes"
   },
   "manifest": {
