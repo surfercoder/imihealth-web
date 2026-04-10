@@ -5,6 +5,9 @@ export interface PatientWithStats {
   email: string | null;
   phone: string;
   dob: string;
+  obra_social: string | null;
+  nro_afiliado: string | null;
+  plan: string | null;
   created_at: string;
   informe_count: number;
   last_informe_at: string | null;

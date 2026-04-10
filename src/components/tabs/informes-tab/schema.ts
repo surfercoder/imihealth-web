@@ -11,6 +11,9 @@ export type PatientFormValues = {
   dob?: string;
   phone?: PhoneInputValue;
   email?: string;
+  obraSocial?: string;
+  nroAfiliado?: string;
+  plan?: string;
 };
 
 export const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [
@@ -50,5 +53,8 @@ export function buildPatientSchema(t: (key: string) => string) {
       .email(t("nuevoInformeDialog.validation.emailInvalid"))
       .optional()
       .or(z.literal("")),
+    obraSocial: z.string().optional().or(z.literal("")),
+    nroAfiliado: z.string().optional().or(z.literal("")),
+    plan: z.string().optional().or(z.literal("")),
   });
 }

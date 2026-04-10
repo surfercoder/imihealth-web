@@ -122,6 +122,44 @@ export function PatientFormFields({
           <p className="text-xs text-destructive">{errors.email.message}</p>
         )}
       </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="obraSocial">
+            {t("obraSocial")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
+          </Label>
+          <Input
+            id="obraSocial"
+            type="text"
+            placeholder={t("obraSocialPlaceholder")}
+            {...register("obraSocial")}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="nroAfiliado">
+            {t("nroAfiliado")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
+          </Label>
+          <Input
+            id="nroAfiliado"
+            type="text"
+            placeholder={t("nroAfiliadoPlaceholder")}
+            {...register("nroAfiliado")}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="plan">
+            {t("plan")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
+          </Label>
+          <Input
+            id="plan"
+            type="text"
+            placeholder={t("planPlaceholder")}
+            {...register("plan")}
+          />
+        </div>
+      </div>
     </>
   );
 }

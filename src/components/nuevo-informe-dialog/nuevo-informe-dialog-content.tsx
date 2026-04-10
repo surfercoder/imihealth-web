@@ -53,13 +53,13 @@ export function NuevoInformeDialogContent({
           {t("trigger")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={submit} className="space-y-4 pt-2">
+        <form onSubmit={submit} className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto">
           <PatientFormFields
             register={register}
             control={control}

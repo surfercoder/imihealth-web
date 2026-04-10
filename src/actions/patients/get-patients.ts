@@ -15,7 +15,7 @@ export async function getPatients(): Promise<{
 
   const { data, error } = await supabase
     .from("patients")
-    .select(`id, name, dni, email, phone, dob, created_at, informes(created_at, status)`)
+    .select(`id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at, informes(created_at, status)`)
     .eq("doctor_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -33,6 +33,9 @@ export async function getPatients(): Promise<{
       email: p.email,
       phone: p.phone,
       dob: p.dob,
+      obra_social: p.obra_social,
+      nro_afiliado: p.nro_afiliado,
+      plan: p.plan,
       created_at: p.created_at,
       informe_count: informes.length,
       last_informe_at: sorted[0]?.created_at ?? null,

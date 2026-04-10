@@ -57,6 +57,9 @@ export function useClassicInformeForm() {
     if (values.dob) formData.append("dob", values.dob);
     if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
     if (values.email) formData.append("email", values.email);
+    if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
+    if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
+    if (values.plan) formData.append("plan", values.plan);
 
     const patientResult = await createPatient(formData);
     if (patientResult.error || !patientResult.data) {

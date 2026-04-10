@@ -10,6 +10,9 @@ export type PatientFormValues = {
   dob?: string;
   phone?: PhoneInputValue;
   email?: string;
+  obraSocial?: string;
+  nroAfiliado?: string;
+  plan?: string;
 };
 
 export const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [

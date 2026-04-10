@@ -50,7 +50,7 @@ export function ClassicReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("nuevoInformeDialog.title")}</DialogTitle>
           <DialogDescription>
@@ -58,7 +58,7 @@ export function ClassicReportDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto">
           <div className="space-y-1.5">
             <Label htmlFor="name">
               {t("nuevoInformeDialog.fullName")}{" "}
@@ -122,6 +122,53 @@ export function ClassicReportDialog({
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email.message}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="obraSocial">
+                {t("nuevoInformeDialog.obraSocial")}{" "}
+                <span className="text-muted-foreground text-xs">
+                  ({t("nuevoInformeDialog.optional")})
+                </span>
+              </Label>
+              <Input
+                id="obraSocial"
+                type="text"
+                placeholder={t("nuevoInformeDialog.obraSocialPlaceholder")}
+                {...register("obraSocial")}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="nroAfiliado">
+                {t("nuevoInformeDialog.nroAfiliado")}{" "}
+                <span className="text-muted-foreground text-xs">
+                  ({t("nuevoInformeDialog.optional")})
+                </span>
+              </Label>
+              <Input
+                id="nroAfiliado"
+                type="text"
+                placeholder={t("nuevoInformeDialog.nroAfiliadoPlaceholder")}
+                {...register("nroAfiliado")}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="plan">
+                {t("nuevoInformeDialog.plan")}{" "}
+                <span className="text-muted-foreground text-xs">
+                  ({t("nuevoInformeDialog.optional")})
+                </span>
+              </Label>
+              <Input
+                id="plan"
+                type="text"
+                placeholder={t("nuevoInformeDialog.planPlaceholder")}
+                {...register("plan")}
+              />
+            </div>
           </div>
 
           {error && (

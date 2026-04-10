@@ -40,5 +40,8 @@ export function buildPatientSchema(t: Translator) {
       .email(t("validation.emailInvalid"))
       .optional()
       .or(z.literal("")),
+    obraSocial: z.string().optional().or(z.literal("")),
+    nroAfiliado: z.string().optional().or(z.literal("")),
+    plan: z.string().optional().or(z.literal("")),
   });
 }
