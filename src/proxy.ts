@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -45,6 +45,11 @@ function buildCsp() {
 const cspHeaderValue = buildCsp();
 
 export async function proxy(request: NextRequest) {
+  // Let static assets pass through without auth checks
+  if (request.nextUrl.pathname.startsWith("/assets/")) {
+    return NextResponse.next();
+  }
+
   // Run Supabase session refresh + auth redirect logic
   const response = await updateSession(request);
 
