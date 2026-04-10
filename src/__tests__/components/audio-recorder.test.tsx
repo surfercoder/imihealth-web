@@ -1028,8 +1028,8 @@ describe('AudioRecorder — progress text branches', () => {
       expect(screen.getByText('Capturando información de la transcripción...')).toBeInTheDocument()
     })
 
-    // Advance 15s to trigger the interval and move to step 2
-    await act(async () => { jest.advanceTimersByTime(15000) })
+    // Advance 9s to trigger the interval and move to step 2
+    await act(async () => { jest.advanceTimersByTime(9000) })
 
     expect(screen.getByText('Analizando secciones a incluir en los informes...')).toBeInTheDocument()
 

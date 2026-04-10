@@ -56,6 +56,8 @@ export function ProfessionalInfoSection({ form }: ProfessionalInfoSectionProps) 
                   type="text"
                   inputMode="numeric"
                   placeholder={tSignup("matriculaPlaceholder")}
+                  disabled
+                  className="bg-muted"
                   {...field}
                 />
               </FormControl>
@@ -80,8 +82,9 @@ export function ProfessionalInfoSection({ form }: ProfessionalInfoSectionProps) 
                       role="combobox"
                       aria-controls="especialidad-list"
                       aria-expanded={especialidadOpen}
+                      disabled
                       className={cn(
-                        "border-input bg-transparent flex h-9 w-full items-center justify-between rounded-md border px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+                        "border-input bg-muted flex h-9 w-full cursor-not-allowed items-center justify-between rounded-md border px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none",
                         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                         field.value
                           ? "text-card-foreground"

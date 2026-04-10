@@ -67,7 +67,7 @@ export function useProcessingStep(active: boolean): number {
     if (!active) return;
     const tick = () => dispatch("advance");
     const resetId = setTimeout(() => dispatch("reset"), 0);
-    const id = setInterval(tick, 15000);
+    const id = setInterval(tick, 9000);
     return () => { clearTimeout(resetId); clearInterval(id); };
   }, [active]);
 
