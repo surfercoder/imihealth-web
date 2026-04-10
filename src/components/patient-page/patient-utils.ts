@@ -31,7 +31,14 @@ export function formatInformeDate(createdAt: string, locale: string): string {
 
 export function buildInformePreview(informeDoctor: string | null): string | null {
   if (!informeDoctor) return null;
-  return informeDoctor.slice(0, 120).replace(/\n/g, " ") + "\u2026";
+  const plain = informeDoctor
+    .replace(/^#+\s*/gm, "")
+    .replace(/\*+/g, "")
+    .replace(/[_~`>]/g, "")
+    .replace(/\n/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return plain.slice(0, 120) + "\u2026";
 }
 
 export function buildInformeHref(
