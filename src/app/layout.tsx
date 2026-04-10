@@ -21,8 +21,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "IMI Health",
-  description: "Aplicación web IMI Health",
+  description: "Informes Médicos completos, estandarizados y ordenados, asistidos por Inteligencia Artificial",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "IMI Health",
+    statusBarStyle: "default",
+  },
 };
 
 export default async function RootLayout({
