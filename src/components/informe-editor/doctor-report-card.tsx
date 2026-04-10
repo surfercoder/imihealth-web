@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { EmailIconButton } from "./email-icon-button";
 import { DoctorWhatsAppIconButton } from "./doctor-whatsapp-icon-button";
+import { MarkdownDisplay } from "./markdown-display";
 
 export function DoctorReportCard({
   informeId,
@@ -120,16 +121,13 @@ export function DoctorReportCard({
             placeholder={t("medicalReportPlaceholder")}
           />
         ) : (
-          <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">
-            {doctorText || t("noContent")}
+          <div className="max-w-none text-card-foreground">
+            {doctorText ? <MarkdownDisplay text={doctorText} /> : t("noContent")}
             {doctorText && patientName && (
-              <>
-                {"\n\n---\n"}
-                <div className="mt-4 pt-4 border-t border-border/40">
-                  <p className="font-semibold">{t("consentLabel")}</p>
-                  <p className="mt-1">{t("consentTextImplicit", { patientName })}</p>
-                </div>
-              </>
+              <div className="mt-4 pt-4 border-t border-border/40">
+                <p className="font-semibold">{t("consentLabel")}</p>
+                <p className="mt-1 text-sm">{t("consentTextImplicit", { patientName })}</p>
+              </div>
             )}
           </div>
         )}

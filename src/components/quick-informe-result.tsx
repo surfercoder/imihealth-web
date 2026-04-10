@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Copy, Check, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { MarkdownDisplay } from "@/components/informe-editor/markdown-display";
 
 interface QuickInformeResultProps {
   informe: string;
@@ -48,12 +48,9 @@ export function QuickInformeResult({ informe }: QuickInformeResultProps) {
           </Button>
         </div>
 
-        <Textarea
-          value={informe}
-          readOnly
-          rows={20}
-          className="resize-none font-mono text-sm"
-        />
+        <div className="rounded-md border bg-background/50 p-4 max-h-[500px] overflow-y-auto">
+          <MarkdownDisplay text={informe} />
+        </div>
       </div>
 
       <div className="flex gap-3">
