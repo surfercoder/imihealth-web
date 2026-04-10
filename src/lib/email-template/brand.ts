@@ -18,4 +18,5 @@ export const BRAND = {
   border: '#e2e8f0',
   fontFamily:
     "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  logoUrl: 'https://www.imihealth.ai/assets/images/imihealth-logo.webp',
 } as const;

@@ -6,8 +6,8 @@ describe('email-template', () => {
       const html = brandedEmail({ body: '<p>Test</p>' })
 
       expect(html).toContain('<!DOCTYPE html>')
-      expect(html).toContain('IMI')
-      expect(html).toContain('health')
+      expect(html).toContain('imihealth-logo.webp')
+      expect(html).toContain('alt="IMI Health"')
       expect(html).toContain('<p>Test</p>')
       expect(html).toContain('imihealth.ai')
       expect(html).toContain('#0f172a') // navy
@@ -98,7 +98,7 @@ describe('email-template', () => {
       })
 
       expect(html).not.toContain('<b>Hacker</b>')
-      expect(html).not.toContain('<img')
+      expect(html).not.toContain('<img src=x onerror')
       expect(html).toContain('&lt;b&gt;')
     })
   })

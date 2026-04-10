@@ -51,15 +51,8 @@ export function brandedEmail({
 
           <!-- Header / Logo bar -->
           <tr>
-            <td style="background-color:${BRAND.navy};padding:24px 32px;text-align:center;">
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-                <tr>
-                  <td style="font-size:28px;font-weight:700;letter-spacing:-0.5px;">
-                    <span style="color:${BRAND.white};">IMI</span>
-                    <span style="color:${BRAND.teal};"> health</span>
-                  </td>
-                </tr>
-              </table>
+            <td style="background-color:${BRAND.white};padding:24px 32px;text-align:center;border-bottom:1px solid ${BRAND.border};">
+              <img src="${BRAND.logoUrl}" alt="IMI Health" width="180" style="display:block;margin:0 auto;max-width:180px;height:auto;" />
             </td>
           </tr>
 
