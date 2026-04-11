@@ -52,12 +52,6 @@ jest.mock('@/components/ui/chart', () => ({
     const label = labelFormatter ? labelFormatter('2024-03-10') : null
     return <div data-testid="chart-tooltip-content" data-label={label ?? ''} data-namekey={nameKey ?? ''} />
   },
-  ChartLegend: ({ content }: { content?: React.ReactNode }) => (
-    <div data-testid="chart-legend">{content}</div>
-  ),
-  ChartLegendContent: ({ nameKey }: { nameKey?: string }) => (
-    <div data-testid="chart-legend-content" data-namekey={nameKey ?? ''} />
-  ),
 }))
 
 import { DashboardCharts } from '@/components/dashboard-charts'

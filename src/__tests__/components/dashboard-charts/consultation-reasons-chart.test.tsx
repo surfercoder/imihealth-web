@@ -21,12 +21,6 @@ jest.mock('@/components/ui/chart', () => ({
   ChartTooltipContent: ({ nameKey }: { nameKey?: string }) => (
     <div data-testid="chart-tooltip-content" data-namekey={nameKey ?? ''} />
   ),
-  ChartLegend: ({ content }: { content?: React.ReactNode }) => (
-    <div data-testid="chart-legend">{content}</div>
-  ),
-  ChartLegendContent: ({ nameKey }: { nameKey?: string }) => (
-    <div data-testid="chart-legend-content" data-namekey={nameKey ?? ''} />
-  ),
 }))
 
 import { InformTypesChart } from '@/components/dashboard-charts/consultation-reasons-chart'

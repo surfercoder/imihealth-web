@@ -45,17 +45,6 @@ export type DefaultTooltipContentProps = {
   accessibilityLayer?: boolean
 }
 
-export type DefaultLegendContentProps = {
-  payload?: Array<{
-    value?: string
-    type?: string
-    id?: string
-    color?: string
-    dataKey?: string | number
-  }>
-  verticalAlign?: "top" | "bottom" | "middle"
-}
-
 // Helper to extract item config from a payload.
 export function getPayloadConfigFromPayload(
   config: ChartConfig,
