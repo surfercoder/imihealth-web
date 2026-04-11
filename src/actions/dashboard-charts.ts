@@ -34,7 +34,7 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
         .order("created_at", { ascending: true }),
       supabase
         .from("informes")
-        .select("id, created_at, updated_at, status, informe_doctor")
+        .select("id, created_at, updated_at, status, informe_doctor, recording_duration")
         .eq("doctor_id", user.id)
         .order("created_at", { ascending: true }),
       supabase
@@ -58,15 +58,21 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
     ([date, total]) => ({ date, total })
   );
 
-  // 2. Consultation time (processing time for completed informes)
+  // 2. Consultation time (actual recording duration for completed informes)
   const completedInformes = allInformes.filter((i) => i.status === "completed");
   const durations: { date: string; minutes: number }[] = [];
 
   for (const inf of completedInformes) {
-    const created = new Date(inf.created_at).getTime();
-    const updated = new Date(inf.updated_at).getTime();
-    const mins = (updated - created) / 60000;
-    // Filter reasonable durations (under 60 min — longer ones are later edits)
+    let mins: number;
+    if (inf.recording_duration != null) {
+      // Use actual recording duration (stored in seconds)
+      mins = inf.recording_duration / 60;
+    } else {
+      // Fallback for old records without recording_duration
+      const created = new Date(inf.created_at).getTime();
+      const updated = new Date(inf.updated_at).getTime();
+      mins = (updated - created) / 60000;
+    }
     if (mins > 0 && mins < 60) {
       durations.push({
         date: new Date(inf.created_at).toISOString().split("T")[0],

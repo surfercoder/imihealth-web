@@ -19,7 +19,8 @@ type ProcessQuickInformeResult = {
 export async function processQuickInforme(
   browserTranscript: string,
   audioBlob?: Blob,
-  language: string = "es"
+  language: string = "es",
+  recordingDuration?: number,
 ): Promise<ProcessQuickInformeResult> {
   const supabase = await createClient();
   const {
@@ -133,6 +134,7 @@ export async function processQuickInforme(
         status: "completed",
         informe_doctor: informeDoctor,
         updated_at: new Date().toISOString(),
+        ...(recordingDuration != null && { recording_duration: recordingDuration }),
       })
       .eq("id", informeRapidoId);
 

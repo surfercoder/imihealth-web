@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
   const browserTranscript = (formData.get("browserTranscript") as string) || "";
   const language = (formData.get("language") as string) || "es";
   const audioFile = formData.get("audio") as File | null;
+  const recordingDurationRaw = formData.get("recordingDuration") as string | null;
+  const recordingDuration = recordingDurationRaw ? parseInt(recordingDurationRaw, 10) : null;
 
   if (!informeId) {
     return NextResponse.json({ error: "Falta el ID del informe" }, { status: 400 });
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
         status: "completed",
         informe_doctor: informeDoctor,
         informe_paciente: informePaciente,
+        ...(recordingDuration != null && { recording_duration: recordingDuration }),
       })
       .eq("id", informeId)
       .eq("doctor_id", user.id);

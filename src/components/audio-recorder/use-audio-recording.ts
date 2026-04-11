@@ -145,6 +145,8 @@ export function useAudioRecording({
     const finalTranscript = fullTranscriptRef.current.trim();
     const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
 
+    const recordingDuration = state.duration;
+
     const process = () =>
       uploadAndProcess(
         dispatch,
@@ -160,6 +162,7 @@ export function useAudioRecording({
         currentTab,
         isQuickReport,
         onQuickReportComplete,
+        recordingDuration,
       );
 
     return new Promise<void>((resolve) => {

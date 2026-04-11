@@ -19,6 +19,7 @@ export async function uploadAndProcess(
   tab?: string | null,
   isQuickReport?: boolean,
   onQuickReportComplete?: (informeRapidoId: string) => void,
+  recordingDuration?: number,
 ) {
   void doctorId;
   dispatch({ type: "SET_PHASE", phase: "uploading" });
@@ -37,7 +38,7 @@ export async function uploadAndProcess(
     dispatch({ type: "SET_PROGRESS", progress: 50 });
     dispatch({ type: "SET_PHASE", phase: "processing" });
 
-    const result = await processQuickInforme(transcriptToUse, blob, locale);
+    const result = await processQuickInforme(transcriptToUse, blob, locale, recordingDuration);
     dispatch({ type: "SET_PROGRESS", progress: 100 });
 
     if (result.error) {
@@ -73,6 +74,9 @@ export async function uploadAndProcess(
   formData.append("informeId", informeId);
   formData.append("browserTranscript", transcriptToUse);
   formData.append("language", locale);
+  if (recordingDuration != null) {
+    formData.append("recordingDuration", String(recordingDuration));
+  }
   /* v8 ignore next */
   formData.append("audio", blob, `recording.${mimeType.split("/")[1]?.split(";")[0] || "webm"}`);
 
