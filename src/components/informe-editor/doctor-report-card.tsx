@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/tooltip";
 import { EmailIconButton } from "./email-icon-button";
 import { DoctorWhatsAppIconButton } from "./doctor-whatsapp-icon-button";
+import { PedidosIconButton } from "./pedidos-icon-button";
 import { MarkdownDisplay } from "./markdown-display";
 
 export function DoctorReportCard({
   informeId,
   informeDoctor,
   patientName,
+  whatsappPhone,
   doctorName,
   doctorEmail,
   doctorPhone,
@@ -29,6 +31,7 @@ export function DoctorReportCard({
   informeId: string;
   informeDoctor: string;
   patientName?: string;
+  whatsappPhone?: string;
   doctorName?: string;
   doctorEmail?: string;
   doctorPhone?: string;
@@ -105,6 +108,18 @@ export function DoctorReportCard({
               )}
               {doctorPhone && doctorName && (
                 <DoctorWhatsAppIconButton phone={doctorPhone} doctorName={doctorName} reportContent={consentText} />
+              )}
+              {whatsappPhone && patientName && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <PedidosIconButton informeId={informeId} informeDoctor={informeDoctor} patientName={patientName} phone={whatsappPhone} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{t("generatePedidos")}</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <CopyToClipboardButtonDoctor text={consentText} />
             </>

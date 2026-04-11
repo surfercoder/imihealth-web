@@ -26,6 +26,16 @@ export interface GenerateCertificadoPDFOptions {
   doctor?: DoctorSignatureInfo | null;
 }
 
+export interface GeneratePedidoPDFOptions {
+  patientName: string;
+  obraSocial?: string | null;
+  nroAfiliado?: string | null;
+  plan?: string | null;
+  date: string;
+  item: string;
+  doctor?: DoctorSignatureInfo | null;
+}
+
 export function sanitizeForPdf(text: string | null | undefined): string {
   if (!text) return "";
   return text.replace(/[^\x00-\xFF]/g, "").replace(/\s+/g, " ").trim();

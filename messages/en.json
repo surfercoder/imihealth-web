@@ -321,7 +321,8 @@
     "createCertificate": "Create certificate",
     "emailError": "Error sending email",
     "emailErrorUnexpected": "An unexpected error occurred",
-    "emailSendFailed": "Could not send email"
+    "emailSendFailed": "Could not send email",
+    "generatePedidos": "Generate orders"
   },
   "consentSection": {
     "title": "Patient consent",
@@ -448,6 +449,29 @@
     "message": "Hello {patientName}, we are sending you your medical certificate.\n\nYou can download it here: {certUrl}\n\nIf you have any questions, please do not hesitate to contact us.",
     "successTitle": "WhatsApp sent",
     "successMessage": "The certificate was sent via WhatsApp to {patientName} with PDF and image attached.",
+    "errorTitle": "WhatsApp error",
+    "errorMessage": "An unexpected error occurred"
+  },
+  "pedidos": {
+    "trigger": "Generate orders",
+    "title": "Medical orders",
+    "description": "Generate study and test orders for {patientName}. One PDF will be generated per item.",
+    "itemsLabel": "Requested studies and tests",
+    "itemsPlaceholder": "- Knee MRI\n- Chest X-ray\n- Lab work: Complete blood count",
+    "itemsHint": "{count, plural, =0 {Add items starting with a hyphen (-)} one {1 order to generate} other {{count} orders to generate}}",
+    "cancel": "Cancel",
+    "generating": "Generating...",
+    "generate": "{count, plural, one {Generate 1 order} other {Generate {count} orders}}",
+    "errorTitle": "Error generating orders",
+    "successMessage": "The orders were generated successfully.",
+    "generateAnother": "Generate more orders",
+    "generatedTitle": "Orders generated",
+    "generatedDescription": "{count, plural, one {1 order was generated} other {{count} orders were generated}}"
+  },
+  "whatsappPedidosButton": {
+    "label": "Send orders via WhatsApp",
+    "successTitle": "WhatsApp sent",
+    "successMessage": "{count, plural, one {1 order was sent} other {{count} orders were sent}} via WhatsApp to {patientName}.",
     "errorTitle": "WhatsApp error",
     "errorMessage": "An unexpected error occurred"
   },

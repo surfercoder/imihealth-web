@@ -321,7 +321,8 @@
     "createCertificate": "Crear certificado",
     "emailError": "Error al enviar email",
     "emailErrorUnexpected": "Ocurrió un error inesperado",
-    "emailSendFailed": "No se pudo enviar el email"
+    "emailSendFailed": "No se pudo enviar el email",
+    "generatePedidos": "Generar pedidos"
   },
   "consentSection": {
     "title": "Consentimiento del paciente",
@@ -450,6 +451,29 @@
     "successMessage": "El certificado fue enviado por WhatsApp a {patientName} con PDF e imagen adjuntos.",
     "errorTitle": "Error al enviar WhatsApp",
     "errorMessage": "Ocurrió un error inesperado"
+  },
+  "pedidos": {
+    "trigger": "Generar pedidos",
+    "title": "Pedidos medicos",
+    "description": "Genera los pedidos de estudios y practicas para {patientName}. Se generara un PDF por cada item.",
+    "itemsLabel": "Estudios y practicas solicitadas",
+    "itemsPlaceholder": "- Resonancia magnetica de rodilla\n- Radiografia de torax\n- Laboratorio: Hemograma completo",
+    "itemsHint": "{count, plural, =0 {Agrega items comenzando con guion (-)} one {1 pedido a generar} other {{count} pedidos a generar}}",
+    "cancel": "Cancelar",
+    "generating": "Generando...",
+    "generate": "{count, plural, one {Generar 1 pedido} other {Generar {count} pedidos}}",
+    "errorTitle": "Error al generar pedidos",
+    "successMessage": "Los pedidos fueron generados correctamente.",
+    "generateAnother": "Generar mas pedidos",
+    "generatedTitle": "Pedidos generados",
+    "generatedDescription": "{count, plural, one {Se genero 1 pedido} other {Se generaron {count} pedidos}}"
+  },
+  "whatsappPedidosButton": {
+    "label": "Enviar pedidos por WhatsApp",
+    "successTitle": "WhatsApp enviado",
+    "successMessage": "{count, plural, one {Se envio 1 pedido} other {Se enviaron {count} pedidos}} por WhatsApp a {patientName}.",
+    "errorTitle": "Error al enviar WhatsApp",
+    "errorMessage": "Ocurrio un error inesperado"
   },
   "landing": {
     "signIn": "Iniciar sesión",

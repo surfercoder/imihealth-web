@@ -11,3 +11,4 @@ export {
 export { regenerateReportFromEdits } from "./informes/regenerate";
 export { recordPatientConsent } from "./informes/consent";
 export { generateAndSaveCertificado } from "./informes/certificado";
+export { generatePedidos } from "./informes/pedidos";

@@ -13,10 +13,12 @@ import {
   getDocTemplateName,
   getImgTemplateName,
   getLanguageCode,
+  getPedidoDocTemplateName,
   getPngFilename,
   mapDoctorInfo,
 } from "./helpers";
 import { generateCertificadoMedia, generateInformeMedia, GeneratedMedia } from "./media";
+import { generatePedidoPDF } from "@/lib/pdf/pedido";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,14 +46,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isPedidos = type === "pedidos";
     const isInforme = type === "informe";
     const langCode = getLanguageCode(locale);
-    const docTemplateName = getDocTemplateName(isInforme, locale);
-    const imgTemplateName = getImgTemplateName(isInforme, locale);
 
     const { data: informe } = await supabase
       .from("informes")
-      .select("informe_paciente, created_at, patients(name, phone, dob, dni)")
+      .select("informe_paciente, created_at, patients(name, phone, dob, dni, obra_social, nro_afiliado, plan)")
       .eq("id", informeId)
       .eq("doctor_id", user.id)
       .single();
@@ -69,9 +70,77 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    const patient = informe.patients as unknown as PatientRelation | null;
+    const patient = informe.patients as unknown as (PatientRelation & {
+      obra_social?: string | null;
+      nro_afiliado?: string | null;
+      plan?: string | null;
+    }) | null;
     const dateStr = formatEsArDate(informe.created_at);
     const doctorInfo = mapDoctorInfo(doctorData);
+
+    // Handle pedidos: generate and send one PDF per item
+    if (isPedidos) {
+      const { pedidoItems } = body as { pedidoItems?: string[] };
+      if (!pedidoItems || pedidoItems.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "No pedido items provided" },
+          { status: 400 }
+        );
+      }
+
+      const pedidoTemplateName = getPedidoDocTemplateName(locale);
+      let sentCount = 0;
+
+      for (const item of pedidoItems) {
+        const pdfBytes = await generatePedidoPDF({
+          patientName: patient?.name ?? patientName ?? "",
+          obraSocial: patient?.obra_social ?? null,
+          nroAfiliado: patient?.nro_afiliado ?? null,
+          plan: patient?.plan ?? null,
+          date: dateStr,
+          item,
+          doctor: doctorInfo,
+        });
+
+        const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
+        if (!pdfUpload.success) {
+          console.error(`[WhatsApp] Pedido PDF upload failed for item: ${item}`, pdfUpload.error);
+          continue;
+        }
+
+        const docResult = await sendWhatsAppTemplateWithDocument({
+          to,
+          templateName: pedidoTemplateName,
+          languageCode: langCode,
+          bodyParameters: [],
+          mediaId: pdfUpload.mediaId,
+          documentFilename: "pedido-medico.pdf",
+        });
+
+        if (docResult.success) {
+          sentCount++;
+        } else {
+          console.error(`[WhatsApp] Pedido template failed for item: ${item}`, docResult.error);
+        }
+      }
+
+      if (sentCount === 0) {
+        return NextResponse.json(
+          { success: false, error: "Failed to send any pedidos" },
+          { status: 502 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        sentCount,
+        totalItems: pedidoItems.length,
+      });
+    }
+
+    // Handle informe and certificado
+    const docTemplateName = getDocTemplateName(isInforme, locale);
+    const imgTemplateName = getImgTemplateName(isInforme, locale);
 
     let media: GeneratedMedia;
 

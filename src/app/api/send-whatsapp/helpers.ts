@@ -43,6 +43,10 @@ export function getImgTemplateName(isInforme: boolean, locale: string | undefine
   return locale === "es" ? "certificado_imagen_es" : "certificado_imagen_en";
 }
 
+export function getPedidoDocTemplateName(locale: string | undefined): string {
+  return locale === "es" ? "pedido_con_documento_es" : "pedido_con_documento_en";
+}
+
 export function formatEsArDate(value: string): string {
   return new Date(value).toLocaleDateString("es-AR", {
     day: "2-digit",

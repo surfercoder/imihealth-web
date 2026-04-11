@@ -47,6 +47,7 @@ export function InformeEditor({
             informeId={informeId}
             informeDoctor={informeDoctor}
             patientName={patientName}
+            whatsappPhone={whatsappPhone}
             doctorName={doctorName}
             doctorEmail={doctorEmail}
             doctorPhone={doctorPhone}
