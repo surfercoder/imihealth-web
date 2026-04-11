@@ -45,15 +45,9 @@ describe('QuickInformeResult', () => {
     expect(screen.getByText('Informe del Doctor')).toBeInTheDocument()
   })
 
-  it('renders the informe text in a textarea', () => {
+  it('renders the informe text via MarkdownDisplay', () => {
     render(<QuickInformeResult informe={sampleInforme} />)
-    expect(screen.getByDisplayValue(sampleInforme)).toBeInTheDocument()
-  })
-
-  it('textarea is read-only', () => {
-    render(<QuickInformeResult informe={sampleInforme} />)
-    const textarea = screen.getByDisplayValue(sampleInforme)
-    expect(textarea).toHaveAttribute('readonly')
+    expect(screen.getByText(sampleInforme)).toBeInTheDocument()
   })
 
   it('renders the copy button with copy icon and label', () => {

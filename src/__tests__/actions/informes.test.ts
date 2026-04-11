@@ -44,6 +44,7 @@ import {
   regenerateReportFromEdits,
   recordPatientConsent,
   generateAndSaveCertificado,
+  generatePedidos,
 } from '@/actions/informes'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -132,6 +133,31 @@ describe('createPatient', () => {
     expect(result).toEqual({ data: { id: 'p-2' } })
     expect(chain.insert).toHaveBeenCalledWith(
       expect.objectContaining({ dob: null, email: null })
+    )
+  })
+
+  it('passes optional obraSocial, nroAfiliado, and plan fields', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: { id: 'p-3' }, error: null })
+    mockFrom.mockReturnValue(chain)
+    const fd = new FormData()
+    fd.set('name', 'Carlos López')
+    fd.set('dni', '30123456')
+    fd.set('dob', '1990-01-15')
+    fd.set('phone', '+541112345678')
+    fd.set('email', 'carlos@email.com')
+    fd.set('obraSocial', 'OSDE')
+    fd.set('nroAfiliado', '987654')
+    fd.set('plan', '310')
+    const result = await createPatient(fd)
+    expect(result).toEqual({ data: { id: 'p-3' } })
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        obra_social: 'OSDE',
+        nro_afiliado: '987654',
+        plan: '310',
+      })
     )
   })
 })
@@ -248,21 +274,17 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    // 2 & 3. Promise.all: transcript save + doctor fetch
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
+    // 2. doctor fetch
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
 
-    // 4. final update chain
+    // 3. final update chain
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
       .mockReturnValueOnce(updateChain)       // update status
-      .mockReturnValueOnce(transcriptSaveChain) // save transcript (Promise.all[0])
-      .mockReturnValueOnce(doctorChain)        // fetch doctor (Promise.all[1])
+      .mockReturnValueOnce(doctorChain)        // fetch doctor
       .mockReturnValueOnce(finalUpdateChain)   // final update
 
     mockAnthropicCreate.mockResolvedValue({
@@ -290,20 +312,17 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
 
-    const finalUpdateChain = makeChain()
-    finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
+    // Reset chain (status back to recording for insufficient content)
+    const resetChain = makeChain()
+    resetChain.eq.mockReturnValue(resetChain)
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
-      .mockReturnValueOnce(finalUpdateChain)
+      .mockReturnValueOnce(resetChain)
 
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: 'image', source: {} }],
@@ -321,9 +340,6 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
 
@@ -332,7 +348,6 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
 
@@ -351,9 +366,6 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
 
@@ -365,7 +377,6 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
       .mockReturnValueOnce(errorUpdateChain)
@@ -428,20 +439,16 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    // 2 & 3. Promise.all: transcript save + doctor fetch
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
+    // 2. doctor fetch
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
 
-    // 4. final update chain
+    // 3. final update chain
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
       .mockReturnValueOnce(updateChain)       // update status
-      .mockReturnValueOnce(transcriptSaveChain) // save transcript
       .mockReturnValueOnce(doctorChain)        // fetch doctor
       .mockReturnValueOnce(finalUpdateChain)   // final update
 
@@ -475,20 +482,16 @@ describe('processInformeFromTranscript', () => {
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
 
-    // 2 & 3. Promise.all: transcript save + doctor fetch
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
-
+    // 2. doctor fetch
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: { especialidad: 'Cardiología' }, error: null })
 
-    // 4. final update chain
+    // 3. final update chain
     const finalUpdateChain = makeChain()
     finalUpdateChain.eq.mockReturnValueOnce(finalUpdateChain).mockResolvedValueOnce({ error: null })
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
 
@@ -519,14 +522,11 @@ describe('processInformeFromTranscript', () => {
     consoleSpy.mockRestore()
   })
 
-  it('stores transcript_dialog when AI response includes a dialog field', async () => {
+  it('ignores extra dialog field in AI response and still completes', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
-
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
@@ -536,14 +536,8 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(finalUpdateChain)
-
-    const dialog = [
-      { speaker: 'doctor', text: 'Hola, como se siente?' },
-      { speaker: 'paciente', text: 'Me duele la cabeza' },
-    ]
 
     mockAnthropicCreate.mockResolvedValue({
       content: [
@@ -553,7 +547,7 @@ describe('processInformeFromTranscript', () => {
             valid_medical_content: true,
             informe_doctor: 'Doctor report',
             informe_paciente: 'Patient report',
-            dialog,
+            dialog: [{ speaker: 'doctor', text: 'Hola' }],
           }),
         },
       ],
@@ -561,10 +555,6 @@ describe('processInformeFromTranscript', () => {
 
     const result = await processInformeFromTranscript('i-1', 'transcript')
     expect(result).toEqual({ success: true })
-
-    // Verify the final update was called with transcript_dialog set
-    const updateCall = finalUpdateChain.update.mock.calls[0][0]
-    expect(updateCall.transcript_dialog).toEqual(dialog)
   })
 
   it('returns insufficientContent when valid_medical_content is false', async () => {
@@ -572,9 +562,6 @@ describe('processInformeFromTranscript', () => {
 
     const updateChain = makeChain()
     updateChain.eq.mockReturnValue(updateChain)
-
-    const transcriptSaveChain = makeChain()
-    transcriptSaveChain.eq.mockReturnValue(transcriptSaveChain)
 
     const doctorChain = makeChain()
     doctorChain.single.mockResolvedValue({ data: null, error: null })
@@ -585,7 +572,6 @@ describe('processInformeFromTranscript', () => {
 
     mockFrom
       .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(transcriptSaveChain)
       .mockReturnValueOnce(doctorChain)
       .mockReturnValueOnce(resetChain)
 
@@ -1071,5 +1057,57 @@ describe('updateInformePacienteWithPdf', () => {
 
     const result = await updateInformePacienteWithPdf('i-1', '')
     expect(result).toEqual({ error: 'Update error' })
+  })
+})
+
+describe('generatePedidos', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('returns error when user is not authenticated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const result = await generatePedidos('i-1', ['item1'])
+    expect(result).toEqual({ error: 'No autenticado' })
+  })
+
+  it('returns error when items list is empty', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const result = await generatePedidos('i-1', [])
+    expect(result).toEqual({ error: 'No hay pedidos para generar' })
+  })
+
+  it('returns error when informe is not found', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
+    mockFrom.mockReturnValue(chain)
+    const result = await generatePedidos('i-1', ['Blood test'])
+    expect(result).toEqual({ error: 'Informe no encontrado' })
+  })
+
+  it('returns error when informe is not completed', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: { status: 'processing' }, error: null })
+    mockFrom.mockReturnValue(chain)
+    const result = await generatePedidos('i-1', ['Blood test'])
+    expect(result).toEqual({ error: 'El informe no esta completado' })
+  })
+
+  it('returns urls on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: { status: 'completed' }, error: null })
+    mockFrom.mockReturnValue(chain)
+    const result = await generatePedidos('i-1', ['Hemograma', 'Radiografía'])
+    expect(result).toEqual({
+      urls: [
+        expect.stringContaining('/api/pdf/pedido?'),
+        expect.stringContaining('/api/pdf/pedido?'),
+      ],
+    })
+    const urls = (result as { urls: string[] }).urls
+    expect(urls[0]).toContain('id=i-1')
+    expect(urls[0]).toContain('item=Hemograma')
+    expect(urls[1]).toContain('item=Radiograf')
   })
 })

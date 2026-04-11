@@ -36,6 +36,13 @@ export function useAudioRecording({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fullTranscriptRef = useRef<string>("");
+  const durationRef = useRef(0);
+
+  // Keep the ref in sync with state so stopAndProcess can read it without
+  // depending on the whole state object (avoids React Compiler memoisation issues).
+  useEffect(() => {
+    durationRef.current = state.duration;
+  }, [state.duration]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -145,7 +152,7 @@ export function useAudioRecording({
     const finalTranscript = fullTranscriptRef.current.trim();
     const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
 
-    const recordingDuration = state.duration;
+    const recordingDuration = durationRef.current;
 
     const process = () =>
       uploadAndProcess(

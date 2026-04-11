@@ -43,7 +43,7 @@ describe('SignupPage', () => {
 
   it('renders limit reached screen when doctor count >= MAX_DOCTORS', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    mockSelect.mockResolvedValue({ count: 15 })
+    mockSelect.mockResolvedValue({ count: 20 })
     render(await SignupPage())
     expect(screen.getByText('Registro no disponible')).toBeInTheDocument()
     expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument()

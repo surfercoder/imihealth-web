@@ -145,6 +145,35 @@ describe('getDashboardChartData', () => {
     expect(result!.consultationTime.data).toHaveLength(2)
   })
 
+  it('uses recording_duration when available', async () => {
+    setupMocks(
+      [],
+      [
+        {
+          id: 'i-1',
+          status: 'completed',
+          created_at: '2025-01-01T10:00:00Z',
+          updated_at: '2025-01-01T10:10:00Z',
+          recording_duration: 300, // 5 minutes in seconds
+          informe_doctor: null,
+        },
+        {
+          id: 'i-2',
+          status: 'completed',
+          created_at: '2025-01-01T11:00:00Z',
+          updated_at: '2025-01-01T11:20:00Z',
+          recording_duration: 900, // 15 minutes in seconds
+          informe_doctor: null,
+        },
+      ]
+    )
+    const result = await getDashboardChartData()
+    expect(result!.consultationTime.avg).toBe(10)
+    expect(result!.consultationTime.min).toBe(5)
+    expect(result!.consultationTime.max).toBe(15)
+    expect(result!.consultationTime.data).toHaveLength(2)
+  })
+
   it('filters out durations that are 0 or negative', async () => {
     setupMocks(
       [],

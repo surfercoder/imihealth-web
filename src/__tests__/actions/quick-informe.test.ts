@@ -62,6 +62,13 @@ function mockTables({
   })
 
   mockFrom.mockImplementation((table: string) => {
+    if (table === 'inform_generation_log') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
+        })),
+      }
+    }
     if (table === 'informes_rapidos') {
       return {
         insert: jest.fn(() => ({
@@ -99,6 +106,89 @@ describe('processQuickInforme', () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     const result = await processQuickInforme('some transcript')
     expect(result).toEqual({ error: 'No autenticado' })
+  })
+
+  it('returns error when MVP informe limit is reached', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    // Override the inform_generation_log mock to return count >= limit
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'inform_generation_log') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ count: 10, error: null }),
+          })),
+        }
+      }
+      return {}
+    })
+    const result = await processQuickInforme('transcript con suficiente contenido')
+    expect(result).toEqual({ error: expect.stringContaining('límite') })
+  })
+
+  it('treats null informeCount as 0 (does not trigger limit)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    // Return null count (the ?? 0 branch)
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'inform_generation_log') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ count: null, error: null }),
+          })),
+        }
+      }
+      if (table === 'informes_rapidos') {
+        return {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn().mockResolvedValue({ data: { id: RAPIDO_ID }, error: null }),
+            })),
+          })),
+          update: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ error: null }),
+          })),
+        }
+      }
+      if (table === 'doctors') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        }
+      }
+      return {}
+    })
+    // Should NOT return limit error (null ?? 0 = 0 < 10)
+    const result = await processQuickInforme('hola') // short transcript, gets no-content error
+    expect(result.error).toMatch(/transcribir el audio/i)
+  })
+
+  it('returns fallback error when created is null without createError', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'inform_generation_log') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
+          })),
+        }
+      }
+      if (table === 'informes_rapidos') {
+        return {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        }
+      }
+      return {}
+    })
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await processQuickInforme('transcript con suficiente contenido')
+    expect(result).toEqual({ error: 'No se pudo crear el informe rápido' })
+    consoleSpy.mockRestore()
   })
 
   it('returns error when the persistent informes_rapidos row cannot be created', async () => {
@@ -353,5 +443,49 @@ describe('processQuickInforme', () => {
 
     await processQuickInforme('browser transcript suficiente', makeFakeBlob(), 'es')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'es')
+  })
+
+  it('passes recordingDuration when provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const { updateEq } = mockTables({ doctorEspecialidad: 'Cardiología' })
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Report',
+          }),
+        },
+      ],
+    })
+
+    const result = await processQuickInforme('transcript con suficiente contenido', undefined, 'es', 120)
+    expect(result.informeDoctor).toBe('Report')
+    expect(updateEq).toHaveBeenCalled()
+  })
+
+  it('returns error when final update fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables({ updateError: { message: 'DB write failed' } })
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Informe médico detallado',
+          }),
+        },
+      ],
+    })
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await processQuickInforme('transcript con suficiente contenido para procesar')
+    expect(result.error).toBe('DB write failed')
+    expect(result.informeRapidoId).toBe(RAPIDO_ID)
+    consoleSpy.mockRestore()
   })
 })

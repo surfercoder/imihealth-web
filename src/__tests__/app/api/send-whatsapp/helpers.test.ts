@@ -9,6 +9,7 @@ import {
   getDocTemplateName,
   getImgTemplateName,
   getLanguageCode,
+  getPedidoDocTemplateName,
   getPngFilename,
   mapDoctorInfo,
 } from '@/app/api/send-whatsapp/helpers'
@@ -154,6 +155,20 @@ describe('send-whatsapp helpers', () => {
 
     it('returns certificado png filename', () => {
       expect(getPngFilename(false)).toBe('certificado-medico.png')
+    })
+  })
+
+  describe('getPedidoDocTemplateName', () => {
+    it('returns es template name for es locale', () => {
+      expect(getPedidoDocTemplateName('es')).toBe('pedido_con_documento_es')
+    })
+
+    it('returns en template name for en locale', () => {
+      expect(getPedidoDocTemplateName('en')).toBe('pedido_con_documento_en')
+    })
+
+    it('returns en template name for undefined locale', () => {
+      expect(getPedidoDocTemplateName(undefined)).toBe('pedido_con_documento_en')
     })
   })
 })

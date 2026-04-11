@@ -263,18 +263,10 @@ describe('ProfileForm', () => {
     })
   })
 
-  it('shows validation error when matricula has non-numeric characters', async () => {
-    const user = userEvent.setup()
+  it('renders matricula field as disabled', () => {
     render(<ProfileForm doctor={defaultDoctor} />)
     const matriculaInput = screen.getByLabelText('Matrícula')
-    await user.clear(matriculaInput)
-    await user.type(matriculaInput, 'ABC123')
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await waitFor(() => {
-      expect(
-        screen.getByText('La matrícula debe contener solo números')
-      ).toBeInTheDocument()
-    })
+    expect(matriculaInput).toBeDisabled()
   })
 
   it('shows validation error when DNI has invalid format', async () => {
@@ -346,21 +338,10 @@ describe('ProfileForm', () => {
     expect(formData.get('firmaDigital')).toBeNull()
   })
 
-  it('selects a specialty via the combobox and submits with it in formData', async () => {
-    const user = userEvent.setup()
-    render(<ProfileForm doctor={{ ...defaultDoctor, especialidad: '' }} />)
-    // Open the specialty popover
-    await user.click(screen.getByRole('combobox'))
-    // Select "Cardiología" from the command list
-    const cardio = screen.getByRole('option', { name: 'Cardiología' })
-    await user.click(cardio)
-    // After selection, popover should close and field updates
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await waitFor(() => {
-      expect(mockFormAction).toHaveBeenCalledWith(expect.any(FormData))
-    })
-    const formData: FormData = mockFormAction.mock.calls[0][0]
-    expect(formData.get('especialidad')).toBe('Cardiología')
+  it('renders specialty combobox as disabled', () => {
+    render(<ProfileForm doctor={defaultDoctor} />)
+    const combobox = screen.getByRole('combobox')
+    expect(combobox).toBeDisabled()
   })
 
   it('sets firmaDigital to empty string when signatureChanged but firmaDigital is undefined', async () => {

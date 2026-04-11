@@ -17,6 +17,25 @@ jest.mock('@/actions/informes', () => ({
 }))
 
 import { InformesTab } from '@/components/tabs/informes-tab'
+import { PlanProvider } from '@/contexts/plan-context'
+import type { PlanInfo } from '@/actions/plan'
+
+const defaultPlan: PlanInfo = {
+  maxInformes: 10,
+  currentInformes: 0,
+  canCreateInforme: true,
+  maxDoctors: 20,
+  currentDoctors: 1,
+  canSignUp: true,
+}
+
+function renderTab(plan: PlanInfo = defaultPlan) {
+  return render(
+    <PlanProvider plan={plan}>
+      <InformesTab />
+    </PlanProvider>
+  )
+}
 
 const originalLanguages = navigator.languages
 
@@ -38,33 +57,45 @@ describe('InformesTab', () => {
   })
 
   it('renders the informes title', () => {
-    render(<InformesTab />)
+    renderTab()
     expect(screen.getByText(/Crear nuevo informe/i)).toBeInTheDocument()
   })
 
   it('renders both the classic and quick report buttons', () => {
-    render(<InformesTab />)
+    renderTab()
     expect(screen.getByText(/Informe clásico/i)).toBeInTheDocument()
     expect(screen.getByText(/Informe rápido/i)).toBeInTheDocument()
   })
 
+  it('disables buttons when informe limit is reached', () => {
+    renderTab({
+      ...defaultPlan,
+      canCreateInforme: false,
+      currentInformes: 10,
+    })
+    const classicBtn = screen.getByText(/Informe clásico/i).closest('button')!
+    const quickBtn = screen.getByText(/Informe rápido/i).closest('button')!
+    expect(classicBtn).toBeDisabled()
+    expect(quickBtn).toBeDisabled()
+  })
+
   it('navigates to /quick-informe when quick report button is clicked', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe rápido/i).closest('button')!)
     expect(mockPush).toHaveBeenCalledWith('/quick-informe')
   })
 
   it('opens the classic dialog when classic report button is clicked', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('renders all form fields when dialog is open', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     expect(screen.getByLabelText(/Nombre completo/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/DNI/i)).toBeInTheDocument()
@@ -75,7 +106,7 @@ describe('InformesTab', () => {
 
   it('shows validation error when submitting empty form', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
     await waitFor(() => {
@@ -85,7 +116,7 @@ describe('InformesTab', () => {
 
   it('shows phone validation error for short phone', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -98,7 +129,7 @@ describe('InformesTab', () => {
 
   it('closes dialog when Cancel button is clicked', async () => {
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Cancelar/i }))
@@ -110,7 +141,7 @@ describe('InformesTab', () => {
   it('shows server error when createPatient fails', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Error al crear el paciente' })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -124,7 +155,7 @@ describe('InformesTab', () => {
   it('shows fallback error when createPatient returns no data and no error', async () => {
     mockCreatePatient.mockResolvedValue({ data: null })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -139,7 +170,7 @@ describe('InformesTab', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ error: 'Error al crear el informe' })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -154,7 +185,7 @@ describe('InformesTab', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: null })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -169,7 +200,7 @@ describe('InformesTab', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-1' } })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -180,13 +211,39 @@ describe('InformesTab', () => {
     })
   })
 
+  it('submits form with optional obraSocial, nroAfiliado, and plan fields', async () => {
+    mockCreatePatient.mockResolvedValue({ data: { id: 'p-opt' } })
+    mockCreateInforme.mockResolvedValue({ data: { id: 'i-opt' } })
+    const user = userEvent.setup()
+    renderTab()
+    await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
+    await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
+    await user.type(screen.getByLabelText(/DNI/i), '30123456')
+    await user.type(screen.getByLabelText(/Teléfono/i), '92616886005')
+    // Fill optional fields
+    const obraSocialInput = screen.getByLabelText(/Obra social/i)
+    if (obraSocialInput) await user.type(obraSocialInput, 'OSDE')
+    const nroAfiliadoInput = screen.getByLabelText(/afiliado/i)
+    if (nroAfiliadoInput) await user.type(nroAfiliadoInput, '123456')
+    const planInput = screen.getByLabelText(/Plan/i)
+    if (planInput) await user.type(planInput, '310')
+    await user.click(screen.getByRole('button', { name: /Iniciar consulta/i }))
+    await waitFor(() => {
+      expect(mockCreatePatient).toHaveBeenCalled()
+    })
+    const formData: FormData = mockCreatePatient.mock.calls[0][0]
+    expect(formData.get('obraSocial')).toBe('OSDE')
+    expect(formData.get('nroAfiliado')).toBe('123456')
+    expect(formData.get('plan')).toBe('310')
+  })
+
   it('redirects with tab query param in URL when tab searchParam is present', async () => {
     mockSearchParamsValue = new URLSearchParams('tab=informes')
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-2' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-2' } })
 
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -200,7 +257,7 @@ describe('InformesTab', () => {
   it('resets form and clears error when dialog is closed via onOpenChange', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Some error' })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -220,7 +277,7 @@ describe('InformesTab', () => {
   it('closes dialog via ESC key and resets form state', async () => {
     mockCreatePatient.mockResolvedValue({ error: 'Some error' })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')
@@ -241,7 +298,7 @@ describe('InformesTab', () => {
     mockCreatePatient.mockResolvedValue({ data: { id: 'p-1' } })
     mockCreateInforme.mockResolvedValue({ data: { id: 'i-1' } })
     const user = userEvent.setup()
-    render(<InformesTab />)
+    renderTab()
     await user.click(screen.getByText(/Informe clásico/i).closest('button')!)
     await user.type(screen.getByLabelText(/Nombre completo/i), 'Juan Pérez')
     await user.type(screen.getByLabelText(/DNI/i), '30123456')

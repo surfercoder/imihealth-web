@@ -183,7 +183,7 @@ describe('signup', () => {
   })
 
   it('returns error when MVP doctor limit is reached', async () => {
-    mockSelect.mockResolvedValue({ count: 15 })
+    mockSelect.mockResolvedValue({ count: 20 })
     const fd = new FormData()
     fd.set('email', 'doctor@hospital.com')
     fd.set('password', 'password123')

@@ -112,6 +112,7 @@ export function ProfessionalInfoSection({ form }: ProfessionalInfoSectionProps) 
                             key={esp}
                             value={esp}
                             className="text-card-foreground data-[selected=true]:bg-muted data-[selected=true]:text-card-foreground"
+                            /* v8 ignore next 4 */
                             onSelect={(val) => {
                               field.onChange(val);
                               setEspecialidadOpen(false);

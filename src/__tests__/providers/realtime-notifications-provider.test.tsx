@@ -437,5 +437,36 @@ describe('RealtimeNotificationsProvider', () => {
 
       expect(mockToastSuccess).not.toHaveBeenCalled()
     })
+
+    it('does not show duplicate quick report notifications', async () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+
+      // First notification
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-dup', status: 'processing' },
+          new: { id: 'rap-dup', status: 'completed' },
+        })
+      })
+
+      const firstCallCount = mockToastSuccess.mock.calls.length
+
+      // Second identical notification should be ignored
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-dup', status: 'processing' },
+          new: { id: 'rap-dup', status: 'completed' },
+        })
+      })
+
+      // Toast should not have been called again
+      expect(mockToastSuccess.mock.calls.length).toBe(firstCallCount)
+    })
   })
 })

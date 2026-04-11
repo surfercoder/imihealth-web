@@ -47,6 +47,13 @@ function setupTableMocks() {
   const doctorSingle = jest.fn().mockResolvedValue({ data: null, error: null })
 
   mockFrom.mockImplementation((table: string) => {
+    if (table === 'inform_generation_log') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
+        })),
+      }
+    }
     if (table === 'informes_rapidos') {
       return {
         insert: jest.fn(() => ({

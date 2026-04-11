@@ -240,18 +240,11 @@ describe('InformePage', () => {
     expect(screen.getByText('status.unknown')).toBeInTheDocument()
   })
 
-  it('renders transcript section when transcript is present', async () => {
+  it('renders completed informe without transcript section', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks(completedInforme)
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText('Transcripción de la consulta')).toBeInTheDocument()
-    expect(screen.getByText('Transcripción de la consulta.')).toBeInTheDocument()
-  })
-
-  it('does not render transcript section when transcript is null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks({ ...completedInforme, transcript: null })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
+    // Transcript section is no longer rendered on the page
     expect(screen.queryByText('Transcripción de la consulta')).not.toBeInTheDocument()
   })
 
@@ -281,7 +274,7 @@ describe('InformePage', () => {
     expect(screen.getByText(/años/i)).toBeInTheDocument()
   })
 
-  it('renders transcript_dialog count and TranscriptDialog component', async () => {
+  it('renders completed informe even with transcript_dialog in data', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const dialog = [
       { speaker: 'doctor', text: 'Hola' },
@@ -290,8 +283,8 @@ describe('InformePage', () => {
     ]
     setupMocks({ ...completedInforme, transcript_dialog: dialog })
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText('3 intervenciones')).toBeInTheDocument()
-    expect(screen.getByTestId('transcript-dialog')).toBeInTheDocument()
+    // Dialog is no longer rendered on the page
+    expect(screen.getByTestId('informe-editor')).toBeInTheDocument()
   })
 
   it('uses en-US locale when getLocale returns en', async () => {
@@ -303,18 +296,12 @@ describe('InformePage', () => {
     expect(screen.getByText(/May/i)).toBeInTheDocument()
   })
 
-  it('renders monologue label when transcript_type is monologue and no transcript_dialog', async () => {
+  it('does not render monologue or dialog sections (removed from page)', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     setupMocks({ ...completedInforme, transcript_type: 'monologue', transcript_dialog: null })
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText('Narración del doctor')).toBeInTheDocument()
-  })
-
-  it('renders TranscriptMonologue component when transcript_type is monologue', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks({ ...completedInforme, transcript_type: 'monologue', transcript_dialog: null })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('transcript-monologue')).toBeInTheDocument()
+    expect(screen.queryByTestId('transcript-monologue')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('transcript-dialog')).not.toBeInTheDocument()
   })
 
   it('renders quick-report breadcrumb when patient is null (no patient_id)', async () => {
@@ -354,12 +341,10 @@ describe('InformePage', () => {
     expect(tabLinks.length).toBeGreaterThan(0)
   })
 
-  it('uses "Patient" as fallback when patient name is not available in transcript_dialog', async () => {
+  it('renders completed informe when patient name is null', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    // Patient exists but name is null (TypeScript allows it through type casting, covers line 296)
-    const dialog = [{ speaker: 'doctor', text: 'Hola' }]
-    setupMocks({ ...completedInforme, transcript_dialog: dialog, patients: { ...completedInforme.patients, name: null } })
+    setupMocks({ ...completedInforme, patients: { ...completedInforme.patients, name: null } })
     render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('transcript-dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('informe-editor')).toBeInTheDocument()
   })
 })

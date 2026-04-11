@@ -51,4 +51,5 @@ describe('useNuevoInformeForm', () => {
     })
     await waitFor(() => expect(result.current.open).toBe(true))
   })
+
 })

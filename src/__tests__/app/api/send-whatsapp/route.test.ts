@@ -544,4 +544,171 @@ describe('POST /api/send-whatsapp', () => {
     expect(res.status).toBe(500)
     expect(json).toEqual({ success: false, error: 'Failed to send WhatsApp message' })
   })
+
+  // ── Pedidos ────────────────────────────────────────────────────────────────
+
+  it('returns 400 when pedidos type has no items', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    const res = await POST(
+      makeRequest({ to: '+5491155555555', informeId: 'i-1', type: 'pedidos', pedidoItems: [] })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(400)
+    expect(json.error).toContain('No pedido items')
+  })
+
+  it('sends pedidos PDFs via WhatsApp successfully', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    // Reset upload mock for pedido-specific calls
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp.mockResolvedValue({ success: true, mediaId: 'media-pedido-1' })
+    mockSendWhatsAppTemplateWithDocument.mockResolvedValue({ success: true, messageId: 'msg-pedido-1' })
+
+    const mockGeneratePedidoPDF = jest.fn().mockResolvedValue(MOCK_PDF_BYTES)
+    jest.doMock('@/lib/pdf/pedido', () => ({
+      generatePedidoPDF: (...args: unknown[]) => mockGeneratePedidoPDF(...args),
+    }))
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        patientName: 'Ana García',
+        locale: 'es',
+        pedidoItems: ['Hemograma completo', 'Radiografía de tórax'],
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.sentCount).toBeGreaterThan(0)
+  })
+
+  it('returns 502 when all pedido sends fail', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp.mockResolvedValue({ success: false, error: 'Upload failed' })
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        pedidoItems: ['Test item'],
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(502)
+    expect(json.error).toContain('Failed to send any pedidos')
+    consoleSpy.mockRestore()
+  })
+
+  it('partially succeeds when some pedido sends fail', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp
+      .mockResolvedValueOnce({ success: true, mediaId: 'media-1' })
+      .mockResolvedValueOnce({ success: false, error: 'Upload failed' })
+
+    mockSendWhatsAppTemplateWithDocument.mockResolvedValue({ success: true, messageId: 'msg-1' })
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        pedidoItems: ['Item 1', 'Item 2'],
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.sentCount).toBe(1)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses patientName fallback when patient data is null for pedidos', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    mockInformeSingle.mockResolvedValue({
+      data: { ...MOCK_INFORME, patients: null },
+      error: null,
+    })
+
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp.mockResolvedValue({ success: true, mediaId: 'media-1' })
+    mockSendWhatsAppTemplateWithDocument.mockResolvedValue({ success: true, messageId: 'msg-1' })
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        patientName: 'Fallback Name',
+        pedidoItems: ['Item 1'],
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+  })
+
+  it('uses empty string when both patient and patientName are missing for pedidos', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    mockInformeSingle.mockResolvedValue({
+      data: { ...MOCK_INFORME, patients: null },
+      error: null,
+    })
+
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp.mockResolvedValue({ success: true, mediaId: 'media-1' })
+    mockSendWhatsAppTemplateWithDocument.mockResolvedValue({ success: true, messageId: 'msg-1' })
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        pedidoItems: ['Item 1'],
+        // No patientName provided
+      })
+    )
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+  })
+
+  it('handles pedido template send failure', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    mockUploadMediaToWhatsApp.mockReset()
+    mockUploadMediaToWhatsApp.mockResolvedValue({ success: true, mediaId: 'media-1' })
+    mockSendWhatsAppTemplateWithDocument.mockResolvedValue({ success: false, error: 'Template failed' })
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'pedidos',
+        pedidoItems: ['Item 1'],
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(502)
+    expect(json.error).toContain('Failed to send any pedidos')
+    consoleSpy.mockRestore()
+  })
 })

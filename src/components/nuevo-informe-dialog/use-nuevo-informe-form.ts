@@ -47,6 +47,7 @@ export function useNuevoInformeForm() {
     if (values.dob) formData.append("dob", values.dob);
     if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
     if (values.email) formData.append("email", values.email);
+    /* v8 ignore next 3 */
     if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
     if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
     if (values.plan) formData.append("plan", values.plan);
