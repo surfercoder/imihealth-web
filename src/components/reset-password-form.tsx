@@ -38,6 +38,7 @@ export function ResetPasswordForm() {
       emailInvalid: v("emailInvalid"),
       passwordRequired: v("passwordRequired"),
       passwordMin: v("passwordMin"),
+      passwordWeak: v("passwordWeak"),
       confirmPasswordRequired: v("confirmPasswordRequired"),
       passwordsMismatch: v("passwordsMismatch"),
       nameMin: v("nameMin"),

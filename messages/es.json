@@ -732,6 +732,7 @@
     "emailInvalid": "Correo inválido",
     "passwordRequired": "La contraseña es requerida",
     "passwordMin": "La contraseña debe tener al menos 8 caracteres",
+    "passwordWeak": "La contraseña no cumple los requisitos de seguridad",
     "confirmPasswordRequired": "Confirmá tu contraseña",
     "passwordsMismatch": "Las contraseñas no coinciden",
     "nameMin": "El nombre es requerido",
@@ -743,6 +744,13 @@
     "phoneInvalid": "Teléfono inválido",
     "specialtyRequired": "La especialidad es requerida",
     "specialtyInvalid": "Seleccioná una especialidad válida"
+  },
+  "passwordStrength": {
+    "minLength": "Al menos 8 caracteres",
+    "hasLowercase": "Al menos una letra minúscula",
+    "hasUppercase": "Al menos una letra mayúscula",
+    "hasDigit": "Al menos un número",
+    "hasSpecial": "Al menos un carácter especial (!@#$%…)"
   },
   "mvpLimits": {
     "signupLimitTitle": "Registro no disponible",

@@ -27,8 +27,8 @@ describe('loginSchema', () => {
 
 const validSignup = {
   email: 'doctor@hospital.com',
-  password: 'securepass',
-  confirmPassword: 'securepass',
+  password: 'S3cure@Pass!',
+  confirmPassword: 'S3cure@Pass!',
   matricula: '123456',
   phone: '+54 11 1234-5678',
   especialidad: 'Cardiología',
@@ -44,6 +44,12 @@ describe('signupSchema', () => {
     const result = signupSchema.safeParse({ ...validSignup, password: 'short', confirmPassword: 'short' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].message).toBe('La contraseña debe tener al menos 8 caracteres')
+  })
+
+  it('rejects weak password without required characters', () => {
+    const result = signupSchema.safeParse({ ...validSignup, password: 'securepass', confirmPassword: 'securepass' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toBe('La contraseña no cumple los requisitos de seguridad')
   })
 
   it('rejects mismatched passwords', () => {
@@ -120,16 +126,16 @@ describe('forgotPasswordSchema', () => {
 describe('resetPasswordSchema', () => {
   it('accepts matching passwords', () => {
     const result = resetPasswordSchema.safeParse({
-      password: 'newpassword',
-      confirmPassword: 'newpassword',
+      password: 'N3wP@ssw0rd!',
+      confirmPassword: 'N3wP@ssw0rd!',
     })
     expect(result.success).toBe(true)
   })
 
   it('rejects mismatched passwords', () => {
     const result = resetPasswordSchema.safeParse({
-      password: 'newpassword',
-      confirmPassword: 'different',
+      password: 'N3wP@ssw0rd!',
+      confirmPassword: 'D1fferent@!',
     })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].message).toBe('Las contraseñas no coinciden')

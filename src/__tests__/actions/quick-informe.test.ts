@@ -10,8 +10,7 @@ jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve(mockSupabase)),
 }))
 
-// eslint-disable-next-line no-var
-var mockAnthropicCreate = jest.fn()
+const mockAnthropicCreate = jest.fn()
 jest.mock('@anthropic-ai/sdk', () => {
   return jest.fn().mockImplementation(() => ({
     messages: { create: (...args: unknown[]) => mockAnthropicCreate(...args) },

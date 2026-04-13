@@ -46,7 +46,7 @@ jest.mock('@anthropic-ai/sdk', () => {
     default: MockAnthropic,
   }
 })
-/* eslint-enable @typescript-eslint/no-explicit-any */
+ 
 
 // Assigned in beforeAll once modules are loaded
 let mockAnthropicCreate: jest.Mock
@@ -119,7 +119,6 @@ function setupAnthropicMock(
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
 describe('POST /api/process-informe', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   beforeAll(() => { mockAnthropicCreate = (global as any).__mockAnthropicCreate })
 
   beforeEach(() => {

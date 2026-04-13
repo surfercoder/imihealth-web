@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|<>?,./`~]).{8,}$/;
+
 export const ESPECIALIDADES = [
   "Alergología",
   "Anatomía patológica",
@@ -56,6 +58,7 @@ type ValidationMessages = {
   emailInvalid: string;
   passwordRequired: string;
   passwordMin: string;
+  passwordWeak: string;
   confirmPasswordRequired: string;
   passwordsMismatch: string;
   nameMin: string;
@@ -74,6 +77,7 @@ const defaultMessages: ValidationMessages = {
   emailInvalid: "Correo inválido",
   passwordRequired: "La contraseña es requerida",
   passwordMin: "La contraseña debe tener al menos 8 caracteres",
+  passwordWeak: "La contraseña no cumple los requisitos de seguridad",
   confirmPasswordRequired: "Confirmá tu contraseña",
   passwordsMismatch: "Las contraseñas no coinciden",
   nameMin: "El nombre es requerido",
@@ -99,7 +103,7 @@ function createSignupSchema(m: ValidationMessages = defaultMessages) {
     .object({
       name: z.string().min(2, m.nameMin).optional(),
       email: z.string().min(1, m.emailRequired).email(m.emailInvalid),
-      password: z.string().min(8, m.passwordMin),
+      password: z.string().min(8, m.passwordMin).regex(STRONG_PASSWORD_RE, m.passwordWeak),
       confirmPassword: z.string().min(1, m.confirmPasswordRequired),
       dni: z
         .string()
@@ -137,7 +141,7 @@ export function createForgotPasswordSchema(m: ValidationMessages = defaultMessag
 export function createResetPasswordSchema(m: ValidationMessages = defaultMessages) {
   return z
     .object({
-      password: z.string().min(8, m.passwordMin),
+      password: z.string().min(8, m.passwordMin).regex(STRONG_PASSWORD_RE, m.passwordWeak),
       confirmPassword: z.string().min(1, m.confirmPasswordRequired),
     })
     .refine((data) => data.password === data.confirmPassword, {

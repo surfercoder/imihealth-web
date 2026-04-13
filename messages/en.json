@@ -732,6 +732,7 @@
     "emailInvalid": "Invalid email",
     "passwordRequired": "Password is required",
     "passwordMin": "Password must be at least 8 characters",
+    "passwordWeak": "Password does not meet security requirements",
     "confirmPasswordRequired": "Please confirm your password",
     "passwordsMismatch": "Passwords do not match",
     "nameMin": "Name is required",
@@ -743,6 +744,13 @@
     "phoneInvalid": "Invalid phone number",
     "specialtyRequired": "Specialty is required",
     "specialtyInvalid": "Please select a valid specialty"
+  },
+  "passwordStrength": {
+    "minLength": "At least 8 characters",
+    "hasLowercase": "At least one lowercase letter",
+    "hasUppercase": "At least one uppercase letter",
+    "hasDigit": "At least one number",
+    "hasSpecial": "At least one special character (!@#$%…)"
   },
   "mvpLimits": {
     "signupLimitTitle": "Registration unavailable",

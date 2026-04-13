@@ -48,8 +48,8 @@ describe('ResetPasswordForm — default state', () => {
   it('calls startTransition when form is submitted with valid data', async () => {
     const user = userEvent.setup()
     render(<ResetPasswordForm />)
-    await user.type(screen.getByLabelText('Nueva contraseña'), 'newpassword123')
-    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'newpassword123')
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'N3wP@ssw0rd!')
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'N3wP@ssw0rd!')
     await user.click(screen.getByRole('button', { name: 'Actualizar contraseña' }))
     expect(mockStartTransition).toHaveBeenCalled()
   })

@@ -5,6 +5,7 @@ import {
   type CountryCode,
   COUNTRIES,
 } from "@/components/ui/phone-input";
+import { allRulesPass } from "@/components/signup/password-strength-checklist";
 
 const COUNTRY_CODES = COUNTRIES.map((c) => c.code) as [CountryCode, ...CountryCode[]];
 
@@ -36,7 +37,10 @@ export function buildClientSignupSchema(v: Translator) {
     .object({
       name: z.string().min(2, v("nameMin")).optional(),
       email: z.string().min(1, v("emailRequired")).email(v("emailInvalid")),
-      password: z.string().min(8, v("passwordMin")),
+      password: z
+        .string()
+        .min(8, v("passwordMin"))
+        .refine(allRulesPass, v("passwordWeak")),
       confirmPassword: z.string().min(1, v("confirmPasswordRequired")),
       dni: z
         .string()

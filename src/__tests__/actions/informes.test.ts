@@ -15,8 +15,7 @@ jest.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }))
 
-// eslint-disable-next-line no-var
-var mockAnthropicCreate = jest.fn()
+const mockAnthropicCreate = jest.fn()
 jest.mock('@anthropic-ai/sdk', () => {
   return jest.fn().mockImplementation(() => ({
     messages: { create: (...args: unknown[]) => mockAnthropicCreate(...args) },
