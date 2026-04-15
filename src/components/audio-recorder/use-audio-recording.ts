@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -122,6 +123,9 @@ export function useAudioRecording({
         }
       }
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { flow: "microphone-access" },
+      });
       const msg =
         err instanceof Error
           ? err.message

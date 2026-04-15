@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import React from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -42,6 +43,10 @@ export async function uploadAndProcess(
     dispatch({ type: "SET_PROGRESS", progress: 100 });
 
     if (result.error) {
+      Sentry.captureMessage(result.error, {
+        level: "error",
+        tags: { flow: "quick-informe-client" },
+      });
       dispatch({ type: "SET_ERROR", error: result.error });
       dispatch({ type: "SET_PHASE", phase: "error" });
       toast.error(t("errorProcess"), { description: result.error });
@@ -90,6 +95,10 @@ export async function uploadAndProcess(
     });
     result = await response.json();
   } catch (fetchErr) {
+    Sentry.captureException(fetchErr, {
+      tags: { flow: "process-informe-client" },
+      extra: { informeId },
+    });
     result = { error: fetchErr instanceof Error ? fetchErr.message : "Error de red" };
   }
   dispatch({ type: "SET_PROGRESS", progress: 100 });
@@ -101,6 +110,11 @@ export async function uploadAndProcess(
     dispatch({ type: "SET_PHASE", phase: "insufficient_content" });
     toast.warning(t("insufficientContentTitle"), { description: t("insufficientContentDescription") });
   } else if (result.error) {
+    Sentry.captureMessage(result.error, {
+      level: "error",
+      tags: { flow: "process-informe-client" },
+      extra: { informeId },
+    });
     dispatch({ type: "SET_ERROR", error: result.error });
     dispatch({ type: "SET_PHASE", phase: "error" });
     toast.error(t("errorProcess"), { description: result.error });

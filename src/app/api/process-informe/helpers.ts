@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import Anthropic from "@anthropic-ai/sdk";
 import { transcribeAudio } from "@/lib/transcribe";
 import { PATIENT_REPORT_PROMPT } from "@/lib/prompts";
@@ -37,6 +38,9 @@ export async function resolveTranscript(
         console.warn("[process-informe] AssemblyAI returned empty transcript");
       }
     } catch (transcribeError) {
+      Sentry.captureException(transcribeError, {
+        tags: { flow: "assemblyai-transcription" },
+      });
       console.error("[process-informe] AssemblyAI transcription failed:", transcribeError);
     }
   }

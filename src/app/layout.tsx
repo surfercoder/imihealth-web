@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
+import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { createClient } from "@/utils/supabase/server";
 
 const geistSans = Geist({
@@ -49,11 +50,13 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Suspense>
-            <RealtimeNotificationsProvider userId={user?.id ?? null}>
-              {children}
-            </RealtimeNotificationsProvider>
-          </Suspense>
+          <SentryErrorBoundary>
+            <Suspense>
+              <RealtimeNotificationsProvider userId={user?.id ?? null}>
+                {children}
+              </RealtimeNotificationsProvider>
+            </Suspense>
+          </SentryErrorBoundary>
           <Toaster position="bottom-right" richColors={false} />
         </NextIntlClientProvider>
       </body>

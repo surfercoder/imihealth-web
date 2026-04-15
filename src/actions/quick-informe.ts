@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
@@ -22,6 +23,9 @@ export async function processQuickInforme(
   language: string = "es",
   recordingDuration?: number,
 ): Promise<ProcessQuickInformeResult> {
+  return Sentry.withServerActionInstrumentation(
+    "processQuickInforme",
+    async () => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -145,8 +149,13 @@ export async function processQuickInforme(
 
     return { informeRapidoId, informeDoctor };
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { flow: "quick-informe" },
+      extra: { informeRapidoId },
+    });
     const message = err instanceof Error ? err.message : "Error desconocido";
     console.error("[quick-informe] processing error:", err);
     return await failWith(message);
   }
+    });
 }

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { AudioRecorder } from "@/components/audio-recorder";
+import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, Calendar } from "lucide-react";
 import Link from "next/link";
@@ -154,9 +155,11 @@ export default async function GrabarPage({ params, searchParams }: Props) {
         )}
 
         <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <Suspense>
-            <AudioRecorder informeId={id} doctorId={user.id} isQuickReport={isQuickReport} />
-          </Suspense>
+          <SentryErrorBoundary>
+            <Suspense>
+              <AudioRecorder informeId={id} doctorId={user.id} isQuickReport={isQuickReport} />
+            </Suspense>
+          </SentryErrorBoundary>
         </div>
 
         <div className="mt-6 rounded-lg border bg-card p-4 text-sm shadow-sm">

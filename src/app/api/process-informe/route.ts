@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getSpecialtyPrompt } from "@/lib/prompts";
@@ -103,6 +104,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { flow: "process-informe" },
+      extra: { informeId },
+    });
     const message = err instanceof Error ? err.message : "Error desconocido";
     await supabase
       .from("informes")
