@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Check, X } from "lucide-react";
 
-export const PASSWORD_RULES = [
+const PASSWORD_RULES = [
   { key: "minLength" as const, test: (pw: string) => pw.length >= 8 },
   { key: "hasLowercase" as const, test: (pw: string) => /[a-z]/.test(pw) },
   { key: "hasUppercase" as const, test: (pw: string) => /[A-Z]/.test(pw) },
