@@ -42,7 +42,10 @@ export function useAudioRecording({
 
   const requestWakeLock = useCallback(async () => {
     try {
-      if ("wakeLock" in navigator) {
+      if (
+        "wakeLock" in navigator &&
+        (!wakeLockRef.current || wakeLockRef.current.released)
+      ) {
         wakeLockRef.current = await navigator.wakeLock.request("screen");
         wakeLockRef.current.addEventListener("release", () => {
           wakeLockRef.current = null;
@@ -244,6 +247,16 @@ export function useAudioRecording({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [requestWakeLock]);
+
+  // Periodically re-acquire wake lock during recording — iOS Safari can
+  // silently release it without firing the release event.
+  useEffect(() => {
+    if (state.phase !== "recording") return;
+    const interval = setInterval(() => {
+      requestWakeLock();
+    }, 20_000);
+    return () => clearInterval(interval);
+  }, [state.phase, requestWakeLock]);
 
   useEffect(() => {
     return () => {

@@ -1103,7 +1103,7 @@ describe('AudioRecorder — isQuickReport branch', () => {
 
 describe('AudioRecorder — wake lock', () => {
   const mockRelease = jest.fn().mockResolvedValue(undefined)
-  let mockWakeLockSentinel: { release: jest.Mock; addEventListener: jest.Mock; removeEventListener: jest.Mock }
+  let mockWakeLockSentinel: { released: boolean; release: jest.Mock; addEventListener: jest.Mock; removeEventListener: jest.Mock }
   let wakeLockRequest: jest.Mock
 
   beforeEach(() => {
@@ -1113,6 +1113,7 @@ describe('AudioRecorder — wake lock', () => {
     Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
 
     mockWakeLockSentinel = {
+      released: false,
       release: mockRelease,
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
@@ -1174,12 +1175,19 @@ describe('AudioRecorder — wake lock', () => {
   })
 
   it('re-acquires wake lock when tab becomes visible during recording', async () => {
+    let releaseCallback: (() => void) | null = null
+    mockWakeLockSentinel.addEventListener.mockImplementation((event: string, fn: () => void) => {
+      if (event === 'release') releaseCallback = fn
+    })
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
     const user = userEvent.setup()
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    // Simulate browser releasing wake lock when tab is hidden (sets ref to null)
+    act(() => { releaseCallback!() })
 
     // Reset to track re-acquisition
     wakeLockRequest.mockClear()
@@ -1234,5 +1242,72 @@ describe('AudioRecorder — wake lock', () => {
     })
 
     expect(wakeLockRequest).not.toHaveBeenCalled()
+  })
+
+  it('periodically re-acquires wake lock every 20s during recording', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    // Simulate the sentinel being silently released (iOS Safari quirk)
+    mockWakeLockSentinel.released = true
+
+    wakeLockRequest.mockClear()
+
+    // Advance 20s to trigger the periodic re-acquisition
+    act(() => { jest.advanceTimersByTime(20_000) })
+
+    await waitFor(() => {
+      expect(wakeLockRequest).toHaveBeenCalledWith('screen')
+    })
+    jest.useRealTimers()
+  })
+
+  it('does not re-acquire periodically when paused', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Pausar/i }))
+    await waitFor(() => expect(screen.getByText('En pausa')).toBeInTheDocument())
+
+    wakeLockRequest.mockClear()
+
+    // Advance 20s — periodic interval should not be active while paused
+    act(() => { jest.advanceTimersByTime(20_000) })
+
+    expect(wakeLockRequest).not.toHaveBeenCalled()
+    jest.useRealTimers()
+  })
+
+  it('skips re-request when existing wake lock is still active', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    // Sentinel is still active (released = false)
+    mockWakeLockSentinel.released = false
+
+    wakeLockRequest.mockClear()
+
+    // Advance 20s — should skip since lock is still active
+    act(() => { jest.advanceTimersByTime(20_000) })
+
+    expect(wakeLockRequest).not.toHaveBeenCalled()
+    jest.useRealTimers()
   })
 })
