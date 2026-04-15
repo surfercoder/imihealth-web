@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { createClient } from "@/utils/supabase/server";
 
 const geistSans = Geist({
@@ -58,6 +59,7 @@ export default async function RootLayout({
             </Suspense>
           </SentryErrorBoundary>
           <Toaster position="bottom-right" richColors={false} />
+          <SpeedInsights />
         </NextIntlClientProvider>
       </body>
     </html>
