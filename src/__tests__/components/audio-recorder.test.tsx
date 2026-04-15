@@ -1100,3 +1100,139 @@ describe('AudioRecorder — isQuickReport branch', () => {
     })
   })
 })
+
+describe('AudioRecorder — wake lock', () => {
+  const mockRelease = jest.fn().mockResolvedValue(undefined)
+  let mockWakeLockSentinel: { release: jest.Mock; addEventListener: jest.Mock; removeEventListener: jest.Mock }
+  let wakeLockRequest: jest.Mock
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+
+    mockWakeLockSentinel = {
+      release: mockRelease,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }
+    wakeLockRequest = jest.fn().mockResolvedValue(mockWakeLockSentinel)
+    Object.defineProperty(navigator, 'wakeLock', {
+      value: { request: wakeLockRequest },
+      writable: true,
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    // Remove wakeLock from navigator
+    Object.defineProperty(navigator, 'wakeLock', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    })
+  })
+
+  it('requests a screen wake lock when recording starts', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    expect(wakeLockRequest).toHaveBeenCalledWith('screen')
+    expect(mockWakeLockSentinel.addEventListener).toHaveBeenCalledWith('release', expect.any(Function))
+  })
+
+  it('sets wakeLock to null when release event fires', async () => {
+    let releaseCallback: (() => void) | null = null
+    mockWakeLockSentinel.addEventListener.mockImplementation((event: string, fn: () => void) => {
+      if (event === 'release') releaseCallback = fn
+    })
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    expect(releaseCallback).not.toBeNull()
+    // Fire the release callback to hit the event listener branch
+    act(() => { releaseCallback!() })
+  })
+
+  it('handles wake lock request failure gracefully', async () => {
+    wakeLockRequest.mockRejectedValue(new Error('Low battery'))
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    // Recording should still work despite wake lock failure
+    expect(screen.getByRole('button', { name: /Pausar/i })).toBeInTheDocument()
+  })
+
+  it('re-acquires wake lock when tab becomes visible during recording', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    // Reset to track re-acquisition
+    wakeLockRequest.mockClear()
+
+    // Simulate tab becoming visible
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    await waitFor(() => {
+      expect(wakeLockRequest).toHaveBeenCalledWith('screen')
+    })
+  })
+
+  it('does not re-acquire wake lock when tab becomes visible but not recording', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Pausar/i }))
+    await waitFor(() => expect(screen.getByText('En pausa')).toBeInTheDocument())
+
+    wakeLockRequest.mockClear()
+
+    // Simulate tab becoming visible while paused
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // Should NOT re-acquire since not recording
+    expect(wakeLockRequest).not.toHaveBeenCalled()
+  })
+
+  it('does not re-acquire wake lock when visibility is hidden', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    wakeLockRequest.mockClear()
+
+    // Simulate tab becoming hidden
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true, configurable: true })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(wakeLockRequest).not.toHaveBeenCalled()
+  })
+})

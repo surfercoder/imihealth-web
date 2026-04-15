@@ -14,15 +14,15 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
+    "@anthropic-ai/sdk": "^0.89.0",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/nextjs": "^10.48.0",
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "^2.103.2",
     "@types/nodemailer": "^8.0.0",
     "@types/react-signature-canvas": "^1.0.7",
     "@types/sharp": "^0.32.0",
-    "assemblyai": "^4.29.0",
+    "assemblyai": "^4.30.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

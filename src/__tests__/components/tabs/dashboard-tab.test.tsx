@@ -8,7 +8,7 @@ jest.mock('@/components/dashboard-charts', () => ({
 }))
 
 jest.mock('next/dynamic', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const MockDynamic = (props: any) => {
     const { DashboardCharts } = jest.requireMock<typeof import('@/components/dashboard-charts')>('@/components/dashboard-charts')
     return <DashboardCharts {...props} />

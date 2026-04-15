@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 import * as Sentry from '@sentry/nextjs'
 
 jest.mock('@sentry/nextjs', () => ({

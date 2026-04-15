@@ -14,7 +14,7 @@ describe('report-image barrel', () => {
 
   it('re-exports generateInformeImage and generateCertificadoImage', () => {
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const mod = require('@/lib/report-image')
       expect(typeof mod.generateInformeImage).toBe('function')
       expect(typeof mod.generateCertificadoImage).toBe('function')
@@ -29,7 +29,7 @@ describe('report-image barrel', () => {
     jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined)
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       require('@/lib/report-image')
     })
 

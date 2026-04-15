@@ -10,7 +10,7 @@ import {
   resolveTranscript,
 } from "@/app/api/process-informe/helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 const { transcribeAudio } = require("@/lib/transcribe") as {
   transcribeAudio: jest.Mock;
 };

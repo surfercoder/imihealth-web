@@ -26,7 +26,7 @@ jest.mock('sonner', () => ({
 }))
 
 jest.mock('next/image', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = require('react')
   const MockImage = (props: {
     src: string

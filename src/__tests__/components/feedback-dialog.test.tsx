@@ -11,7 +11,7 @@ jest.mock('sonner', () => ({
   },
 }))
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const mockFeedbackEmail = jest.fn((_args?: unknown) => '<p>html</p>')
 jest.mock('@/lib/email-template', () => ({
   feedbackEmail: (args: unknown) => mockFeedbackEmail(args),
@@ -20,7 +20,7 @@ jest.mock('@/lib/email-template', () => ({
 // Mock Radix Select to avoid jsdom hasPointerCapture issues
 let mockOnValueChange: ((val: string) => void) | null = null
 jest.mock('@/components/ui/select', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = require('react')
   return {
     Select: ({
@@ -279,7 +279,7 @@ describe('FeedbackDialog', () => {
       k.startsWith('__reactFiber') || k.startsWith('__reactInternals')
     )
     if (fiberKey) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       let fiber = (submitBtn as any)[fiberKey]
       while (fiber && !fiber.memoizedProps?.onClick) {
         fiber = fiber.return

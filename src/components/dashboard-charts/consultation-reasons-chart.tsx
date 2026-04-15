@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 const { Pie, PieChart } = require("recharts") as typeof import("recharts");
 import {
   ChartContainer,

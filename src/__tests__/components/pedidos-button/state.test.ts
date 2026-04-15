@@ -32,7 +32,7 @@ describe('reducer', () => {
 
   it('returns current state for unknown action', () => {
     const state = { open: true, items: '', pedidoUrls: null }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const result = reducer(state, { type: 'UNKNOWN' } as any)
     expect(result).toEqual(state)
   })

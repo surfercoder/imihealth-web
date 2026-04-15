@@ -4,7 +4,7 @@ let mockIsEmpty = true
 
 const SignatureCanvas = React.forwardRef<
   { clear: () => void; isEmpty: () => boolean; toDataURL: (type?: string) => string },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   any
 >(function SignatureCanvas(props, ref) {
   const { onEnd, ...rest } = props

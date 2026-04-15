@@ -26,7 +26,7 @@ const mockCaptchaCallbacks: {
   onExpired: (() => void) | null
 } = { onChange: null, onErrored: null, onExpired: null }
 jest.mock('react-google-recaptcha', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = require('react')
   const MockReCAPTCHA = React.forwardRef((props: { onChange?: (t: string | null) => void; onErrored?: () => void; onExpired?: () => void }, ref: React.Ref<unknown>) => {
     React.useEffect(() => {

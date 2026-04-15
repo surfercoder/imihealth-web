@@ -14,7 +14,7 @@ describe('setupFontconfig', () => {
 
   it('exports the FONT_FAMILY constant', () => {
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const mod = require('@/lib/report-image/fontconfig')
       expect(mod.FONT_FAMILY).toBe('Inter,Arial,Helvetica,sans-serif')
     })
@@ -28,7 +28,7 @@ describe('setupFontconfig', () => {
     const writeSpy = jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined)
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { setupFontconfig } = require('@/lib/report-image/fontconfig')
       setupFontconfig()
     })
@@ -46,7 +46,7 @@ describe('setupFontconfig', () => {
     jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined)
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { setupFontconfig } = require('@/lib/report-image/fontconfig')
       setupFontconfig()
     })
@@ -60,7 +60,7 @@ describe('setupFontconfig', () => {
     const existsSpy = jest.spyOn(fs, 'existsSync')
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { setupFontconfig } = require('@/lib/report-image/fontconfig')
       setupFontconfig()
     })
@@ -78,7 +78,7 @@ describe('setupFontconfig', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { setupFontconfig } = require('@/lib/report-image/fontconfig')
       setupFontconfig()
     })

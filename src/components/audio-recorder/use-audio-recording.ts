@@ -37,6 +37,25 @@ export function useAudioRecording({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fullTranscriptRef = useRef<string>("");
   const durationRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch {
+      // Wake Lock request failed (e.g. low battery) — non-critical, continue recording
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release();
+    wakeLockRef.current = null;
+  }, []);
 
   // Keep the ref in sync with state so stopAndProcess can read it without
   // depending on the whole state object (avoids React Compiler memoisation issues).
@@ -92,6 +111,7 @@ export function useAudioRecording({
       mediaRecorder.start(1000);
       dispatch({ type: "SET_PHASE", phase: "recording" });
       startTimer();
+      await requestWakeLock();
 
       const recognition = setupSpeechRecognition();
       if (recognition) {
@@ -112,22 +132,24 @@ export function useAudioRecording({
       });
       dispatch({ type: "SET_PHASE", phase: "error" });
     }
-  }, [startTimer, setupSpeechRecognition, t]);
+  }, [startTimer, setupSpeechRecognition, requestWakeLock, t]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.pause();
       recognitionRef.current?.stop();
       stopTimer();
+      releaseWakeLock();
       dispatch({ type: "SET_PHASE", phase: "paused" });
     }
-  }, [stopTimer]);
+  }, [stopTimer, releaseWakeLock]);
 
-  const resumeRecording = useCallback(() => {
+  const resumeRecording = useCallback(async () => {
     if (mediaRecorderRef.current?.state === "paused") {
       mediaRecorderRef.current.resume();
       startTimer();
       dispatch({ type: "SET_PHASE", phase: "recording" });
+      await requestWakeLock();
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start();
@@ -135,7 +157,7 @@ export function useAudioRecording({
         }
       }
     }
-  }, [startTimer]);
+  }, [startTimer, requestWakeLock]);
 
   const stopAndProcess = useCallback(async () => {
     stopTimer();
@@ -148,6 +170,8 @@ export function useAudioRecording({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
     }
+
+    releaseWakeLock();
 
     const finalTranscript = fullTranscriptRef.current.trim();
     const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
@@ -190,6 +214,7 @@ export function useAudioRecording({
     });
   }, [
     stopTimer,
+    releaseWakeLock,
     informeId,
     doctorId,
     router,
@@ -200,9 +225,26 @@ export function useAudioRecording({
     onQuickReportComplete,
   ]);
 
+  // Re-acquire wake lock when tab becomes visible again (browser releases it on hide)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible" &&
+        mediaRecorderRef.current?.state === "recording"
+      ) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [requestWakeLock]);
+
   useEffect(() => {
     return () => {
       stopTimer();
+      releaseWakeLock();
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -211,7 +253,7 @@ export function useAudioRecording({
         recognitionRef.current.stop();
       }
     };
-  }, [stopTimer]);
+  }, [stopTimer, releaseWakeLock]);
 
   const handleRetry = useCallback(() => {
     dispatch({ type: "RESET" });

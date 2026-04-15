@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 jest.mock('assemblyai', () => {
   const fn = jest.fn()
   ;(global as any).__mockTranscribe = fn

@@ -67,7 +67,7 @@ describe('createClient (server)', () => {
   it('getAll delegates to cookieStore.getAll', async () => {
     const { createClient } = await import('@/utils/supabase/server')
     await createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesArg = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     mockGetAll.mockReturnValueOnce([{ name: 'a', value: '1' }])
     const result = cookiesArg.getAll()
@@ -77,7 +77,7 @@ describe('createClient (server)', () => {
   it('setAll delegates to cookieStore.set for each cookie', async () => {
     const { createClient } = await import('@/utils/supabase/server')
     await createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesArg = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     cookiesArg.setAll([
       { name: 'a', value: '1', options: {} },
@@ -92,7 +92,7 @@ describe('createClient (server)', () => {
     mockSet.mockImplementationOnce(() => { throw new Error('Server Component') })
     const { createClient } = await import('@/utils/supabase/server')
     await createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesArg = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     expect(() =>
       cookiesArg.setAll([{ name: 'a', value: '1', options: {} }])

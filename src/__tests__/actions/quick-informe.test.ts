@@ -28,7 +28,7 @@ jest.mock('@/lib/transcribe', () => ({
 
 import { processQuickInforme } from '@/actions/quick-informe'
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }

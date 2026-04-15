@@ -46,7 +46,7 @@ import {
   generatePedidos,
 } from '@/actions/informes'
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }

@@ -34,7 +34,7 @@ jest.mock('@/utils/supabase/server', () => ({
 // ─── Anthropic mock ────────────────────────────────────────────────────────────
 // jest.mock factories are hoisted before variable declarations, so we use a
 // global to share the mock function between the factory and the test body.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 jest.mock('@anthropic-ai/sdk', () => {
   const fn = jest.fn()
   ;(global as any).__mockAnthropicCreate = fn

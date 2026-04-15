@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Form } from '@/components/ui/form'
 
 jest.mock('next/image', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = require('react')
   const MockImage = (props: {
     src: string

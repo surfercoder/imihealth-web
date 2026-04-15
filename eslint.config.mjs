@@ -15,6 +15,27 @@ const eslintConfig = defineConfig([
     "coverage/**",
   ]),
   {
+    files: [
+      "src/__tests__/**/*.ts",
+      "src/__tests__/**/*.tsx",
+      "src/__mocks__/**/*.ts",
+      "src/__mocks__/**/*.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    files: [
+      "src/components/dashboard-charts/**/*.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
     rules: {
       // eslint-plugin-react v7 (bundled in eslint-config-next) uses
       // context.getFilename() which is not available in ESLint 10 flat config.

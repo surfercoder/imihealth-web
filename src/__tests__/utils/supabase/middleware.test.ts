@@ -6,7 +6,7 @@ import { updateSession } from '@/utils/supabase/middleware'
 
 const mockGetUser = jest.fn()
 const mockCreateServerClient = jest.fn() as jest.MockedFunction<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   (url: any, key: any, opts: any) => { auth: { getUser: jest.Mock } }
 >
 mockCreateServerClient.mockImplementation(() => ({
@@ -14,7 +14,7 @@ mockCreateServerClient.mockImplementation(() => ({
 }))
 
 jest.mock('@supabase/ssr', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   createServerClient: (url: any, key: any, opts: any) => mockCreateServerClient(url, key, opts),
 }))
 
@@ -77,7 +77,7 @@ describe('updateSession', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     const req = makeRequest('/dashboard')
     await updateSession(req)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesConfig = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     expect(typeof cookiesConfig.getAll).toBe('function')
     expect(typeof cookiesConfig.setAll).toBe('function')
@@ -87,7 +87,7 @@ describe('updateSession', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     const req = makeRequest('/dashboard')
     await updateSession(req)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesConfig = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     const result = cookiesConfig.getAll()
     expect(Array.isArray(result)).toBe(true)
@@ -97,7 +97,7 @@ describe('updateSession', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     const req = makeRequest('/dashboard')
     await updateSession(req)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cookiesConfig = (mockCreateServerClient.mock.calls[0] as any)[2].cookies
     expect(() =>
       cookiesConfig.setAll([{ name: 'session', value: 'abc', options: {} }])
