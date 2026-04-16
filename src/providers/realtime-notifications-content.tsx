@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { usePathname, useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -23,6 +23,37 @@ function RealtimeNotificationsContentInner({
   const shownNotificationsRef = useRef<Set<string>>(new Set());
 
   const prevPathnameRef = useRef(pathname);
+
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const showBrowserNotification = useCallback(
+    (title: string, body: string, url: string) => {
+      if (
+        !document.hidden ||
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+      ) {
+        return;
+      }
+
+      const notification = new Notification(title, {
+        body,
+        icon: "/icon.png",
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        nav.push(url);
+        notification.close();
+      };
+    },
+    [nav]
+  );
 
   // Dismiss all toasts when navigating *away* from an informe detail page
   // so persistent notifications don't stack and block UI on other pages.
@@ -83,18 +114,25 @@ function RealtimeNotificationsContentInner({
             const patientName = patientData?.name || t("unknownPatient");
 
             const currentTab = searchParams.get("tab");
+            const informUrl = currentTab ? `/informes/${newData.id}?tab=${currentTab}` : `/informes/${newData.id}`;
+
             toast.success(t("newReportTitle"), {
               description: t("newReportDescription", { patientName }),
               action: {
                 label: t("viewReport"),
                 onClick: () => {
-                  const url = currentTab ? `/informes/${newData.id}?tab=${currentTab}` : `/informes/${newData.id}`;
-                  nav.push(url);
+                  nav.push(informUrl);
                 },
               },
               duration: Infinity,
               closeButton: true,
             });
+
+            showBrowserNotification(
+              t("newReportTitle"),
+              t("newReportDescription", { patientName }),
+              informUrl
+            );
           }
         }
       )
@@ -135,17 +173,25 @@ function RealtimeNotificationsContentInner({
 
             shownNotificationsRef.current.add(newData.id);
 
+            const quickUrl = `/informes-rapidos/${newData.id}`;
+
             toast.success(t("newQuickReportTitle"), {
               description: t("newQuickReportDescription"),
               action: {
                 label: t("viewReport"),
                 onClick: () => {
-                  nav.push(`/informes-rapidos/${newData.id}`);
+                  nav.push(quickUrl);
                 },
               },
               duration: Infinity,
               closeButton: true,
             });
+
+            showBrowserNotification(
+              t("newQuickReportTitle"),
+              t("newQuickReportDescription"),
+              quickUrl
+            );
           }
         },
       )
@@ -161,7 +207,7 @@ function RealtimeNotificationsContentInner({
         supabase.removeChannel(quickChannelRef.current);
       }
     };
-  }, [userId, nav, t, searchParams]);
+  }, [userId, nav, t, searchParams, showBrowserNotification]);
 
   return <>{children}</>;
 }

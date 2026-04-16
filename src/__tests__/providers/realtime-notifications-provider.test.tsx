@@ -1,6 +1,22 @@
 import '@testing-library/jest-dom'
 import { render, screen, act, waitFor } from '@testing-library/react'
 
+// Mock the browser Notification API (not available in jsdom)
+const mockNotificationClose = jest.fn()
+const mockNotificationConstructor = jest.fn().mockImplementation(() => ({
+  close: mockNotificationClose,
+  onclick: null,
+}))
+
+Object.defineProperty(window, 'Notification', {
+  value: Object.assign(mockNotificationConstructor, {
+    permission: 'granted',
+    requestPermission: jest.fn().mockResolvedValue('granted'),
+  }),
+  writable: true,
+  configurable: true,
+})
+
 const mockPush = jest.fn()
 const mockGet = jest.fn().mockReturnValue(null)
 let mockPathname = '/'
@@ -81,6 +97,10 @@ describe('RealtimeNotificationsProvider', () => {
     mockPathname = '/'
     mockGet.mockReturnValue(null)
     mockSingleFn.mockResolvedValue({ data: { name: 'Juan Pérez' } })
+    mockNotificationConstructor.mockClear()
+    mockNotificationClose.mockClear()
+    // Default: tab is visible (document.hidden = false)
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true })
 
     // Re-set up mockOn to capture callbacks by table.
     mockOn.mockImplementation(
@@ -490,6 +510,178 @@ describe('RealtimeNotificationsProvider', () => {
 
       // Toast should not have been called again
       expect(mockToastSuccess.mock.calls.length).toBe(firstCallCount)
+    })
+  })
+
+  describe('browser notification permission request on mount', () => {
+    it('requests permission when Notification.permission is "default"', () => {
+      const mockRequestPermission = jest.fn().mockResolvedValue('granted')
+      Object.defineProperty(window, 'Notification', {
+        value: Object.assign(jest.fn(), {
+          permission: 'default',
+          requestPermission: mockRequestPermission,
+        }),
+        writable: true,
+        configurable: true,
+      })
+
+      render(
+        <RealtimeNotificationsContent userId="user-perm">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockRequestPermission).toHaveBeenCalled()
+
+      // Restore original Notification mock
+      Object.defineProperty(window, 'Notification', {
+        value: Object.assign(mockNotificationConstructor, {
+          permission: 'granted',
+          requestPermission: jest.fn().mockResolvedValue('granted'),
+        }),
+        writable: true,
+        configurable: true,
+      })
+    })
+
+    it('does not request permission when Notification.permission is "granted"', () => {
+      const mockRequestPermission = jest.fn().mockResolvedValue('granted')
+      Object.defineProperty(window, 'Notification', {
+        value: Object.assign(jest.fn(), {
+          permission: 'granted',
+          requestPermission: mockRequestPermission,
+        }),
+        writable: true,
+        configurable: true,
+      })
+
+      render(
+        <RealtimeNotificationsContent userId="user-perm2">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockRequestPermission).not.toHaveBeenCalled()
+
+      // Restore original Notification mock
+      Object.defineProperty(window, 'Notification', {
+        value: Object.assign(mockNotificationConstructor, {
+          permission: 'granted',
+          requestPermission: jest.fn().mockResolvedValue('granted'),
+        }),
+        writable: true,
+        configurable: true,
+      })
+    })
+  })
+
+  describe('browser notifications when tab is hidden', () => {
+    it('shows a browser notification for classic informe when tab is hidden', async () => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      await act(async () => {
+        registeredPayloadCallback!({
+          old: { id: 'inf-hidden', status: 'processing', patient_id: 'pat-1' },
+          new: { id: 'inf-hidden', status: 'completed', patient_id: 'pat-1' },
+        })
+      })
+
+      await waitFor(() => {
+        expect(mockNotificationConstructor).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ icon: '/icon.png' })
+        )
+      })
+    })
+
+    it('shows a browser notification for quick informe when tab is hidden', async () => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-hidden', status: 'processing' },
+          new: { id: 'rap-hidden', status: 'completed' },
+        })
+      })
+
+      expect(mockNotificationConstructor).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ icon: '/icon.png' })
+      )
+    })
+
+    it('does not show a browser notification when tab is visible', async () => {
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-visible', status: 'processing' },
+          new: { id: 'rap-visible', status: 'completed' },
+        })
+      })
+
+      expect(mockNotificationConstructor).not.toHaveBeenCalled()
+    })
+
+    it('navigates and focuses window when browser notification is clicked', async () => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+      const mockFocus = jest.spyOn(window, 'focus').mockImplementation(() => {})
+
+      // Make the constructor return an object we can interact with
+      let capturedOnClick: (() => void) | null = null
+      mockNotificationConstructor.mockImplementationOnce((_title: string, _options: unknown) => {
+        const notif = { close: mockNotificationClose, onclick: null as (() => void) | null }
+        // The implementation sets onclick after construction
+        Object.defineProperty(notif, 'onclick', {
+          set(fn: () => void) { capturedOnClick = fn },
+          get() { return capturedOnClick },
+          configurable: true,
+        })
+        return notif
+      })
+
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-click', status: 'processing' },
+          new: { id: 'rap-click', status: 'completed' },
+        })
+      })
+
+      expect(capturedOnClick).not.toBeNull()
+      act(() => { capturedOnClick!() })
+
+      expect(mockFocus).toHaveBeenCalled()
+      expect(mockPush).toHaveBeenCalledWith('/informes-rapidos/rap-click')
+      expect(mockNotificationClose).toHaveBeenCalled()
+
+      mockFocus.mockRestore()
     })
   })
 

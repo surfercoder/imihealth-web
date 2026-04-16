@@ -50,7 +50,7 @@ export function PedidosSuccess({
         {whatsappLabel}
       </Button>
       <Button
-        className="w-full bg-black hover:bg-black/80 text-white"
+        className="w-full bg-gray-950 hover:bg-gray-950/80 text-white"
         onClick={() => window.open(mergedUrl, "_blank")}
       >
         <Eye className="size-4 mr-1.5" />
