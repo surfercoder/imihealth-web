@@ -559,7 +559,7 @@
     "title": "Crear una cuenta",
     "description": "Registrate como médico para acceder a la plataforma IMI",
     "fullName": "Nombre completo",
-    "fullNamePlaceholder": "Dra. María García",
+    "fullNamePlaceholder": "María García",
     "dni": "DNI",
     "dniPlaceholder": "Ej: 30123456",
     "email": "Correo electrónico",

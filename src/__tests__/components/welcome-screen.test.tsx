@@ -20,10 +20,10 @@ describe('WelcomeScreen', () => {
     jest.useRealTimers()
   })
 
-  it('renders greeting with user first name', () => {
+  it('renders greeting with full user name', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="María García" onDone={onDone} />)
-    expect(screen.getByText('¡Hola, María!')).toBeInTheDocument()
+    expect(screen.getByText('¡Hola, María García!')).toBeInTheDocument()
   })
 
   it('renders greeting with default name when userName is undefined', () => {

@@ -559,7 +559,7 @@
     "title": "Create an account",
     "description": "Register as a doctor to access the IMI platform",
     "fullName": "Full name",
-    "fullNamePlaceholder": "Dr. María García",
+    "fullNamePlaceholder": "María García",
     "dni": "ID Number",
     "dniPlaceholder": "E.g.: 30123456",
     "email": "Email address",

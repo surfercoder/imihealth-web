@@ -17,7 +17,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
   const t = useTranslations("welcomeScreen");
   const messageIndex = randomMessageIndex;
 
-  const firstName = userName?.split(" ")[0] || t("defaultName");
+  const displayName = userName || t("defaultName");
 
   useEffect(() => {
     const doneTimer = setTimeout(() => onDone(), 5000);
@@ -73,7 +73,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
         {/* Greeting and phrase */}
         <div className="flex flex-col items-center gap-3 text-center">
           <h1 className="ws-text text-3xl font-bold tracking-tight text-gray-900">
-            {t("greeting", { name: firstName })}
+            {t("greeting", { name: displayName })}
           </h1>
           <p className="ws-phrase max-w-lg text-base leading-relaxed text-gray-600">
             {t(`messages.${messageIndex}` as Parameters<typeof t>[0])}

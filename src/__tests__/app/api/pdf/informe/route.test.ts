@@ -50,7 +50,7 @@ const MOCK_INFORME = {
 }
 
 const MOCK_DOCTOR = {
-  name: 'Dra. María Rodríguez',
+  name: 'María Rodríguez',
   matricula: 'MP 54321',
   especialidad: 'Pediatría',
   firma_digital: 'base64signaturedata',
@@ -175,7 +175,7 @@ describe('GET /api/pdf/informe', () => {
         content: 'Your consultation summary goes here.',
         date: expect.any(String),
         doctor: {
-          name: 'Dra. María Rodríguez',
+          name: 'María Rodríguez',
           matricula: 'MP 54321',
           especialidad: 'Pediatría',
           firmaDigital: 'base64signaturedata',

@@ -4,7 +4,7 @@ import { useActionState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Form,
   FormControl,
@@ -83,8 +83,7 @@ export function ResetPasswordForm() {
                 <FormItem>
                   <FormLabel>{t("newPassword")}</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder={t("newPasswordPlaceholder")}
                       autoComplete="new-password"
                       {...field}
@@ -101,8 +100,7 @@ export function ResetPasswordForm() {
                 <FormItem>
                   <FormLabel>{t("confirmPassword")}</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder={t("confirmPasswordPlaceholder")}
                       autoComplete="new-password"
                       {...field}

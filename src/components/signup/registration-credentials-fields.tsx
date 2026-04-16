@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { UseFormReturn } from "react-hook-form";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   FormControl,
   FormField,
@@ -52,8 +52,7 @@ export function RegistrationCredentialsFields({ form }: RegistrationCredentialsF
             <FormItem>
               <FormLabel>{t("password")}</FormLabel>
               <FormControl>
-                <Input
-                  type="password"
+                <PasswordInput
                   placeholder={t("passwordPlaceholder")}
                   autoComplete="new-password"
                   {...field}
@@ -75,8 +74,7 @@ export function RegistrationCredentialsFields({ form }: RegistrationCredentialsF
             <FormItem>
               <FormLabel>{t("confirmPassword")}</FormLabel>
               <FormControl>
-                <Input
-                  type="password"
+                <PasswordInput
                   placeholder={t("confirmPasswordPlaceholder")}
                   autoComplete="new-password"
                   {...field}
