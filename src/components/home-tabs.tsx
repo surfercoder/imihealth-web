@@ -3,39 +3,25 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { InformesTab } from "@/components/tabs/informes-tab";
-import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
-import { DashboardTab } from "@/components/tabs/dashboard-tab";
-import type { PatientWithStats } from "@/actions/patients";
-import type { PlanInfo } from "@/actions/plan";
-import type { ChartData } from "@/actions/dashboard-charts";
 
 interface HomeTabsProps {
   activeTab: string;
-  patients: PatientWithStats[];
-  totalInformes: number;
-  completedCount: number;
-  processingCount: number;
-  errorCount: number;
-  plan: PlanInfo;
-  chartData: ChartData | null;
   translations: {
     informes: string;
     misPacientes: string;
     dashboard: string;
   };
+  informesContent: React.ReactNode;
+  patientsContent: React.ReactNode;
+  dashboardContent: React.ReactNode;
 }
 
 function HomeTabsContent({
   activeTab,
-  patients,
-  totalInformes,
-  completedCount,
-  processingCount,
-  errorCount,
-  plan,
-  chartData,
   translations,
+  informesContent,
+  patientsContent,
+  dashboardContent,
 }: HomeTabsProps) {
   const router = useRouter();
   const searchParams = useNextSearchParams();
@@ -55,23 +41,15 @@ function HomeTabsContent({
       </TabsList>
 
       <TabsContent value="informes">
-        <InformesTab />
+        {informesContent}
       </TabsContent>
 
       <TabsContent value="misPacientes">
-        <MisPacientesTab patients={patients} />
+        {patientsContent}
       </TabsContent>
 
       <TabsContent value="dashboard">
-        <DashboardTab
-          totalPatients={patients.length}
-          totalInformes={totalInformes}
-          completedCount={completedCount}
-          processingCount={processingCount}
-          errorCount={errorCount}
-          plan={plan}
-          chartData={chartData}
-        />
+        {dashboardContent}
       </TabsContent>
     </Tabs>
   );

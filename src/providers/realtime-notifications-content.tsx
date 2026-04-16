@@ -90,7 +90,7 @@ function RealtimeNotificationsContentInner({
             status: string;
             patient_id: string;
           } | null;
-          
+
           const newData = payload.new as {
             id: string;
             status: string;

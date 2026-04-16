@@ -11,24 +11,89 @@ import { getPlanInfo } from "@/actions/plan";
 import { PlanProvider } from "@/contexts/plan-context";
 import { getDashboardChartData } from "@/actions/dashboard-charts";
 import { PublicLandingPage } from "@/components/public-landing-page";
+import { InformesTab } from "@/components/tabs/informes-tab";
+import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
+import { DashboardTab } from "@/components/tabs/dashboard-tab";
+import { TabContentSkeleton } from "@/components/tab-content-skeleton";
 
-export async function generateMetadata(): Promise<Metadata> {
+export const metadata: Metadata = {
+  title: "IMI Health",
+  description: "AI-powered medical consultation reports",
+};
+
+export async function PatientsTabServer({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: patientsRaw } = await supabase
+    .from("patients")
+    .select(
+      `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at, informes(created_at, status)`
+    )
+    .eq("doctor_id", userId)
+    .order("updated_at", { ascending: false });
 
-  if (!user) {
+  const allPatients: PatientWithStats[] = (patientsRaw ?? []).map((p) => {
+    const informes =
+      (p.informes as unknown as { created_at: string; status: string }[]) ?? [];
+    const sorted = informes.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
     return {
-      title: "IMI Health",
-      description: "AI-powered medical consultation reports",
+      id: p.id,
+      name: p.name,
+      dni: p.dni,
+      email: p.email,
+      phone: p.phone,
+      dob: p.dob,
+      obra_social: p.obra_social,
+      nro_afiliado: p.nro_afiliado,
+      plan: p.plan,
+      created_at: p.created_at,
+      informe_count: informes.length,
+      last_informe_at: sorted[0]?.created_at ?? null,
+      last_informe_status: sorted[0]?.status ?? null,
     };
-  }
+  });
 
-  return {
-    title: "Inicio | IMI Health",
-    description: "Panel principal de IMI Health",
-  };
+  return <MisPacientesTab patients={allPatients} />;
+}
+
+export async function DashboardTabServer({
+  userId,
+  plan,
+}: {
+  userId: string;
+  plan: Awaited<ReturnType<typeof getPlanInfo>>;
+}) {
+  const supabase = await createClient();
+  const [{ data: informes }, { count: totalPatients }, chartData] =
+    await Promise.all([
+      supabase
+        .from("informes")
+        .select("id, status")
+        .eq("doctor_id", userId),
+      supabase
+        .from("patients")
+        .select("*", { count: "exact", head: true })
+        .eq("doctor_id", userId),
+      getDashboardChartData(),
+    ]);
+
+  const allInformes = informes ?? [];
+
+  return (
+    <DashboardTab
+      totalPatients={totalPatients ?? 0}
+      totalInformes={plan.currentInformes}
+      completedCount={allInformes.filter((i) => i.status === "completed").length}
+      processingCount={
+        allInformes.filter((i) => i.status === "processing").length
+      }
+      errorCount={allInformes.filter((i) => i.status === "error").length}
+      plan={plan}
+      chartData={chartData}
+    />
+  );
 }
 
 export default async function HomePage({
@@ -49,73 +114,39 @@ export default async function HomePage({
     return <PublicLandingPage />;
   }
 
-  const [t, { data: doctor }, { data: informes }, plan, chartData] = await Promise.all([
+  // Only await what the shell needs — everything else streams via Suspense
+  const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
     supabase.from("doctors").select("name").eq("id", user.id).single(),
-    supabase.from("informes").select("id, status").eq("doctor_id", user.id),
     getPlanInfo(),
-    getDashboardChartData(),
   ]);
-
-  const allInformes = informes ?? [];
-  const completedCount = allInformes.filter((i) => i.status === "completed").length;
-  const processingCount = allInformes.filter((i) => i.status === "processing").length;
-  const errorCount = allInformes.filter((i) => i.status === "error").length;
-
-  const { data: patientsRaw } = await supabase
-    .from("patients")
-    .select(`id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at, informes(created_at, status)`)
-    .eq("doctor_id", user.id)
-    .order("updated_at", { ascending: false });
-
-  const allPatients: PatientWithStats[] = (patientsRaw ?? []).map((p) => {
-    const informes = (p.informes as unknown as { created_at: string; status: string }[]) ?? [];
-    const sorted = informes.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    return {
-      id: p.id,
-      name: p.name,
-      dni: p.dni,
-      email: p.email,
-      phone: p.phone,
-      dob: p.dob,
-      obra_social: p.obra_social,
-      nro_afiliado: p.nro_afiliado,
-      plan: p.plan,
-      created_at: p.created_at,
-      informe_count: informes.length,
-      last_informe_at: sorted[0]?.created_at ?? null,
-      last_informe_status: sorted[0]?.status ?? null,
-    };
-  });
 
   return (
     <PlanProvider plan={plan}>
       <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
         <div className="flex min-h-screen flex-col bg-background pt-14">
-          <Suspense fallback={<AppHeader doctorName={doctor?.name} />}>
-            <AppHeader doctorName={doctor?.name} />
-          </Suspense>
+          <AppHeader doctorName={doctor?.name} />
 
           <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-            <Suspense>
             <HomeTabs
               activeTab={activeTab}
-              patients={allPatients}
-              totalInformes={plan.currentInformes}
-              completedCount={completedCount}
-              processingCount={processingCount}
-              errorCount={errorCount}
-              plan={plan}
-              chartData={chartData}
               translations={{
                 informes: t("tabs.informes"),
                 misPacientes: t("tabs.misPacientes"),
                 dashboard: t("tabs.dashboard"),
               }}
+              informesContent={<InformesTab />}
+              patientsContent={
+                <Suspense fallback={<TabContentSkeleton variant="patients" />}>
+                  <PatientsTabServer userId={user.id} />
+                </Suspense>
+              }
+              dashboardContent={
+                <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
+                  <DashboardTabServer userId={user.id} plan={plan} />
+                </Suspense>
+              }
             />
-            </Suspense>
           </main>
 
           <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
