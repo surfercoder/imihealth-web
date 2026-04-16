@@ -66,8 +66,11 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - icon.png, apple-icon.png (app icons)
+     * - android-chrome-*.png (Android PWA icons)
+     * - manifest.webmanifest (PWA manifest)
      * - monitoring (Sentry tunnel)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|monitoring|assets).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon\\.png|apple-icon\\.png|android-chrome-.*\\.png|manifest\\.webmanifest|sitemap.xml|robots.txt|monitoring|assets).*)",
   ],
 };

@@ -1,7 +1,17 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 
 const mockSearchParams = new URLSearchParams()
+
+jest.mock('next-intl', () => ({
+  useTranslations: () => (key: string, params?: Record<string, unknown>) => {
+    if (key === 'nav.greeting' && params?.name) return `Hola, ${params.name}`
+    if (key === 'nav.logout') return 'Cerrar sesión'
+    if (params) return `${key}:${JSON.stringify(params)}`
+    return key
+  },
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
   useSearchParams: () => mockSearchParams,
@@ -72,12 +82,14 @@ describe('AppHeader', () => {
     mockSearchParams.delete('tab')
   })
 
-  it('removes imi_welcomed from sessionStorage when the logout form is submitted', () => {
+  it('removes imi_welcomed from sessionStorage when the logout form is submitted', async () => {
     sessionStorage.setItem('imi_welcomed', 'true')
     render(<AppHeader />)
     const form = screen.getByRole('button', { name: /Cerrar sesión/i }).closest('form')!
     // Trigger the onSubmit handler by firing the submit event on the form
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await act(async () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
     expect(sessionStorage.getItem('imi_welcomed')).toBeNull()
   })
 })

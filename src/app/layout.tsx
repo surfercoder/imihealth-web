@@ -25,6 +25,10 @@ export const metadata: Metadata = {
   title: "IMI Health",
   description: "Informes Médicos completos, estandarizados y ordenados, asistidos por Inteligencia Artificial",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     title: "IMI Health",
