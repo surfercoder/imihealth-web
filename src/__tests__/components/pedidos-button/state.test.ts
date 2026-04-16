@@ -62,4 +62,9 @@ describe('parseItems', () => {
     const result = parseItems('- \n- Valid item\n-  ')
     expect(result).toEqual(['Valid item'])
   })
+
+  it('parses items without space after hyphen', () => {
+    const result = parseItems('- resonancia magnetica\n-analisis de sangre')
+    expect(result).toEqual(['resonancia magnetica', 'analisis de sangre'])
+  })
 })

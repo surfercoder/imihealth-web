@@ -38,7 +38,7 @@ export function parseItems(text: string): string[] {
   return text
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.startsWith("- "))
-    .map((line) => line.slice(2).trim())
+    .filter((line) => line.startsWith("-"))
+    .map((line) => line.slice(1).trim())
     .filter(Boolean);
 }

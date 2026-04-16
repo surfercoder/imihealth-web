@@ -41,7 +41,7 @@ export function InformeErrorPanel({
       <AlertCircle className="size-10 text-destructive mb-4" />
       <p className="font-medium text-destructive">{errorLabel}</p>
       <p className="mt-1 text-sm text-muted-foreground">{errorHint}</p>
-      <Button asChild className="mt-6 bg-black text-white hover:bg-black/80">
+      <Button asChild className="mt-6 bg-gray-950 text-white hover:bg-gray-950/80">
         <Link href={recordHref}>
           <Mic className="size-4 mr-1.5" />
           {recordAgainLabel}
