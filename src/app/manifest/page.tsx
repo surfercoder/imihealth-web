@@ -72,14 +72,14 @@ export default async function ManifestPage() {
               {t("principlesTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {Object.values(t.raw("principles") as Record<string, string>).map((principle) => (
-                <Card key={principle} className="border-0 shadow-sm">
+              {["principles.0", "principles.1", "principles.2", "principles.3", "principles.4"].map((principleKey) => (
+                <Card key={principleKey} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <FileText className="h-4 w-4" />
                       </div>
-                      <p className="font-medium">{principle}</p>
+                      <p className="font-medium">{t(principleKey)}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -141,14 +141,14 @@ export default async function ManifestPage() {
               {t("benefitsTitle")}
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {Object.values(t.raw("benefits") as Record<string, string>).map((benefit) => (
-                <Card key={benefit} className="border-0 shadow-sm">
+              {["benefits.0", "benefits.1", "benefits.2", "benefits.3"].map((benefitKey) => (
+                <Card key={benefitKey} className="border-0 shadow-sm">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-green-500/10 text-green-600">
                         <TrendingUp className="h-4 w-4" />
                       </div>
-                      <p className="font-medium">{benefit}</p>
+                      <p className="font-medium">{t(benefitKey)}</p>
                     </div>
                   </CardContent>
                 </Card>

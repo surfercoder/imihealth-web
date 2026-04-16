@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
     "/api/send-whatsapp": ["./public/assets/fonts/**/*"],
   },
   experimental: {
+    viewTransition: true,
     serverActions: {
       bodySizeLimit: "25mb",
     },

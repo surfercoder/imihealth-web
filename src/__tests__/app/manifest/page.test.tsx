@@ -51,19 +51,19 @@ describe('ManifestPage', () => {
     expect(screen.getByText('beliefTitle')).toBeInTheDocument()
   })
 
-  it('renders principles from t.raw as a list', async () => {
+  it('renders principles as a list', async () => {
     render(await ManifestPage())
     expect(screen.getByText('principlesTitle')).toBeInTheDocument()
-    expect(screen.getByText('Principle 1')).toBeInTheDocument()
-    expect(screen.getByText('Principle 2')).toBeInTheDocument()
-    expect(screen.getByText('Principle 3')).toBeInTheDocument()
+    // The page uses t("principles.0") etc., and the mock t returns the key
+    const principleElements = screen.getAllByText(/^principles\.\d$/)
+    expect(principleElements).toHaveLength(5)
   })
 
-  it('renders benefits from t.raw as a list', async () => {
+  it('renders benefits as a list', async () => {
     render(await ManifestPage())
     expect(screen.getByText('benefitsTitle')).toBeInTheDocument()
-    expect(screen.getByText('Benefit 1')).toBeInTheDocument()
-    expect(screen.getByText('Benefit 2')).toBeInTheDocument()
+    const benefitElements = screen.getAllByText(/^benefits\.\d$/)
+    expect(benefitElements).toHaveLength(4)
   })
 
   it('renders doctor focus section', async () => {

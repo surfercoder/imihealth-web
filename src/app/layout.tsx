@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Suspense, ViewTransition } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -54,7 +54,9 @@ export default async function RootLayout({
           <SentryErrorBoundary>
             <Suspense>
               <RealtimeNotificationsProvider userId={user?.id ?? null}>
-                {children}
+                <ViewTransition name="page-content">
+                  {children}
+                </ViewTransition>
               </RealtimeNotificationsProvider>
             </Suspense>
           </SentryErrorBoundary>

@@ -123,6 +123,27 @@
   50% { transform: scale(1.2); }
 }
 
+/* View Transition animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes slide-from-right {
+  from { transform: translateX(20px); }
+}
+@keyframes slide-to-left {
+  to { transform: translateX(-20px); }
+}
+
+::view-transition-old(page-content) {
+  animation: 150ms ease-out both fade-out, 150ms ease-out both slide-to-left;
+}
+::view-transition-new(page-content) {
+  animation: 200ms ease-in 100ms both fade-in, 200ms ease-in 100ms both slide-from-right;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
