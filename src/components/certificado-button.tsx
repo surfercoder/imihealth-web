@@ -17,13 +17,15 @@ interface CertificadoButtonProps {
   informeId: string;
   patientName: string;
   phone: string;
+  informeDoctor?: string;
   iconOnly?: boolean;
 }
 
-export function CertificadoButton({ informeId, patientName, phone, iconOnly = false }: CertificadoButtonProps) {
+export function CertificadoButton({ informeId, patientName, phone, informeDoctor, iconOnly = false }: CertificadoButtonProps) {
   const {
     state,
     dispatch,
+    defaultDiagnosis,
     isPending,
     isSendingWa,
     t,
@@ -31,7 +33,7 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
     handleSendWhatsApp,
     handleOpenChange,
     handleGenerate,
-  } = useCertificado({ informeId, patientName, phone });
+  } = useCertificado({ informeId, patientName, phone, informeDoctor });
 
   return (
     <Dialog open={state.open} onOpenChange={handleOpenChange}>
@@ -50,7 +52,7 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
           <CertificadoSuccess
             isSendingWa={isSendingWa}
             onSendWhatsApp={handleSendWhatsApp}
-            onResetForm={() => dispatch({ type: "RESET_FORM" })}
+            onResetForm={() => dispatch({ type: "RESET_FORM", defaultDiagnosis })}
             successMessage={t("successMessage")}
             whatsappLabel={tWa("label")}
             generateAnotherLabel={t("generateAnother")}

@@ -1,19 +1,25 @@
 "use client";
 
-import { useReducer, useState, useTransition } from "react";
+import { useMemo, useReducer, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
 import { generateAndSaveCertificado } from "@/actions/informes";
+import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 import { buildCertOptions, initialState, reducer } from "./state";
 
 interface UseCertificadoArgs {
   informeId: string;
   patientName: string;
   phone: string;
+  informeDoctor?: string;
 }
 
-export function useCertificado({ informeId, patientName, phone }: UseCertificadoArgs) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+export function useCertificado({ informeId, patientName, phone, informeDoctor }: UseCertificadoArgs) {
+  const defaultDiagnosis = useMemo(
+    () => extractDiagnosticoPresuntivo(informeDoctor ?? null) ?? "",
+    [informeDoctor],
+  );
+  const [state, dispatch] = useReducer(reducer, { ...initialState, diagnosis: defaultDiagnosis });
   const [isPending, startTransition] = useTransition();
   const [isSendingWa, setIsSendingWa] = useState(false);
   const tWa = useTranslations("whatsappCertButton");
@@ -82,6 +88,7 @@ export function useCertificado({ informeId, patientName, phone }: UseCertificado
   return {
     state,
     dispatch,
+    defaultDiagnosis,
     isPending,
     isSendingWa,
     t,

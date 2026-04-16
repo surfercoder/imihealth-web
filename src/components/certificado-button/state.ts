@@ -11,7 +11,7 @@ export type Action =
   | { type: "CLOSE" }
   | { type: "SET_FIELD"; field: "daysOff" | "diagnosis" | "observations"; value: string }
   | { type: "SET_CERT_URL"; url: string }
-  | { type: "RESET_FORM" };
+  | { type: "RESET_FORM"; defaultDiagnosis?: string };
 
 export const initialState: State = {
   open: false,
@@ -32,7 +32,7 @@ export function reducer(state: State, action: Action): State {
     case "SET_CERT_URL":
       return { ...state, certUrl: action.url };
     case "RESET_FORM":
-      return { ...state, certUrl: null, daysOff: "", diagnosis: "", observations: "" };
+      return { ...state, certUrl: null, daysOff: "", diagnosis: action.defaultDiagnosis ?? "", observations: "" };
     /* v8 ignore next 2 */
     default:
       return state;

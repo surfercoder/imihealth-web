@@ -120,7 +120,7 @@ export function PatientReportCard({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
-                        <CertificadoIconButton informeId={informeId} patientName={patientName} phone={whatsappPhone} />
+                        <CertificadoIconButton informeId={informeId} patientName={patientName} phone={whatsappPhone} informeDoctor={informeDoctor} />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent><p>{t("createCertificate")}</p></TooltipContent>

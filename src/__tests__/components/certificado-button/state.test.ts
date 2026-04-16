@@ -42,6 +42,17 @@ describe('certificado-button/state reducer', () => {
       certUrl: null,
     })
   })
+
+  it('RESET_FORM restores defaultDiagnosis when provided', () => {
+    const dirty: State = { open: true, daysOff: '5', diagnosis: 'edited', observations: 'o', certUrl: 'u' }
+    expect(reducer(dirty, { type: 'RESET_FORM', defaultDiagnosis: 'Rosácea (L71.9)' })).toEqual({
+      open: true,
+      daysOff: '',
+      diagnosis: 'Rosácea (L71.9)',
+      observations: '',
+      certUrl: null,
+    })
+  })
 })
 
 describe('certificado-button/state buildCertOptions', () => {
