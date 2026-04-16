@@ -74,6 +74,7 @@ function RealtimeNotificationsContentInner({
                 },
               },
               duration: Infinity,
+              closeButton: true,
             });
           }
         }
@@ -124,6 +125,7 @@ function RealtimeNotificationsContentInner({
                 },
               },
               duration: Infinity,
+              closeButton: true,
             });
           }
         },
