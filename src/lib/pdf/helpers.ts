@@ -1,3 +1,6 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
+import sharp from "sharp";
 import { PDFDocument, PDFFont, PDFPage, rgb, RGB } from "pdf-lib";
 
 export interface DoctorSignatureInfo {
@@ -167,3 +170,64 @@ export const pdfColors = {
   darkText: rgb(0.08, 0.08, 0.12),
   mutedText: rgb(0.4, 0.4, 0.5),
 };
+
+async function loadLogoPng(): Promise<Uint8Array> {
+  const logoPath = join(process.cwd(), "public", "assets", "images", "imihealth-logo.webp");
+  const webpBuffer = await readFile(logoPath);
+  const pngBuffer = await sharp(webpBuffer).png().toBuffer();
+  return new Uint8Array(pngBuffer.buffer, pngBuffer.byteOffset, pngBuffer.byteLength);
+}
+
+interface DrawLogoHeaderOptions {
+  pdfDoc: PDFDocument;
+  page: PDFPage;
+  pageWidth: number;
+  pageHeight: number;
+  subtitle: string;
+  date: string;
+  font: PDFFont;
+  margin: number;
+}
+
+export async function drawLogoHeader({
+  pdfDoc,
+  page,
+  pageWidth,
+  pageHeight,
+  subtitle,
+  date,
+  font,
+  margin,
+}: DrawLogoHeaderOptions): Promise<void> {
+  const logoPng = await loadLogoPng();
+  const logoImage = await pdfDoc.embedPng(logoPng);
+  const logoHeight = 50;
+  const logoDims = logoImage.scaleToFit(pageWidth * 0.5, logoHeight);
+  const logoX = (pageWidth - logoDims.width) / 2;
+  const logoY = pageHeight - margin - logoDims.height + 20;
+
+  page.drawImage(logoImage, {
+    x: logoX,
+    y: logoY,
+    width: logoDims.width,
+    height: logoDims.height,
+  });
+
+  const subtitleY = logoY - 14;
+  const subtitleWidth = font.widthOfTextAtSize(subtitle, 11);
+  page.drawText(subtitle, {
+    x: (pageWidth - subtitleWidth) / 2,
+    y: subtitleY,
+    font,
+    size: 11,
+    color: pdfColors.mutedText,
+  });
+
+  page.drawText(date, {
+    x: pageWidth - margin - font.widthOfTextAtSize(date, 9),
+    y: subtitleY,
+    font,
+    size: 9,
+    color: pdfColors.mutedText,
+  });
+}

@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
   drawDoctorBlock,
+  drawLogoHeader,
   GenerateInformePDFOptions,
   sanitizeForPdf,
   wrapText,
@@ -47,20 +48,18 @@ export async function generateInformePDF({
     }
   };
 
-  const primaryColor = rgb(0.08, 0.35, 0.65);
   const lightGray = rgb(0.95, 0.95, 0.97);
 
-  page.drawRectangle({
-    x: 0,
-    y: pageHeight - 90,
-    width: pageWidth,
-    height: 90,
-    color: primaryColor,
+  await drawLogoHeader({
+    pdfDoc,
+    page,
+    pageWidth,
+    pageHeight,
+    subtitle: "Informe Medico",
+    date,
+    font: helvetica,
+    margin,
   });
-
-  drawText("IMI Health", margin, pageHeight - 40, helveticaBold, 22, rgb(1, 1, 1));
-  drawText("Informe Médico", margin, pageHeight - 60, helvetica, 12, rgb(0.85, 0.9, 1));
-  drawText(date, pageWidth - margin - 80, pageHeight - 50, helvetica, 10, rgb(0.85, 0.9, 1));
 
   y = pageHeight - 110;
 

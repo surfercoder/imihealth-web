@@ -18,11 +18,13 @@ import { MarkdownDisplay } from "./markdown-display";
 import { WhatsAppIconButton } from "./whatsapp-icon-button";
 import { ViewPdfIconButton } from "./view-pdf-icon-button";
 import { CertificadoIconButton } from "./certificado-icon-button";
+import { PedidosIconButton } from "./pedidos-icon-button";
 import { PatientEmailIconButton } from "./patient-email-icon-button";
 
 export function PatientReportCard({
   informeId,
   informePaciente,
+  informeDoctor,
   patientName,
   patientEmail,
   pdfUrl,
@@ -31,6 +33,7 @@ export function PatientReportCard({
 }: {
   informeId: string;
   informePaciente: string;
+  informeDoctor: string;
   patientName?: string;
   patientEmail?: string | null;
   pdfUrl?: string | null;
@@ -121,6 +124,18 @@ export function PatientReportCard({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent><p>{t("createCertificate")}</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {whatsappPhone && patientName && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <PedidosIconButton informeId={informeId} informeDoctor={informeDoctor} patientName={patientName} phone={whatsappPhone} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{t("generatePedidos")}</p></TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}

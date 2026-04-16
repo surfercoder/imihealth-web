@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { drawDoctorBlock, GenerateCertificadoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
+import { drawDoctorBlock, drawLogoHeader, GenerateCertificadoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generateCertificadoPDF({
   patientName, patientDni, patientDob, date, diagnosis, daysOff, observations, doctor,
@@ -31,33 +31,20 @@ export async function generateCertificadoPDF({
     page.drawText(text, { x, y: currentY, font, size, color });
   };
 
-  page.drawRectangle({
-    x: 0,
-    y: pageHeight - 80,
-    width: pageWidth,
-    height: 80,
-    color: primaryColor,
+  await drawLogoHeader({
+    pdfDoc,
+    page,
+    pageWidth,
+    pageHeight,
+    subtitle: "Certificado Medico",
+    date,
+    font: helvetica,
+    margin,
   });
-
-  drawText("IMI Health", margin, pageHeight - 32, helveticaBold, 20, rgb(1, 1, 1));
-  drawText("Certificado Médico", margin, pageHeight - 50, helvetica, 11, rgb(0.85, 0.9, 1));
-  drawText(date, pageWidth - margin - 80, pageHeight - 46, helvetica, 9, rgb(0.85, 0.9, 1));
 
   y = pageHeight - 100;
 
-  const titleText = "CERTIFICADO MÉDICO";
-  const titleWidth = helveticaBold.widthOfTextAtSize(titleText, 16);
-  drawText(titleText, (pageWidth - titleWidth) / 2, y, helveticaBold, 16, primaryColor);
-
-  y -= 8;
-  page.drawLine({
-    start: { x: margin + 40, y },
-    end: { x: pageWidth - margin - 40, y },
-    thickness: 1,
-    color: primaryColor,
-  });
-
-  y -= 30;
+  y -= 20;
 
   page.drawRectangle({
     x: margin,

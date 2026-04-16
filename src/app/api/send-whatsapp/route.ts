@@ -19,6 +19,7 @@ import {
 } from "./helpers";
 import { generateCertificadoMedia, generateInformeMedia, GeneratedMedia } from "./media";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
+import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { data: informe } = await supabase
       .from("informes")
-      .select("informe_paciente, created_at, patients(name, phone, dob, dni, obra_social, nro_afiliado, plan)")
+      .select("informe_paciente, informe_doctor, created_at, patients(name, phone, dob, dni, obra_social, nro_afiliado, plan)")
       .eq("id", informeId)
       .eq("doctor_id", user.id)
       .single();
@@ -91,6 +92,10 @@ export async function POST(request: NextRequest) {
       const pedidoTemplateName = getPedidoDocTemplateName(locale);
       let sentCount = 0;
 
+      const diagnostico = extractDiagnosticoPresuntivo(
+        informe.informe_doctor as string | null
+      );
+
       for (const item of pedidoItems) {
         const pdfBytes = await generatePedidoPDF({
           patientName: patient?.name ?? patientName ?? "",
@@ -99,6 +104,7 @@ export async function POST(request: NextRequest) {
           plan: patient?.plan ?? null,
           date: dateStr,
           item,
+          diagnostico,
           doctor: doctorInfo,
         });
 

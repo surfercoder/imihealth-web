@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { FONT_FAMILY } from "./fontconfig";
+import { buildLogoHeaderSvg } from "./logo";
 import { escapeXml, wrapLines, DoctorImageInfo } from "./text-utils";
 
 interface CertificadoImageOptions {
@@ -27,9 +28,6 @@ export async function generateCertificadoImage({
   const headerH = 80;
 
   let y = headerH + 20;
-
-  // Title
-  y += 24;
 
   // Patient box
   y += 10;
@@ -151,14 +149,11 @@ export async function generateCertificadoImage({
   const certDoctorBlockH = doctor ? certSigH + 20 : 0;
   const height = Math.max(y + certDoctorBlockH + 60, 600);
 
+  const logoHeader = await buildLogoHeaderSvg({ width, headerH, margin, subtitle: "Certificado Medico", date });
+
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <rect width="100%" height="100%" fill="white"/>
-  <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
-  <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="22" fill="white" font-weight="bold">IMI Health</text>
-  <text x="${margin}" y="55" font-family="${FONT_FAMILY}" font-size="11" fill="#D9E6F7">Certificado Medico</text>
-  <text x="${width - margin}" y="48" font-family="${FONT_FAMILY}" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
-  <text x="${width / 2}" y="${headerH + 28}" font-family="${FONT_FAMILY}" font-size="18" fill="#145A9E" font-weight="bold" text-anchor="middle">CERTIFICADO MEDICO</text>
-  <line x1="${margin + 40}" y1="${headerH + 34}" x2="${width - margin - 40}" y2="${headerH + 34}" stroke="#145A9E" stroke-width="1"/>
+  ${logoHeader}
   <rect x="${margin}" y="${patientBoxTop}" width="${contentWidth}" height="64" fill="#F2F2F5" stroke="#DDDDE0" stroke-width="1" rx="4"/>
   <text x="${margin + 12}" y="${patientBoxTop + 14}" font-family="${FONT_FAMILY}" font-size="8" fill="#666">DATOS DEL PACIENTE</text>
   <text x="${margin + 12}" y="${patientBoxTop + 30}" font-family="${FONT_FAMILY}" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>

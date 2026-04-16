@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { drawDoctorBlock, GeneratePedidoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
+import { drawDoctorBlock, drawLogoHeader, GeneratePedidoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generatePedidoPDF({
   patientName, obraSocial, nroAfiliado, plan, date, item, diagnostico, doctor,
@@ -18,7 +18,7 @@ export async function generatePedidoPDF({
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
 
-  const { primary: primaryColor, lightGray, darkText, mutedText } = pdfColors;
+  const { lightGray, darkText, mutedText } = pdfColors;
 
   const drawText = (
     text: string,
@@ -32,34 +32,20 @@ export async function generatePedidoPDF({
   };
 
   // Header
-  page.drawRectangle({
-    x: 0,
-    y: pageHeight - 80,
-    width: pageWidth,
-    height: 80,
-    color: primaryColor,
+  await drawLogoHeader({
+    pdfDoc,
+    page,
+    pageWidth,
+    pageHeight,
+    subtitle: "Pedido Medico",
+    date,
+    font: helvetica,
+    margin,
   });
-
-  drawText("IMI Health", margin, pageHeight - 32, helveticaBold, 20, rgb(1, 1, 1));
-  drawText("Pedido Medico", margin, pageHeight - 50, helvetica, 11, rgb(0.85, 0.9, 1));
-  drawText(date, pageWidth - margin - 80, pageHeight - 46, helvetica, 9, rgb(0.85, 0.9, 1));
 
   y = pageHeight - 100;
 
-  // Title
-  const titleText = "PEDIDO MEDICO";
-  const titleWidth = helveticaBold.widthOfTextAtSize(titleText, 16);
-  drawText(titleText, (pageWidth - titleWidth) / 2, y, helveticaBold, 16, primaryColor);
-
-  y -= 8;
-  page.drawLine({
-    start: { x: margin + 40, y },
-    end: { x: pageWidth - margin - 40, y },
-    thickness: 1,
-    color: primaryColor,
-  });
-
-  y -= 30;
+  y -= 20;
 
   // Patient data box
   const hasObraSocial = obraSocial || nroAfiliado || plan;

@@ -55,6 +55,7 @@ export function InformeEditor({
           <PatientReportCard
             informeId={informeId}
             informePaciente={informePaciente}
+            informeDoctor={informeDoctor}
             patientName={patientName}
             patientEmail={patientEmail}
             pdfUrl={pdfUrl}

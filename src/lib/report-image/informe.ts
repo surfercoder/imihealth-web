@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { FONT_FAMILY } from "./fontconfig";
+import { buildLogoHeaderSvg } from "./logo";
 import { escapeXml, wrapLines, DoctorImageInfo } from "./text-utils";
 
 interface InformeImageOptions {
@@ -102,12 +103,11 @@ export async function generateInformeImage({
   const footerH = 60;
   const height = Math.max(consentY + consentH + doctorBlockH + footerH + 10, 600);
 
+  const logoHeader = await buildLogoHeaderSvg({ width, headerH, margin, subtitle: "Informe Medico", date });
+
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <rect width="100%" height="100%" fill="white"/>
-  <rect x="0" y="0" width="${width}" height="${headerH}" fill="#145A9E"/>
-  <text x="${margin}" y="35" font-family="${FONT_FAMILY}" font-size="24" fill="white" font-weight="bold">IMI Health</text>
-  <text x="${margin}" y="55" font-family="${FONT_FAMILY}" font-size="12" fill="#D9E6F7">Informe Medico</text>
-  <text x="${width - margin}" y="48" font-family="${FONT_FAMILY}" font-size="10" fill="#D9E6F7" text-anchor="end">${escapeXml(date)}</text>
+  ${logoHeader}
   <rect x="${margin}" y="${headerH + 10}" width="${contentWidth}" height="${patientBoxH}" fill="#F2F2F5" stroke="#DDDDE0" stroke-width="1" rx="4"/>
   <text x="${margin + 12}" y="${headerH + 30}" font-family="${FONT_FAMILY}" font-size="10" fill="#666">Paciente:</text>
   <text x="${margin + 12}" y="${headerH + 46}" font-family="${FONT_FAMILY}" font-size="14" fill="#141420" font-weight="bold">${escapeXml(patientName)}</text>

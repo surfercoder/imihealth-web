@@ -34,6 +34,10 @@ jest.mock('@/components/informe-editor/certificado-icon-button', () => ({
   CertificadoIconButton: () => <button data-testid="cert-btn">Cert</button>,
 }))
 
+jest.mock('@/components/informe-editor/pedidos-icon-button', () => ({
+  PedidosIconButton: () => <button data-testid="pedidos-btn">Pedidos</button>,
+}))
+
 jest.mock('@/components/informe-editor/patient-email-icon-button', () => ({
   PatientEmailIconButton: () => <button data-testid="pat-email-btn">PatEmail</button>,
 }))
@@ -43,6 +47,7 @@ import { PatientReportCard } from '@/components/informe-editor/patient-report-ca
 const baseProps = {
   informeId: 'inf-1',
   informePaciente: 'Patient report text',
+  informeDoctor: 'Doctor report text',
 }
 
 describe('PatientReportCard', () => {
