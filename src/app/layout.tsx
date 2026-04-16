@@ -8,7 +8,6 @@ import { getLocale, getMessages } from "next-intl/server";
 import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { createClient } from "@/utils/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,13 +40,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
-  const messages = await getMessages();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
 
   return (
     <html lang={locale}>
@@ -57,7 +50,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SentryErrorBoundary>
             <Suspense>
-              <RealtimeNotificationsProvider userId={user?.id ?? null}>
+              <RealtimeNotificationsProvider>
                 <ViewTransition name="page-content">
                   {children}
                 </ViewTransition>

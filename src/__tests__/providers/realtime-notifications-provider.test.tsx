@@ -78,11 +78,14 @@ mockEqFn.mockReturnValue({ single: mockSingleFn })
 mockSelectFn.mockReturnValue({ eq: mockEqFn })
 mockFromFn.mockReturnValue({ select: mockSelectFn })
 
+const mockGetUser = jest.fn().mockResolvedValue({ data: { user: null } })
+
 jest.mock('@/utils/supabase/client', () => ({
   createClient: () => ({
     channel: mockChannel,
     removeChannel: mockRemoveChannel,
     from: mockFromFn,
+    auth: { getUser: mockGetUser },
   }),
 }))
 
@@ -97,6 +100,7 @@ describe('RealtimeNotificationsProvider', () => {
     mockPathname = '/'
     mockGet.mockReturnValue(null)
     mockSingleFn.mockResolvedValue({ data: { name: 'Juan Pérez' } })
+    mockGetUser.mockResolvedValue({ data: { user: null } })
     mockNotificationConstructor.mockClear()
     mockNotificationClose.mockClear()
     // Default: tab is visible (document.hidden = false)
@@ -128,20 +132,24 @@ describe('RealtimeNotificationsProvider', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument()
   })
 
-  it('does not create a channel when userId is null', () => {
+  it('does not create a channel when userId is null', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
     render(
-      <RealtimeNotificationsProvider userId={null}>
+      <RealtimeNotificationsProvider>
         <div data-testid="null-child">child</div>
       </RealtimeNotificationsProvider>
     )
     // Provider short-circuits for null userId, rendering children directly
     expect(screen.getByTestId('null-child')).toBeInTheDocument()
+    // Wait for useEffect to resolve
+    await act(async () => {})
     expect(mockChannel).not.toHaveBeenCalled()
   })
 
   it('mounts realtime content inside Suspense when userId is set', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-xyz' } } })
     render(
-      <RealtimeNotificationsProvider userId="user-xyz">
+      <RealtimeNotificationsProvider>
         <div data-testid="auth-child">child</div>
       </RealtimeNotificationsProvider>
     )
