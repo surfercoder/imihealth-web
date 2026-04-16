@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn, stripMarkdown } from '@/lib/utils'
 
 describe('cn', () => {
   it('returns a single class unchanged', () => {
@@ -32,5 +32,53 @@ describe('cn', () => {
 
   it('handles array syntax from clsx', () => {
     expect(cn(['foo', 'bar'])).toBe('foo bar')
+  })
+})
+
+describe('stripMarkdown', () => {
+  it('removes bold markers', () => {
+    expect(stripMarkdown('**bold text**')).toBe('bold text')
+  })
+
+  it('removes italic markers', () => {
+    expect(stripMarkdown('*italic*')).toBe('italic')
+  })
+
+  it('removes heading markers', () => {
+    expect(stripMarkdown('## Heading\nContent')).toBe('Heading\nContent')
+  })
+
+  it('removes link syntax keeping text', () => {
+    expect(stripMarkdown('[click here](https://example.com)')).toBe('click here')
+  })
+
+  it('removes inline code backticks', () => {
+    expect(stripMarkdown('use `code` here')).toBe('use code here')
+  })
+
+  it('removes strikethrough markers', () => {
+    expect(stripMarkdown('~~removed~~')).toBe('removed')
+  })
+
+  it('removes horizontal rules', () => {
+    expect(stripMarkdown('above\n---\nbelow')).toBe('above\n\nbelow')
+  })
+
+  it('normalizes list markers', () => {
+    expect(stripMarkdown('* item one\n+ item two')).toBe('- item one\n- item two')
+  })
+
+  it('collapses extra blank lines', () => {
+    expect(stripMarkdown('a\n\n\n\nb')).toBe('a\n\nb')
+  })
+
+  it('handles mixed markdown', () => {
+    const input = '## Title\n\n**Bold** and *italic* with [link](url)\n\n---\n\n- item'
+    const expected = 'Title\n\nBold and italic with link\n- item'
+    expect(stripMarkdown(input)).toBe(expected)
+  })
+
+  it('returns plain text unchanged', () => {
+    expect(stripMarkdown('plain text')).toBe('plain text')
   })
 })

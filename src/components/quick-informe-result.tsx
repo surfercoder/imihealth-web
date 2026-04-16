@@ -7,6 +7,7 @@ import { Copy, Check, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { MarkdownDisplay } from "@/components/informe-editor/markdown-display";
+import { stripMarkdown } from "@/lib/utils";
 
 interface QuickInformeResultProps {
   informe: string;
@@ -19,7 +20,7 @@ export function QuickInformeResult({ informe }: QuickInformeResultProps) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(informe);
+      await navigator.clipboard.writeText(stripMarkdown(informe));
       setIsCopied(true);
       toast.success(t("common.copied"), { description: t("informes.copiedToClipboard") });
       setTimeout(() => setIsCopied(false), 2000);

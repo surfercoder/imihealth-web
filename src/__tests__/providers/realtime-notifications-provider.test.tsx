@@ -3,16 +3,20 @@ import { render, screen, act, waitFor } from '@testing-library/react'
 
 const mockPush = jest.fn()
 const mockGet = jest.fn().mockReturnValue(null)
+let mockPathname = '/'
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => mockPathname,
   useSearchParams: () => ({ get: mockGet }),
 }))
 
 // Capture toast calls so we can invoke action onClick
 const mockToastSuccess = jest.fn()
+const mockToastDismiss = jest.fn()
 jest.mock('sonner', () => ({
   toast: {
     success: (...args: unknown[]) => mockToastSuccess(...args),
+    dismiss: (...args: unknown[]) => mockToastDismiss(...args),
   },
 }))
 
@@ -74,6 +78,7 @@ describe('RealtimeNotificationsProvider', () => {
     jest.clearAllMocks()
     registeredPayloadCallback = null
     callbacksByTable.clear()
+    mockPathname = '/'
     mockGet.mockReturnValue(null)
     mockSingleFn.mockResolvedValue({ data: { name: 'Juan Pérez' } })
 
@@ -438,6 +443,24 @@ describe('RealtimeNotificationsProvider', () => {
       expect(mockToastSuccess).not.toHaveBeenCalled()
     })
 
+    it('does not show a quick-report toast when old status was already completed', async () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      const quickCb = callbacksByTable.get('informes_rapidos')
+      await act(async () => {
+        quickCb!({
+          old: { id: 'rap-already', status: 'completed' },
+          new: { id: 'rap-already', status: 'completed' },
+        })
+      })
+
+      expect(mockToastSuccess).not.toHaveBeenCalled()
+    })
+
     it('does not show duplicate quick report notifications', async () => {
       render(
         <RealtimeNotificationsContent userId="user-1">
@@ -467,6 +490,87 @@ describe('RealtimeNotificationsProvider', () => {
 
       // Toast should not have been called again
       expect(mockToastSuccess.mock.calls.length).toBe(firstCallCount)
+    })
+  })
+
+  describe('toast dismiss on navigation away', () => {
+    it('dismisses toasts when navigating away from an informe detail page', () => {
+      mockPathname = '/informes/some-id'
+
+      const { rerender } = render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      // Navigate away
+      mockPathname = '/dashboard'
+      rerender(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockToastDismiss).toHaveBeenCalled()
+    })
+
+    it('dismisses toasts when navigating away from a quick informe detail page', () => {
+      mockPathname = '/informes-rapidos/some-id'
+
+      const { rerender } = render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      // Navigate away
+      mockPathname = '/dashboard'
+      rerender(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockToastDismiss).toHaveBeenCalled()
+    })
+
+    it('does not dismiss toasts when navigating away from a non-informe page', () => {
+      mockPathname = '/dashboard'
+
+      const { rerender } = render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      // Navigate to another non-informe page
+      mockPathname = '/settings'
+      rerender(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockToastDismiss).not.toHaveBeenCalled()
+    })
+
+    it('does not dismiss toasts when pathname has not changed', () => {
+      mockPathname = '/informes/some-id'
+
+      const { rerender } = render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      // Re-render with same pathname
+      rerender(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      expect(mockToastDismiss).not.toHaveBeenCalled()
     })
   })
 })

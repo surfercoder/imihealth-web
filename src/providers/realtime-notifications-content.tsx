@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -15,11 +15,30 @@ function RealtimeNotificationsContentInner({
   userId: string;
 }) {
   const nav = useRouter();
+  const pathname = usePathname();
   const searchParams = useNextSearchParams();
   const t = useTranslations("notifications");
   const channelRef = useRef<RealtimeChannel | null>(null);
   const quickChannelRef = useRef<RealtimeChannel | null>(null);
   const shownNotificationsRef = useRef<Set<string>>(new Set());
+
+  const prevPathnameRef = useRef(pathname);
+
+  // Dismiss all toasts when navigating *away* from an informe detail page
+  // so persistent notifications don't stack and block UI on other pages.
+  useEffect(() => {
+    const prev = prevPathnameRef.current;
+    prevPathnameRef.current = pathname;
+
+    if (prev === pathname) return;
+
+    const isInformePage = /^\/informes\/[^/]+$/.test(prev);
+    const isQuickInformePage = /^\/informes-rapidos\/[^/]+$/.test(prev);
+
+    if (isInformePage || isQuickInformePage) {
+      toast.dismiss();
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const supabase = createClient();

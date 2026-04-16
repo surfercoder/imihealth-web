@@ -5,6 +5,7 @@ import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { stripMarkdown } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -21,7 +22,7 @@ export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDocto
   const t = useTranslations("common");
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(stripMarkdown(text));
     setCopied(true);
     toast.success(t("copiedToClipboard"));
     setTimeout(() => setCopied(false), 2000);
