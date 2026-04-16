@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Loader2, MessageCircle } from "lucide-react";
+import { Eye, FileText, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PedidosSuccessProps {
@@ -10,7 +10,9 @@ interface PedidosSuccessProps {
   successMessage: string;
   whatsappLabel: string;
   generateAnotherLabel: string;
+  viewOnlineLabel: string;
   pedidoCount: number;
+  mergedUrl: string;
 }
 
 export function PedidosSuccess({
@@ -20,7 +22,9 @@ export function PedidosSuccess({
   successMessage,
   whatsappLabel,
   generateAnotherLabel,
+  viewOnlineLabel,
   pedidoCount,
+  mergedUrl,
 }: PedidosSuccessProps) {
   return (
     <div className="flex flex-col items-center gap-4 py-4">
@@ -44,6 +48,13 @@ export function PedidosSuccess({
           <MessageCircle className="size-4 mr-1.5" />
         )}
         {whatsappLabel}
+      </Button>
+      <Button
+        className="w-full bg-black hover:bg-black/80 text-white"
+        onClick={() => window.open(mergedUrl, "_blank")}
+      >
+        <Eye className="size-4 mr-1.5" />
+        {viewOnlineLabel}
       </Button>
       <Button
         variant="outline"

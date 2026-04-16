@@ -428,6 +428,7 @@
     "description": "Generá un certificado médico para {patientName} para presentar en trabajo, escuela o universidad.",
     "successMessage": "El certificado fue generado correctamente.",
     "download": "Descargar certificado",
+    "viewOnline": "Ver online",
     "generateAnother": "Generar otro certificado",
     "daysOffLabel": "Días de reposo",
     "daysOffPlaceholder": "Ej: 2",
@@ -464,6 +465,7 @@
     "generate": "{count, plural, one {Generar 1 pedido} other {Generar {count} pedidos}}",
     "errorTitle": "Error al generar pedidos",
     "successMessage": "Los pedidos fueron generados correctamente.",
+    "viewOnline": "Ver online",
     "generateAnother": "Generar mas pedidos",
     "generatedTitle": "Pedidos generados",
     "generatedDescription": "{count, plural, one {Se genero 1 pedido} other {Se generaron {count} pedidos}}"

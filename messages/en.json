@@ -428,6 +428,7 @@
     "description": "Generate a medical certificate for {patientName} to present at work, school, or university.",
     "successMessage": "The certificate was generated successfully.",
     "download": "Download certificate",
+    "viewOnline": "View online",
     "generateAnother": "Generate another certificate",
     "daysOffLabel": "Rest days",
     "daysOffPlaceholder": "E.g.: 2",
@@ -464,6 +465,7 @@
     "generate": "{count, plural, one {Generate 1 order} other {Generate {count} orders}}",
     "errorTitle": "Error generating orders",
     "successMessage": "The orders were generated successfully.",
+    "viewOnline": "View online",
     "generateAnother": "Generate more orders",
     "generatedTitle": "Orders generated",
     "generatedDescription": "{count, plural, one {1 order was generated} other {{count} orders were generated}}"

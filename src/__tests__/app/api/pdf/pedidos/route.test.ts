@@ -4,12 +4,7 @@
 
 const mockGetUser = jest.fn()
 
-const mockSelectChain = {
-  eq: jest.fn().mockReturnThis(),
-  single: jest.fn(),
-}
-const mockSelect = jest.fn().mockReturnValue(mockSelectChain)
-const mockFrom = jest.fn().mockReturnValue({ select: mockSelect })
+const mockFrom = jest.fn()
 
 const mockSupabase = {
   auth: { getUser: mockGetUser },
@@ -25,13 +20,37 @@ jest.mock('@/lib/pdf/pedido', () => ({
   generatePedidoPDF: (...args: unknown[]) => mockGeneratePedidoPDF(...args),
 }))
 
-import { GET } from '@/app/api/pdf/pedido/route'
-import { NextRequest } from 'next/server'
+jest.mock('pdf-lib', () => {
+  const mockMerged = {
+    copyPages: jest.fn(),
+    addPage: jest.fn(),
+    save: jest.fn(),
+    getPageIndices: jest.fn(),
+  }
+  return {
+    PDFDocument: {
+      create: jest.fn().mockResolvedValue(mockMerged),
+      load: jest.fn().mockResolvedValue({
+        getPageIndices: jest.fn().mockReturnValue([0]),
+      }),
+    },
+  }
+})
 
-function makeRequest(params: Record<string, string> = {}): NextRequest {
-  const url = new URL('http://localhost:3000/api/pdf/pedido')
+import { GET } from '@/app/api/pdf/pedidos/route'
+import { NextRequest } from 'next/server'
+import { PDFDocument } from 'pdf-lib'
+
+function makeRequest(params: Record<string, string | string[]> = {}): NextRequest {
+  const url = new URL('http://localhost:3000/api/pdf/pedidos')
   for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value)
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        url.searchParams.append(key, v)
+      }
+    } else {
+      url.searchParams.set(key, value)
+    }
   }
   return new NextRequest(url)
 }
@@ -41,7 +60,7 @@ const MOCK_PDF_BYTES = new Uint8Array([37, 80, 68, 70])
 const MOCK_INFORME = {
   created_at: '2024-06-01T10:00:00Z',
   status: 'completed',
-  informe_doctor: '**Diagnóstico presuntivo:** Contractura cervical (CIE-10: M54.1)\n\n**Estudios solicitados:**\n- Hemograma completo',
+  informe_doctor: '**Diagnóstico presuntivo:** Contractura cervical\n\n**Estudios solicitados:**\n- Hemograma',
   patients: {
     name: 'Carlos López',
     phone: '+5491166666666',
@@ -58,7 +77,13 @@ const MOCK_DOCTOR = {
   firma_digital: 'base64sig',
 }
 
-describe('GET /api/pdf/pedido', () => {
+describe('GET /api/pdf/pedidos', () => {
+  let mockMerged: {
+    copyPages: jest.Mock
+    addPage: jest.Mock
+    save: jest.Mock
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
@@ -83,20 +108,31 @@ describe('GET /api/pdf/pedido', () => {
       }
     })
     mockGeneratePedidoPDF.mockResolvedValue(MOCK_PDF_BYTES)
+
+    const mockPage = { fake: 'page' }
+    mockMerged = {
+      copyPages: jest.fn().mockResolvedValue([mockPage]),
+      addPage: jest.fn(),
+      save: jest.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
+    }
+    ;(PDFDocument.create as jest.Mock).mockResolvedValue(mockMerged)
+    ;(PDFDocument.load as jest.Mock).mockResolvedValue({
+      getPageIndices: jest.fn().mockReturnValue([0]),
+    })
   })
 
   it('returns 401 when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'Not authenticated' } })
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'Blood test' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Hemograma'] }))
     expect(res.status).toBe(401)
   })
 
   it('returns 400 when id is missing', async () => {
-    const res = await GET(makeRequest({ item: 'Blood test' }))
+    const res = await GET(makeRequest({ item: ['Hemograma'] }))
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 when item is missing', async () => {
+  it('returns 400 when items are missing', async () => {
     const res = await GET(makeRequest({ id: 'inf-1' }))
     expect(res.status).toBe(400)
   })
@@ -111,7 +147,7 @@ describe('GET /api/pdf/pedido', () => {
         }),
       }),
     }))
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'Blood test' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Hemograma'] }))
     expect(res.status).toBe(404)
   })
 
@@ -128,25 +164,19 @@ describe('GET /api/pdf/pedido', () => {
         }),
       }),
     }))
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'Blood test' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Hemograma'] }))
     expect(res.status).toBe(404)
   })
 
-  it('returns PDF on success with patient data and diagnostico', async () => {
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'Hemograma completo' }))
+  it('returns merged PDF on success with multiple items', async () => {
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Hemograma', 'Radiografía'] }))
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('application/pdf')
-    expect(mockGeneratePedidoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({
-        patientName: 'Carlos López',
-        obraSocial: 'OSDE',
-        nroAfiliado: '123456',
-        plan: '310',
-        item: 'Hemograma completo',
-        diagnostico: 'Contractura cervical (CIE-10: M54.1)',
-        doctor: expect.objectContaining({ name: 'Dra. Rodríguez' }),
-      })
-    )
+    expect(res.headers.get('Content-Disposition')).toBe('inline; filename="pedidos-medicos.pdf"')
+    expect(mockGeneratePedidoPDF).toHaveBeenCalledTimes(2)
+    expect(mockMerged.copyPages).toHaveBeenCalledTimes(2)
+    expect(mockMerged.addPage).toHaveBeenCalledTimes(2)
+    expect(mockMerged.save).toHaveBeenCalled()
   })
 
   it('uses fallback patient name when patients is null', async () => {
@@ -173,7 +203,7 @@ describe('GET /api/pdf/pedido', () => {
         }),
       }
     })
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'X-ray' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['X-ray'] }))
     expect(res.status).toBe(200)
     expect(mockGeneratePedidoPDF).toHaveBeenCalledWith(
       expect.objectContaining({ patientName: 'Paciente' })
@@ -201,7 +231,7 @@ describe('GET /api/pdf/pedido', () => {
         }),
       }
     })
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'MRI' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['MRI'] }))
     expect(res.status).toBe(200)
     expect(mockGeneratePedidoPDF).toHaveBeenCalledWith(
       expect.objectContaining({ doctor: null })
@@ -211,7 +241,7 @@ describe('GET /api/pdf/pedido', () => {
   it('returns 500 when an error is thrown', async () => {
     mockGeneratePedidoPDF.mockRejectedValue(new Error('PDF generation failed'))
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-    const res = await GET(makeRequest({ id: 'inf-1', item: 'Blood test' }))
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Blood test'] }))
     expect(res.status).toBe(500)
     consoleSpy.mockRestore()
   })

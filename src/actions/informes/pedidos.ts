@@ -30,5 +30,12 @@ export async function generatePedidos(
     return `/api/pdf/pedido?${params.toString()}`;
   });
 
-  return { urls };
+  // Build merged URL with all items
+  const mergedParams = new URLSearchParams({ id: informeId });
+  for (const item of items) {
+    mergedParams.append("item", item);
+  }
+  const mergedUrl = `/api/pdf/pedidos?${mergedParams.toString()}`;
+
+  return { urls, mergedUrl };
 }

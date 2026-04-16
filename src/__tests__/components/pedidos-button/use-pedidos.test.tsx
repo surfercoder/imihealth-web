@@ -78,7 +78,7 @@ describe('usePedidos', () => {
   })
 
   it('handleGenerate calls generatePedidos and sets URLs on success', async () => {
-    mockGeneratePedidos.mockResolvedValue({ urls: ['/api/pdf/pedido?id=inf-1&item=Hemograma+completo'] })
+    mockGeneratePedidos.mockResolvedValue({ urls: ['/api/pdf/pedido?id=inf-1&item=Hemograma+completo'], mergedUrl: '/api/pdf/pedidos?id=inf-1&item=Hemograma+completo' })
     const { result } = renderHook(() => usePedidos(defaultArgs))
     act(() => result.current.handleOpenChange(true))
     act(() => result.current.handleGenerate())
@@ -107,7 +107,7 @@ describe('usePedidos', () => {
   })
 
   it('handleSendWhatsApp sends request and shows success toast', async () => {
-    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'] })
+    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'], mergedUrl: '/merged' })
     const mockFetch = jest.fn().mockResolvedValue({
       json: async () => ({ success: true }),
     })
@@ -124,7 +124,7 @@ describe('usePedidos', () => {
   })
 
   it('handleSendWhatsApp shows error toast on failure response', async () => {
-    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'] })
+    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'], mergedUrl: '/merged' })
     const mockFetch = jest.fn().mockResolvedValue({
       json: async () => ({ success: false, error: 'Send failed' }),
     })
@@ -141,7 +141,7 @@ describe('usePedidos', () => {
   })
 
   it('handleSendWhatsApp shows fallback error toast on network error', async () => {
-    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'] })
+    mockGeneratePedidos.mockResolvedValue({ urls: ['/url1'], mergedUrl: '/merged' })
     const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'))
     global.fetch = mockFetch
 

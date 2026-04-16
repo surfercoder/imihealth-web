@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
+import { extractDiagnosticoPresuntivo } from "./utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const { data: informe } = await supabase
       .from("informes")
-      .select("created_at, status, patients(name, phone, obra_social, nro_afiliado, plan)")
+      .select("created_at, status, informe_doctor, patients(name, phone, obra_social, nro_afiliado, plan)")
       .eq("id", informeId)
       .eq("doctor_id", user.id)
       .single();
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
       plan: string | null;
     } | null;
 
+    const diagnostico = extractDiagnosticoPresuntivo(
+      informe.informe_doctor as string | null
+    );
+
     const pdfBytes = await generatePedidoPDF({
       patientName: patient?.name ?? "Paciente",
       obraSocial: patient?.obra_social ?? null,
@@ -58,6 +63,7 @@ export async function GET(request: NextRequest) {
         year: "numeric",
       }),
       item,
+      diagnostico,
       doctor: doctorData
         ? {
             name: doctorData.name,

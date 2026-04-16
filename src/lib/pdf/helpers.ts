@@ -33,6 +33,7 @@ export interface GeneratePedidoPDFOptions {
   plan?: string | null;
   date: string;
   item: string;
+  diagnostico?: string | null;
   doctor?: DoctorSignatureInfo | null;
 }
 

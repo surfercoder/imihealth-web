@@ -11,7 +11,9 @@ describe('PedidosSuccess', () => {
     successMessage: 'Pedidos generados correctamente',
     whatsappLabel: 'Enviar por WhatsApp',
     generateAnotherLabel: 'Generar otro pedido',
+    viewOnlineLabel: 'Ver online',
     pedidoCount: 2,
+    mergedUrl: '/api/pdf/pedidos?id=123&item=pedido1&item=pedido2',
   }
 
   it('renders success message', () => {
@@ -58,5 +60,20 @@ describe('PedidosSuccess', () => {
   it('disables WhatsApp button when isSendingWa is true', () => {
     render(<PedidosSuccess {...defaultProps} isSendingWa={true} />)
     expect(screen.getByRole('button', { name: /WhatsApp/i })).toBeDisabled()
+  })
+
+  it('renders view online button', () => {
+    render(<PedidosSuccess {...defaultProps} />)
+    expect(screen.getByRole('button', { name: /Ver online/i })).toBeInTheDocument()
+  })
+
+  it('opens merged URL when view online is clicked', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+    const user = userEvent.setup()
+    render(<PedidosSuccess {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Ver online/i }))
+    expect(openSpy).toHaveBeenCalledTimes(1)
+    expect(openSpy).toHaveBeenCalledWith('/api/pdf/pedidos?id=123&item=pedido1&item=pedido2', '_blank')
+    openSpy.mockRestore()
   })
 })

@@ -102,8 +102,8 @@ export function usePedidos({ informeId, informeDoctor, patientName, phone }: Use
         toast.error(t("errorTitle"), {
           description: result.error,
         });
-      } else if (result?.urls) {
-        dispatch({ type: "SET_PEDIDO_URLS", urls: result.urls });
+      } else if (result?.urls && result?.mergedUrl) {
+        dispatch({ type: "SET_PEDIDO_URLS", urls: result.urls, mergedUrl: result.mergedUrl });
         toast.success(t("generatedTitle"), {
           description: t("generatedDescription", { count: items.length }),
         });

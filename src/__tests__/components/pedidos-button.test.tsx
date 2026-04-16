@@ -53,6 +53,7 @@ describe('PedidosButton', () => {
   it('generates pedidos and shows success state', async () => {
     mockGeneratePedidos.mockResolvedValue({
       urls: ['/api/pdf/pedido?id=inf-1&item=Hemograma'],
+      mergedUrl: '/api/pdf/pedidos?id=inf-1&item=Hemograma',
     })
     const user = userEvent.setup()
     render(
@@ -81,6 +82,7 @@ describe('PedidosButton', () => {
   it('resets form when generate another is clicked in success state', async () => {
     mockGeneratePedidos.mockResolvedValue({
       urls: ['/api/pdf/pedido?id=inf-1&item=Hemograma'],
+      mergedUrl: '/api/pdf/pedidos?id=inf-1&item=Hemograma',
     })
     const user = userEvent.setup()
     render(

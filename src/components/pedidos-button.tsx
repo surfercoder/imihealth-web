@@ -57,7 +57,9 @@ export function PedidosButton({ informeId, informeDoctor, patientName, phone, ic
             successMessage={t("successMessage")}
             whatsappLabel={tWa("label")}
             generateAnotherLabel={t("generateAnother")}
+            viewOnlineLabel={t("viewOnline")}
             pedidoCount={parseItems(state.items).length}
+            mergedUrl={state.mergedUrl!}
           />
         ) : (
           <PedidosForm

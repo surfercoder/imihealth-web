@@ -8,6 +8,8 @@ describe('CertificadoSuccess', () => {
     successMessage: 'Generated OK',
     whatsappLabel: 'Send WhatsApp',
     generateAnotherLabel: 'Generate another',
+    viewOnlineLabel: 'View online',
+    certUrl: 'https://example.com/cert.pdf',
   }
 
   it('renders the success message and buttons', () => {
@@ -64,5 +66,33 @@ describe('CertificadoSuccess', () => {
     )
     await user.click(screen.getByRole('button', { name: /Generate another/i }))
     expect(onResetForm).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders view online button', () => {
+    render(
+      <CertificadoSuccess
+        {...baseProps}
+        isSendingWa={false}
+        onSendWhatsApp={() => {}}
+        onResetForm={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /View online/i })).toBeInTheDocument()
+  })
+
+  it('opens cert URL when view online is clicked', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+    const user = userEvent.setup()
+    render(
+      <CertificadoSuccess
+        {...baseProps}
+        isSendingWa={false}
+        onSendWhatsApp={() => {}}
+        onResetForm={() => {}}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: /View online/i }))
+    expect(openSpy).toHaveBeenCalledWith('https://example.com/cert.pdf', '_blank')
+    openSpy.mockRestore()
   })
 })

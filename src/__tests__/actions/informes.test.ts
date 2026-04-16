@@ -1103,6 +1103,7 @@ describe('generatePedidos', () => {
         expect.stringContaining('/api/pdf/pedido?'),
         expect.stringContaining('/api/pdf/pedido?'),
       ],
+      mergedUrl: expect.stringContaining('/api/pdf/pedidos?'),
     })
     const urls = (result as { urls: string[] }).urls
     expect(urls[0]).toContain('id=i-1')

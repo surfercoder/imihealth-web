@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { drawDoctorBlock, GeneratePedidoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generatePedidoPDF({
-  patientName, obraSocial, nroAfiliado, plan, date, item, doctor,
+  patientName, obraSocial, nroAfiliado, plan, date, item, diagnostico, doctor,
 }: GeneratePedidoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -109,6 +109,21 @@ export async function generatePedidoPDF({
   for (const line of itemLines) {
     drawText(line, margin, y, helvetica, 11, darkText);
     y -= 17;
+  }
+
+  // Diagnóstico section
+  if (diagnostico) {
+    y -= 10;
+
+    drawText("Diagnostico:", margin, y, helveticaBold, 12, darkText);
+    y -= 22;
+
+    const diagClean = sanitizeForPdf(diagnostico);
+    const diagLines = wrapText(diagClean, contentWidth, helvetica, 11);
+    for (const line of diagLines) {
+      drawText(line, margin, y, helvetica, 11, darkText);
+      y -= 17;
+    }
   }
 
   // Separator and footer

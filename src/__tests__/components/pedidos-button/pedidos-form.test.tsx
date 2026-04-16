@@ -17,7 +17,7 @@ const mockT = ((key: string, params?: Record<string, unknown>) => {
 }) as unknown as ReturnType<typeof import('next-intl').useTranslations>
 
 describe('PedidosForm', () => {
-  const baseState: State = { open: true, items: '', pedidoUrls: null }
+  const baseState: State = { open: true, items: '', pedidoUrls: null, mergedUrl: null }
 
   it('renders form with textarea and buttons', () => {
     const dispatch = jest.fn()

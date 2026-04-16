@@ -77,6 +77,23 @@ describe('generatePedidoPDF', () => {
     expect(result).toBeInstanceOf(Uint8Array)
   })
 
+  it('includes diagnostico section when provided', async () => {
+    const result = await generatePedidoPDF({
+      ...baseOptions,
+      diagnostico: 'Contractura cervical con probable radiculopatia cervical (CIE-10: M54.1)',
+    })
+    expect(result).toBeInstanceOf(Uint8Array)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
+  it('handles null diagnostico', async () => {
+    const result = await generatePedidoPDF({
+      ...baseOptions,
+      diagnostico: null,
+    })
+    expect(result).toBeInstanceOf(Uint8Array)
+  })
+
   it('handles doctor with firma digital', async () => {
     // Base64 for a minimal valid PNG (1x1 transparent)
     const minimalPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='

@@ -3,35 +3,35 @@ import { reducer, initialState, parseItems } from '@/components/pedidos-button/s
 describe('reducer', () => {
   it('handles OPEN action', () => {
     const result = reducer(initialState, { type: 'OPEN', items: '- item1' })
-    expect(result).toEqual({ open: true, items: '- item1', pedidoUrls: null })
+    expect(result).toEqual({ open: true, items: '- item1', pedidoUrls: null, mergedUrl: null })
   })
 
   it('handles CLOSE action', () => {
-    const openState = { open: true, items: '- test', pedidoUrls: ['url1'] }
+    const openState = { open: true, items: '- test', pedidoUrls: ['url1'], mergedUrl: '/merged' }
     const result = reducer(openState, { type: 'CLOSE' })
     expect(result).toEqual(initialState)
   })
 
   it('handles SET_ITEMS action', () => {
-    const state = { open: true, items: '', pedidoUrls: null }
+    const state = { open: true, items: '', pedidoUrls: null, mergedUrl: null }
     const result = reducer(state, { type: 'SET_ITEMS', value: '- new item' })
-    expect(result).toEqual({ open: true, items: '- new item', pedidoUrls: null })
+    expect(result).toEqual({ open: true, items: '- new item', pedidoUrls: null, mergedUrl: null })
   })
 
   it('handles SET_PEDIDO_URLS action', () => {
-    const state = { open: true, items: '- item', pedidoUrls: null }
-    const result = reducer(state, { type: 'SET_PEDIDO_URLS', urls: ['url1', 'url2'] })
-    expect(result).toEqual({ open: true, items: '- item', pedidoUrls: ['url1', 'url2'] })
+    const state = { open: true, items: '- item', pedidoUrls: null, mergedUrl: null }
+    const result = reducer(state, { type: 'SET_PEDIDO_URLS', urls: ['url1', 'url2'], mergedUrl: '/merged' })
+    expect(result).toEqual({ open: true, items: '- item', pedidoUrls: ['url1', 'url2'], mergedUrl: '/merged' })
   })
 
   it('handles RESET_FORM action', () => {
-    const state = { open: true, items: '- old', pedidoUrls: ['url1'] }
+    const state = { open: true, items: '- old', pedidoUrls: ['url1'], mergedUrl: '/merged' }
     const result = reducer(state, { type: 'RESET_FORM', items: '- new' })
-    expect(result).toEqual({ open: true, items: '- new', pedidoUrls: null })
+    expect(result).toEqual({ open: true, items: '- new', pedidoUrls: null, mergedUrl: null })
   })
 
   it('returns current state for unknown action', () => {
-    const state = { open: true, items: '', pedidoUrls: null }
+    const state = { open: true, items: '', pedidoUrls: null, mergedUrl: null }
      
     const result = reducer(state, { type: 'UNKNOWN' } as any)
     expect(result).toEqual(state)

@@ -54,6 +54,8 @@ export function CertificadoButton({ informeId, patientName, phone, iconOnly = fa
             successMessage={t("successMessage")}
             whatsappLabel={tWa("label")}
             generateAnotherLabel={t("generateAnother")}
+            viewOnlineLabel={t("viewOnline")}
+            certUrl={state.certUrl!}
           />
         ) : (
           <CertificadoForm
