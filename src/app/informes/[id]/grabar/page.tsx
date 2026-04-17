@@ -11,10 +11,13 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 
-export const metadata: Metadata = {
-  title: "Grabar informe | IMI Health",
-  description: "Grabar un nuevo informe médico",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("grabar"),
+    description: tMeta("grabarDescription"),
+  };
+}
 
 interface Props {
   params: Promise<{ id: string }>;

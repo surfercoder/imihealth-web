@@ -8,10 +8,13 @@ import { MVP_LIMITS } from "@/lib/mvp-limits";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Crear cuenta | IMI Health",
-  description: "Crear una cuenta en IMI Health",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("signup"),
+    description: tMeta("signupDescription"),
+  };
+}
 
 export default async function SignupPage() {
   const supabase = await createClient();

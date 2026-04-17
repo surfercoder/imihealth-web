@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateCertificadoPDF } from "@/lib/pdf";
+import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,6 +57,8 @@ export async function GET(request: NextRequest) {
     const diagnosis = params.get("diagnosis");
     const observations = params.get("observations");
 
+    const t = await getTranslations("pdfCertificado");
+
     const certBytes = await generateCertificadoPDF({
       patientName: patient?.name ?? "Paciente",
       patientDni: patient?.dni ?? null,
@@ -76,6 +79,21 @@ export async function GET(request: NextRequest) {
             firmaDigital: doctorData.firma_digital,
           }
         : null,
+      labels: {
+        subtitle: t("subtitle"),
+        patientData: t("patientData"),
+        dni: t("dni"),
+        dob: t("dob"),
+        signerFallback: t("signerFallback"),
+        bodyText: t("bodyText"),
+        bodyWithMatricula: t("bodyWithMatricula"),
+        bodyWithEspecialidad: t("bodyWithEspecialidad"),
+        daysOff1: t("daysOff1"),
+        daysOffN: t("daysOffN"),
+        diagnosis: t("diagnosis"),
+        observations: t("observations"),
+        footer: t("footer"),
+      },
     });
 
     return new NextResponse(Buffer.from(certBytes), {

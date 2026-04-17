@@ -27,10 +27,13 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
-export const metadata: Metadata = {
-  title: "Informe | IMI Health",
-  description: "Detalle del informe médico",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("informe"),
+    description: tMeta("informeDescription"),
+  };
+}
 
 export default async function InformePage({ params, searchParams }: Props) {
   const { id } = await params;

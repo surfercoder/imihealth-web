@@ -6,6 +6,17 @@ describe('generateInformePDF (module)', () => {
     patientPhone: '+54 9 261 123 4567',
     date: '01 de enero de 2025',
     content: 'Contenido del informe médico.',
+    labels: {
+      subtitle: 'Informe Medico',
+      patient: 'Paciente:',
+      phone: 'Tel: {phone}',
+      consentTitle: 'Consentimiento informado',
+      consentLine1: 'El/la paciente {patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health',
+      consentLine2: 'y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.',
+      consentDate: 'Fecha de consulta: {date}',
+      footerGenerated: 'Este informe fue generado automaticamente por IMI Health.',
+      footerAdvice: 'Ante cualquier duda, consulte a su medico.',
+    },
   }
 
   it('returns a valid PDF Uint8Array', async () => {

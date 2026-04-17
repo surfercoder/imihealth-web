@@ -13,6 +13,7 @@ export async function generateInformePDF({
   date,
   content,
   doctor,
+  labels,
 }: GenerateInformePDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -55,7 +56,7 @@ export async function generateInformePDF({
     page,
     pageWidth,
     pageHeight,
-    subtitle: "Informe Medico",
+    subtitle: labels.subtitle,
     date,
     font: helvetica,
     margin,
@@ -73,9 +74,9 @@ export async function generateInformePDF({
     borderWidth: 1,
   });
 
-  drawText("Paciente:", margin + 12, y - 18, helveticaBold, 10, rgb(0.4, 0.4, 0.5));
+  drawText(labels.patient, margin + 12, y - 18, helveticaBold, 10, rgb(0.4, 0.4, 0.5));
   drawText(patientName, margin + 12, y - 32, helveticaBold, 13, rgb(0.08, 0.08, 0.12));
-  drawText(`Tel: ${patientPhone}`, margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
+  drawText(labels.phone.replace("{phone}", patientPhone ?? ""), margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
 
   y -= 70;
 
@@ -117,16 +118,14 @@ export async function generateInformePDF({
     borderWidth: 0.8,
   });
 
-  drawText("Consentimiento informado", margin + 10, y - 14, helveticaBold, 9, consentGreen);
+  drawText(labels.consentTitle, margin + 10, y - 14, helveticaBold, 9, consentGreen);
   const consentLine1 = sanitizeForPdf(
-    `El/la paciente ${patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health`
+    labels.consentLine1.replace("{patientName}", patientName)
   );
-  const consentLine2 = sanitizeForPdf(
-    `y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.`
-  );
+  const consentLine2 = sanitizeForPdf(labels.consentLine2);
   drawText(consentLine1, margin + 10, y - 27, helvetica, 8, rgb(0.15, 0.15, 0.15));
   drawText(consentLine2, margin + 10, y - 38, helvetica, 8, rgb(0.15, 0.15, 0.15));
-  const consentDateClean = sanitizeForPdf(`Fecha de consulta: ${date}`);
+  const consentDateClean = sanitizeForPdf(labels.consentDate.replace("{date}", date));
   drawText(consentDateClean, margin + 10, y - 50, helvetica, 7.5, rgb(0.4, 0.4, 0.45));
 
   y -= 74;
@@ -145,7 +144,7 @@ export async function generateInformePDF({
 
   y -= 20;
   drawText(
-    "Este informe fue generado automaticamente por IMI Health.",
+    labels.footerGenerated,
     margin,
     y,
     helvetica,
@@ -154,7 +153,7 @@ export async function generateInformePDF({
   );
   y -= 12;
   drawText(
-    "Ante cualquier duda, consulte a su medico.",
+    labels.footerAdvice,
     margin,
     y,
     helvetica,

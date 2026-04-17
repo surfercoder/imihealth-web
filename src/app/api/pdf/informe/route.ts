@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateInformePDF } from "@/lib/pdf";
+import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,8 @@ export async function GET(request: NextRequest) {
       phone: string;
     } | null;
 
+    const t = await getTranslations("pdfInforme");
+
     const pdfBytes = await generateInformePDF({
       patientName: patient?.name ?? "Paciente",
       patientPhone: patient?.phone ?? null,
@@ -58,6 +61,17 @@ export async function GET(request: NextRequest) {
             firmaDigital: doctorData.firma_digital,
           }
         : null,
+      labels: {
+        subtitle: t("subtitle"),
+        patient: t("patient"),
+        phone: t("phone"),
+        consentTitle: t("consentTitle"),
+        consentLine1: t("consentLine1"),
+        consentLine2: t("consentLine2"),
+        consentDate: t("consentDate"),
+        footerGenerated: t("footerGenerated"),
+        footerAdvice: t("footerAdvice"),
+      },
     });
 
     return new NextResponse(Buffer.from(pdfBytes), {

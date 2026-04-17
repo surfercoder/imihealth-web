@@ -96,10 +96,9 @@ describe('ManifestPage', () => {
 
   it('renders footer with copyright and links', async () => {
     render(await ManifestPage())
-    const year = new Date().getFullYear().toString()
-    expect(screen.getByText(new RegExp(`${year}`))).toBeInTheDocument()
-    expect(screen.getByText('Sign in')).toHaveAttribute('href', '/login')
-    expect(screen.getByText('Sign up')).toHaveAttribute('href', '/signup')
+    expect(screen.getByText('copyright')).toBeInTheDocument()
+    expect(screen.getByText('signIn')).toHaveAttribute('href', '/login')
+    expect(screen.getByText('signUp')).toHaveAttribute('href', '/signup')
   })
 
   it('renders back button linking to /', async () => {

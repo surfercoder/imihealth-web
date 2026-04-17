@@ -4,6 +4,21 @@ describe('generateCertificadoPDF (module)', () => {
   const baseOptions = {
     patientName: 'Juan Pérez',
     date: '15 de enero de 2025',
+    labels: {
+      subtitle: 'Certificado Medico',
+      patientData: 'DATOS DEL PACIENTE',
+      dni: 'DNI: {dni}',
+      dob: 'Fecha de nacimiento: {dob}',
+      signerFallback: 'el/la profesional firmante',
+      bodyText: 'El/la suscripto/a, {doctorName}, certifica que el/la paciente {patientName} ha sido atendido/a en consulta medica con fecha {date}.',
+      bodyWithMatricula: ', Mat. {matricula}',
+      bodyWithEspecialidad: ', {especialidad}',
+      daysOff1: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
+      daysOffN: 'Por tal motivo, se indica reposo domiciliario por {days} ({days}) dias a partir de la fecha indicada.',
+      diagnosis: 'Diagnostico:',
+      observations: 'Observaciones:',
+      footer: 'Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.',
+    },
   }
 
   it('returns a valid PDF Uint8Array', async () => {

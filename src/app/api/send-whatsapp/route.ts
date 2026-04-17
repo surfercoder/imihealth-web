@@ -20,6 +20,7 @@ import {
 import { generateCertificadoMedia, generateInformeMedia, GeneratedMedia } from "./media";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
+import { getTranslations } from "next-intl/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,6 +80,52 @@ export async function POST(request: NextRequest) {
     const dateStr = formatEsArDate(informe.created_at);
     const doctorInfo = mapDoctorInfo(doctorData);
 
+    const [tInforme, tCert, tPedido] = await Promise.all([
+      getTranslations("pdfInforme"),
+      getTranslations("pdfCertificado"),
+      getTranslations("pdfPedido"),
+    ]);
+
+    const informeLabels = {
+      subtitle: tInforme("subtitle"),
+      patient: tInforme("patient"),
+      phone: tInforme("phone"),
+      consentTitle: tInforme("consentTitle"),
+      consentLine1: tInforme("consentLine1"),
+      consentLine2: tInforme("consentLine2"),
+      consentDate: tInforme("consentDate"),
+      footerGenerated: tInforme("footerGenerated"),
+      footerAdvice: tInforme("footerAdvice"),
+    };
+
+    const certLabels = {
+      subtitle: tCert("subtitle"),
+      patientData: tCert("patientData"),
+      dni: tCert("dni"),
+      dob: tCert("dob"),
+      signerFallback: tCert("signerFallback"),
+      bodyText: tCert("bodyText"),
+      bodyWithMatricula: tCert("bodyWithMatricula"),
+      bodyWithEspecialidad: tCert("bodyWithEspecialidad"),
+      daysOff1: tCert("daysOff1"),
+      daysOffN: tCert("daysOffN"),
+      diagnosis: tCert("diagnosis"),
+      observations: tCert("observations"),
+      footer: tCert("footer"),
+    };
+
+    const pedidoLabels = {
+      subtitle: tPedido("subtitle"),
+      patientData: tPedido("patientData"),
+      obraSocial: tPedido("obraSocial"),
+      nroAfiliado: tPedido("nroAfiliado"),
+      nroAfiliadoInline: tPedido("nroAfiliadoInline"),
+      plan: tPedido("plan"),
+      solicito: tPedido("solicito"),
+      diagnosis: tPedido("diagnosis"),
+      footer: tPedido("footer"),
+    };
+
     // Handle pedidos: generate and send one PDF per item
     if (isPedidos) {
       const { pedidoItems } = body as { pedidoItems?: string[] };
@@ -106,6 +153,7 @@ export async function POST(request: NextRequest) {
           item,
           diagnostico,
           doctor: doctorInfo,
+          labels: pedidoLabels,
         });
 
         const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
@@ -164,6 +212,7 @@ export async function POST(request: NextRequest) {
         dateStr,
         content: informe.informe_paciente,
         doctorInfo,
+        labels: informeLabels,
       });
     } else {
       const { certOptions } = body as { certOptions?: CertOptions };
@@ -173,6 +222,7 @@ export async function POST(request: NextRequest) {
         dateStr,
         doctorInfo,
         certOptions,
+        labels: certLabels,
       });
     }
 

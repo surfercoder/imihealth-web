@@ -9,6 +9,17 @@ describe('generatePedidoPDF', () => {
     date: '01 de enero de 2025',
     item: 'Hemograma completo',
     doctor: null as { name: string; matricula: string; especialidad: string; firmaDigital: string | null } | null,
+    labels: {
+      subtitle: 'Pedido Medico',
+      patientData: 'DATOS DEL PACIENTE',
+      obraSocial: 'Obra Social: {value}',
+      nroAfiliado: 'Nro. Afiliado: {value}',
+      nroAfiliadoInline: '- Nro. Afiliado: {value}',
+      plan: 'Plan: {value}',
+      solicito: 'Solicito:',
+      diagnosis: 'Diagnostico:',
+      footer: 'Este pedido fue emitido por el/la profesional firmante.',
+    },
   }
 
   it('returns a valid PDF Uint8Array', async () => {

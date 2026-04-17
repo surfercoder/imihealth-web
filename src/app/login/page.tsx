@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PublicHeader } from "@/components/public-header";
 
-export const metadata: Metadata = {
-  title: "Iniciar sesión | IMI Health",
-  description: "Iniciar sesión en IMI Health",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("login"),
+    description: tMeta("loginDescription"),
+  };
+}
 
 export default async function LoginPage() {
   const supabase = await createClient();

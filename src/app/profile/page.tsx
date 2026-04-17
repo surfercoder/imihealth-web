@@ -8,10 +8,13 @@ import { ProfileForm } from "@/components/profile-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Mi perfil | IMI Health",
-  description: "Editar perfil de médico",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("profile"),
+    description: tMeta("profileDescription"),
+  };
+}
 
 export default async function ProfilePage() {
   const supabase = await createClient();

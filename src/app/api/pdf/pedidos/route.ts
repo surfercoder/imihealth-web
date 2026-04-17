@@ -3,6 +3,7 @@ import { PDFDocument } from "pdf-lib";
 import { createClient } from "@/utils/supabase/server";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
+import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,6 +69,19 @@ export async function GET(request: NextRequest) {
         }
       : null;
 
+    const t = await getTranslations("pdfPedido");
+    const pdfLabels = {
+      subtitle: t("subtitle"),
+      patientData: t("patientData"),
+      obraSocial: t("obraSocial"),
+      nroAfiliado: t("nroAfiliado"),
+      nroAfiliadoInline: t("nroAfiliadoInline"),
+      plan: t("plan"),
+      solicito: t("solicito"),
+      diagnosis: t("diagnosis"),
+      footer: t("footer"),
+    };
+
     const merged = await PDFDocument.create();
 
     for (const item of items) {
@@ -80,6 +94,7 @@ export async function GET(request: NextRequest) {
         item,
         diagnostico,
         doctor,
+        labels: pdfLabels,
       });
       const doc = await PDFDocument.load(pdfBytes);
       const pages = await merged.copyPages(doc, doc.getPageIndices());

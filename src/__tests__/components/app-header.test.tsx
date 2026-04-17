@@ -45,7 +45,7 @@ describe('AppHeader', () => {
 
   it('renders the IMI Health logo link to /', () => {
     render(<AppHeader />)
-    const img = screen.getByRole('img', { name: 'IMI Health' })
+    const img = screen.getByRole('img', { name: 'alt.logo' })
     expect(img.closest('a')).toHaveAttribute('href', '/')
   })
 
@@ -77,7 +77,7 @@ describe('AppHeader', () => {
   it('renders the IMI Health logo link with tab query when currentTab is set', () => {
     mockSearchParams.set('tab', 'informes')
     render(<AppHeader />)
-    const img = screen.getByRole('img', { name: 'IMI Health' })
+    const img = screen.getByRole('img', { name: 'alt.logo' })
     expect(img.closest('a')).toHaveAttribute('href', '/?tab=informes')
     mockSearchParams.delete('tab')
   })

@@ -28,7 +28,7 @@ function AppHeaderContent({ doctorName }: AppHeaderProps) {
         >
           <Image
             src={logo}
-            alt="IMI Health"
+            alt={t("alt.logo")}
             width={100}
             priority
             style={{ height: "auto", width: "100px" }}

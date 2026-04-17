@@ -12,6 +12,10 @@ jest.mock('sonner', () => ({
 }))
 
  
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/es/dashboard',
+}))
+
 const mockFeedbackEmail = jest.fn((_args?: unknown) => '<p>html</p>')
 jest.mock('@/lib/email-template', () => ({
   feedbackEmail: (args: unknown) => mockFeedbackEmail(args),
@@ -233,6 +237,7 @@ describe('FeedbackDialog', () => {
         expect.objectContaining({
           senderName: 'Dr. García',
           senderEmail: 'garcia@hospital.com',
+          pageUrl: 'http://localhost/es/dashboard',
         })
       )
     })

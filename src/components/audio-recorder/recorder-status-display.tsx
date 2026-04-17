@@ -18,6 +18,7 @@ interface RecorderStatusDisplayProps {
 
 export function RecorderStatusDisplay({ phase, error, duration, isActive, isPaused, isProcessing }: RecorderStatusDisplayProps) {
   const t = useTranslations("audioRecorder");
+  const tAlt = useTranslations("alt");
   return (
     <div className="relative flex flex-col items-center justify-center transition-all duration-300">
       {isActive && (
@@ -53,7 +54,7 @@ export function RecorderStatusDisplay({ phase, error, duration, isActive, isPaus
           ) : (isActive || isPaused) ? (
             <Image
               src={imiBotListening}
-              alt="IMI Bot Listening"
+              alt={tAlt("botListening")}
               width={192}
               height={192}
               className="size-48"

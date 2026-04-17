@@ -16,10 +16,13 @@ import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
 import { DashboardTab } from "@/components/tabs/dashboard-tab";
 import { TabContentSkeleton } from "@/components/tab-content-skeleton";
 
-export const metadata: Metadata = {
-  title: "IMI Health",
-  description: "AI-powered medical consultation reports",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("home"),
+    description: t("homeDescription"),
+  };
+}
 
 export async function PatientsTabServer({ userId }: { userId: string }) {
   const supabase = await createClient();

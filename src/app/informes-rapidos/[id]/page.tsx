@@ -14,10 +14,13 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export const metadata: Metadata = {
-  title: "Informe Rápido | IMI Health",
-  description: "Resultado del informe rápido generado",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("informeRapido"),
+    description: tMeta("informeRapidoDescription"),
+  };
+}
 
 export default async function InformeRapidoPage({ params }: Props) {
   const { id } = await params;

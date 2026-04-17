@@ -41,7 +41,7 @@ describe('WelcomeScreen', () => {
   it('renders the IMI Health image', () => {
     const onDone = jest.fn()
     render(<WelcomeScreen userName="Test" onDone={onDone} />)
-    const img = screen.getByRole('img', { name: 'IMI Health' })
+    const img = screen.getByRole('img', { name: 'Bienvenido a IMI Health' })
     expect(img).toBeInTheDocument()
     expect(img).toHaveAttribute('data-src')
   })

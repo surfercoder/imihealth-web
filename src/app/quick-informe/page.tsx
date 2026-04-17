@@ -10,10 +10,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Informe Rápido | IMI Health",
-  description: "Crear un informe rápido sin guardar en base de datos",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("quickInforme"),
+    description: tMeta("quickInformeDescription"),
+  };
+}
 
 export default async function QuickInformePage() {
   const supabase = await createClient();

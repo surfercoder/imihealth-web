@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { drawDoctorBlock, drawLogoHeader, GeneratePedidoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generatePedidoPDF({
-  patientName, obraSocial, nroAfiliado, plan, date, item, diagnostico, doctor,
+  patientName, obraSocial, nroAfiliado, plan, date, item, diagnostico, doctor, labels,
 }: GeneratePedidoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -37,7 +37,7 @@ export async function generatePedidoPDF({
     page,
     pageWidth,
     pageHeight,
-    subtitle: "Pedido Medico",
+    subtitle: labels.subtitle,
     date,
     font: helvetica,
     margin,
@@ -60,33 +60,32 @@ export async function generatePedidoPDF({
     borderWidth: 1,
   });
 
-  drawText("DATOS DEL PACIENTE", margin + 12, y - 14, helveticaBold, 8, mutedText);
+  drawText(labels.patientData, margin + 12, y - 14, helveticaBold, 8, mutedText);
   drawText(patientName, margin + 12, y - 27, helveticaBold, 13, darkText);
 
   let infoY = y - 39;
   if (obraSocial) {
-    const osClean = sanitizeForPdf(`Obra Social: ${obraSocial}`);
+    const osClean = sanitizeForPdf(labels.obraSocial.replace("{value}", obraSocial));
     drawText(osClean, margin + 12, infoY, helvetica, 9, mutedText);
     if (nroAfiliado) {
-      const nroClean = sanitizeForPdf(`- Nro. Afiliado: ${nroAfiliado}`);
+      const nroClean = sanitizeForPdf(labels.nroAfiliadoInline.replace("{value}", nroAfiliado));
       const osWidth = helvetica.widthOfTextAtSize(osClean, 9);
       drawText(nroClean, margin + 12 + osWidth + 8, infoY, helvetica, 9, mutedText);
     }
     infoY -= 12;
   } else if (nroAfiliado) {
-    const nroClean = sanitizeForPdf(`Nro. Afiliado: ${nroAfiliado}`);
+    const nroClean = sanitizeForPdf(labels.nroAfiliado.replace("{value}", nroAfiliado));
     drawText(nroClean, margin + 12, infoY, helvetica, 9, mutedText);
     infoY -= 12;
   }
   if (plan) {
-    const planClean = sanitizeForPdf(`Plan: ${plan}`);
+    const planClean = sanitizeForPdf(labels.plan.replace("{value}", plan));
     drawText(planClean, margin + 12, infoY, helvetica, 9, mutedText);
   }
 
   y -= boxHeight + 20;
 
-  // "Solicito:" label
-  drawText("Solicito:", margin, y, helveticaBold, 12, darkText);
+  drawText(labels.solicito, margin, y, helveticaBold, 12, darkText);
   y -= 22;
 
   // Item content
@@ -101,7 +100,7 @@ export async function generatePedidoPDF({
   if (diagnostico) {
     y -= 10;
 
-    drawText("Diagnostico:", margin, y, helveticaBold, 12, darkText);
+    drawText(labels.diagnosis, margin, y, helveticaBold, 12, darkText);
     y -= 22;
 
     const diagClean = sanitizeForPdf(diagnostico);
@@ -124,7 +123,7 @@ export async function generatePedidoPDF({
 
   y -= 16;
   drawText(
-    "Este pedido fue emitido por el/la profesional firmante.",
+    labels.footer,
     margin,
     y,
     helvetica,

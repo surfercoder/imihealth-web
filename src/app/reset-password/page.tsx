@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 
-export const metadata: Metadata = {
-  title: "Restablecer contraseña | IMI Health",
-  description: "Restablecer contraseña de IMI Health",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("resetPassword"),
+    description: tMeta("resetPasswordDescription"),
+  };
+}
 
 export default async function ResetPasswordPage() {
   const supabase = await createClient();

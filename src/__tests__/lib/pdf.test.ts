@@ -1,11 +1,40 @@
 import { generateInformePDF, generateCertificadoPDF } from '@/lib/pdf'
 
+const informeLabels = {
+  subtitle: 'Informe Medico',
+  patient: 'Paciente:',
+  phone: 'Tel: {phone}',
+  consentTitle: 'Consentimiento informado',
+  consentLine1: 'El/la paciente {patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health',
+  consentLine2: 'y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.',
+  consentDate: 'Fecha de consulta: {date}',
+  footerGenerated: 'Este informe fue generado automaticamente por IMI Health.',
+  footerAdvice: 'Ante cualquier duda, consulte a su medico.',
+}
+
+const certificadoLabels = {
+  subtitle: 'Certificado Medico',
+  patientData: 'DATOS DEL PACIENTE',
+  dni: 'DNI: {dni}',
+  dob: 'Fecha de nacimiento: {dob}',
+  signerFallback: 'el/la profesional firmante',
+  bodyText: 'El/la suscripto/a, {doctorName}, certifica que el/la paciente {patientName} ha sido atendido/a en consulta medica con fecha {date}.',
+  bodyWithMatricula: ', Mat. {matricula}',
+  bodyWithEspecialidad: ', {especialidad}',
+  daysOff1: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
+  daysOffN: 'Por tal motivo, se indica reposo domiciliario por {days} ({days}) dias a partir de la fecha indicada.',
+  diagnosis: 'Diagnostico:',
+  observations: 'Observaciones:',
+  footer: 'Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.',
+}
+
 describe('generateInformePDF', () => {
   const baseOptions = {
     patientName: 'Juan Pérez',
     patientPhone: '+54 9 261 123 4567',
     date: '01 de enero de 2025',
     content: 'Contenido del informe médico.',
+    labels: informeLabels,
   }
 
   it('returns a Uint8Array', async () => {
@@ -207,6 +236,7 @@ describe('generateCertificadoPDF', () => {
   const baseOptions = {
     patientName: 'Juan Pérez',
     date: '15 de enero de 2025',
+    labels: certificadoLabels,
   }
 
   it('returns a valid PDF', async () => {

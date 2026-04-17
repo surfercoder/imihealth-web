@@ -29,10 +29,10 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
-/* v8 ignore next 14 */
+/* v8 ignore next 16 */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
+  const [supabase, tMeta] = await Promise.all([createClient(), getTranslations("metadata")]);
   const { data: patient } = await supabase
     .from("patients")
     .select("name")
@@ -40,8 +40,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .single();
 
   return {
-    title: patient ? `${patient.name} | IMI Health` : "Paciente | IMI Health",
-    description: "Historial de consultas del paciente.",
+    title: patient ? tMeta("patient", { name: patient.name }) : tMeta("patientFallback"),
+    description: tMeta("patientDescription"),
   };
 }
 

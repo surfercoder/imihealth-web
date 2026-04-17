@@ -7,6 +7,7 @@ import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 export async function PublicHeader() {
   const t = await getTranslations("nav");
+  const tAlt = await getTranslations("alt");
 
   return (
     <header className="fixed top-0 left-0 right-0 border-b border-border/60 bg-background/95 backdrop-blur-sm z-50">
@@ -17,7 +18,7 @@ export async function PublicHeader() {
         >
           <Image
             src={logo}
-            alt="IMI Health"
+            alt={tAlt("logo")}
             width={100}
             priority
             className="h-auto w-[72px] sm:w-[100px]"

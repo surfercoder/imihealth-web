@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -20,20 +20,23 @@ const geistMono = Geist_Mono({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  title: "IMI Health",
-  description: "Informes Médicos completos, estandarizados y ordenados, asistidos por Inteligencia Artificial",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    title: "IMI Health",
-    statusBarStyle: "default",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("defaultTitle"),
+    description: t("defaultDescription"),
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: "/icon.png",
+      apple: "/apple-icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      title: "IMI Health",
+      statusBarStyle: "default",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

@@ -31,7 +31,7 @@ describe('RecorderStatusDisplay', () => {
   it('renders paused state with image', () => {
     renderWith('paused', { isPaused: true, duration: 5 })
     expect(screen.getByText('En pausa')).toBeInTheDocument()
-    expect(screen.getByAltText('IMI Bot Listening')).toBeInTheDocument()
+    expect(screen.getByAltText('IMI Bot escuchando')).toBeInTheDocument()
   })
 
   it('renders stopped state', () => {

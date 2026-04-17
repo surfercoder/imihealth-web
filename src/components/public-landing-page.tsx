@@ -26,6 +26,7 @@ const LandingFaq = dynamic(
 export async function PublicLandingPage() {
   const t = await getTranslations("landing");
   const tNav = await getTranslations("nav");
+  const tAlt = await getTranslations("alt");
   const faqItems = buildFaqItems(t);
 
   return (
@@ -34,10 +35,10 @@ export async function PublicLandingPage() {
 
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-5xl">
             <Image
               src={imiBotFront}
-              alt="IMI Bot"
+              alt={tAlt("botFront")}
               width={140}
               height={140}
               className="mx-auto mb-6 drop-shadow-lg "
@@ -63,7 +64,7 @@ export async function PublicLandingPage() {
             <div className="mb-10 flex items-center justify-center gap-4">
               <Image
                 src={imiBotRight}
-                alt="IMI Bot"
+                alt={tAlt("botFront")}
                 width={72}
                 height={72}
                 className="drop-shadow-md "
@@ -93,7 +94,7 @@ export async function PublicLandingPage() {
             </h2>
             <Image
               src={imiBotLeft}
-              alt="IMI Bot"
+              alt={tAlt("botFront")}
               width={72}
               height={72}
               className="drop-shadow-md "

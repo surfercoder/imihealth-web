@@ -7,14 +7,18 @@ import { PublicHeader } from "@/components/public-header";
 import { ArrowLeft, FileText, Brain, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "IMI Manifest - IMI Health",
-  description: "The IMI Manifest - Our vision for intelligent medical documentation",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("manifest"),
+    description: tMeta("manifestDescription"),
+  };
+}
 
 export default async function ManifestPage() {
   const t = await getTranslations("manifest");
   const tNav = await getTranslations("common");
+  const tLanding = await getTranslations("landing");
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
@@ -179,14 +183,14 @@ export default async function ManifestPage() {
       <footer className="border-t border-border/60">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <p className="text-sm text-foreground/60">
-            © {new Date().getFullYear()} IMI Health. All rights reserved.
+            {tLanding("copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
-              Sign in
+              {tLanding("signIn")}
             </Link>
             <Link href="/signup" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
-              Sign up
+              {tLanding("signUp")}
             </Link>
           </div>
         </div>

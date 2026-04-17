@@ -10,12 +10,41 @@ export interface DoctorSignatureInfo {
   firmaDigital?: string | null;
 }
 
+export interface InformePDFLabels {
+  subtitle: string;
+  patient: string;
+  phone: string;
+  consentTitle: string;
+  consentLine1: string;
+  consentLine2: string;
+  consentDate: string;
+  footerGenerated: string;
+  footerAdvice: string;
+}
+
 export interface GenerateInformePDFOptions {
   patientName: string;
   patientPhone: string | null;
   date: string;
   content: string;
   doctor?: DoctorSignatureInfo | null;
+  labels: InformePDFLabels;
+}
+
+export interface CertificadoPDFLabels {
+  subtitle: string;
+  patientData: string;
+  dni: string;
+  dob: string;
+  signerFallback: string;
+  bodyWithMatricula: string;
+  bodyWithEspecialidad: string;
+  bodyText: string;
+  daysOff1: string;
+  daysOffN: string;
+  diagnosis: string;
+  observations: string;
+  footer: string;
 }
 
 export interface GenerateCertificadoPDFOptions {
@@ -27,6 +56,19 @@ export interface GenerateCertificadoPDFOptions {
   daysOff?: number | null;
   observations?: string | null;
   doctor?: DoctorSignatureInfo | null;
+  labels: CertificadoPDFLabels;
+}
+
+export interface PedidoPDFLabels {
+  subtitle: string;
+  patientData: string;
+  obraSocial: string;
+  nroAfiliado: string;
+  nroAfiliadoInline: string;
+  plan: string;
+  solicito: string;
+  diagnosis: string;
+  footer: string;
 }
 
 export interface GeneratePedidoPDFOptions {
@@ -38,6 +80,7 @@ export interface GeneratePedidoPDFOptions {
   item: string;
   diagnostico?: string | null;
   doctor?: DoctorSignatureInfo | null;
+  labels: PedidoPDFLabels;
 }
 
 export function sanitizeForPdf(text: string | null | undefined): string {

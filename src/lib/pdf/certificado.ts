@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { drawDoctorBlock, drawLogoHeader, GenerateCertificadoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generateCertificadoPDF({
-  patientName, patientDni, patientDob, date, diagnosis, daysOff, observations, doctor,
+  patientName, patientDni, patientDob, date, diagnosis, daysOff, observations, doctor, labels,
 }: GenerateCertificadoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -36,7 +36,7 @@ export async function generateCertificadoPDF({
     page,
     pageWidth,
     pageHeight,
-    subtitle: "Certificado Medico",
+    subtitle: labels.subtitle,
     date,
     font: helvetica,
     margin,
@@ -56,27 +56,32 @@ export async function generateCertificadoPDF({
     borderWidth: 1,
   });
 
-  drawText("DATOS DEL PACIENTE", margin + 12, y - 14, helveticaBold, 8, mutedText);
+  drawText(labels.patientData, margin + 12, y - 14, helveticaBold, 8, mutedText);
   drawText(patientName, margin + 12, y - 27, helveticaBold, 13, darkText);
   let patientInfoY = y - 39;
   if (patientDni) {
-    const dniClean = sanitizeForPdf(`DNI: ${patientDni}`);
+    const dniClean = sanitizeForPdf(labels.dni.replace("{dni}", patientDni));
     drawText(dniClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
     patientInfoY -= 12;
   }
   if (patientDob) {
-    const dobClean = sanitizeForPdf(`Fecha de nacimiento: ${patientDob}`);
+    const dobClean = sanitizeForPdf(labels.dob.replace("{dob}", patientDob));
     drawText(dobClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
   }
 
   y -= 84;
 
   const bodyText = (() => {
-    const doctorName = doctor?.name ? sanitizeForPdf(doctor.name) : "el/la profesional firmante";
-    let text = `El/la suscripto/a, ${doctorName}`;
-    if (doctor?.matricula) text += `, Mat. ${sanitizeForPdf(doctor.matricula)}`;
-    if (doctor?.especialidad) text += `, ${sanitizeForPdf(doctor.especialidad)}`;
-    text += `, certifica que el/la paciente ${patientName} ha sido atendido/a en consulta medica con fecha ${date}.`;
+    const doctorName = doctor?.name ? sanitizeForPdf(doctor.name) : labels.signerFallback;
+    let text = labels.bodyText.replace("{doctorName}", doctorName).replace("{patientName}", patientName).replace("{date}", date);
+    // Insert credentials before the comma that precedes "certifica"
+    let credentials = "";
+    if (doctor?.matricula) credentials += labels.bodyWithMatricula.replace("{matricula}", sanitizeForPdf(doctor.matricula));
+    if (doctor?.especialidad) credentials += labels.bodyWithEspecialidad.replace("{especialidad}", sanitizeForPdf(doctor.especialidad));
+    if (credentials) {
+      // Insert credentials after doctorName in the body text
+      text = text.replace(doctorName, doctorName + credentials);
+    }
     return text;
   })();
 
@@ -90,8 +95,8 @@ export async function generateCertificadoPDF({
 
   if (daysOff && daysOff > 0) {
     const daysText = daysOff === 1
-      ? sanitizeForPdf(`Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.`)
-      : sanitizeForPdf(`Por tal motivo, se indica reposo domiciliario por ${daysOff} (${daysOff}) dias a partir de la fecha indicada.`);
+      ? sanitizeForPdf(labels.daysOff1)
+      : sanitizeForPdf(labels.daysOffN.replace(/\{days\}/g, String(daysOff)));
 
     const daysLines = wrapText(daysText, contentWidth - 24, helvetica, 10);
     const daysBoxHeight = 16 + daysLines.length * 14 + 14;
@@ -117,7 +122,7 @@ export async function generateCertificadoPDF({
   if (diagnosis) {
     y -= 4;
     const diagClean = sanitizeForPdf(diagnosis.replace(/[^\x00-\xFF]/g, " "));
-    drawText("Diagnostico:", margin, y, helveticaBold, 10, darkText);
+    drawText(labels.diagnosis, margin, y, helveticaBold, 10, darkText);
     y -= 15;
     const diagLines = wrapText(diagClean, contentWidth, helvetica, 10);
     for (const line of diagLines) {
@@ -129,7 +134,7 @@ export async function generateCertificadoPDF({
 
   if (observations) {
     const obsClean = sanitizeForPdf(observations.replace(/[^\x00-\xFF]/g, " "));
-    drawText("Observaciones:", margin, y, helveticaBold, 10, darkText);
+    drawText(labels.observations, margin, y, helveticaBold, 10, darkText);
     y -= 15;
     const obsLines = wrapText(obsClean, contentWidth, helvetica, 10);
     for (const line of obsLines) {
@@ -151,7 +156,7 @@ export async function generateCertificadoPDF({
 
   y -= 16;
   drawText(
-    "Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.",
+    labels.footer,
     margin,
     y,
     helvetica,

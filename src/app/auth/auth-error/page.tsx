@@ -5,9 +5,12 @@ import { XCircle } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Authentication Error | IMI Health",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tMeta = await getTranslations("metadata");
+  return {
+    title: tMeta("authError"),
+  };
+}
 
 export default async function AuthErrorPage() {
   const t = await getTranslations("authError");

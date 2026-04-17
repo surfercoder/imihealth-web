@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
@@ -40,22 +41,35 @@ interface FeedbackDialogProps {
 
 export function FeedbackDialog({ doctorName, doctorEmail }: FeedbackDialogProps) {
   const t = useTranslations("feedbackDialog");
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+  const tEmail = useTranslations("feedbackEmailLabels");
 
   async function handleSubmit() {
     if (!reason || !message.trim()) return;
 
     setSending(true);
     const reasonLabel = t(`reasons.${reason}` as Parameters<typeof t>[0]);
-    const plainText = `From: ${doctorName ?? "Unknown"} (${doctorEmail ?? "No email"})\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`;
+    const senderName = doctorName ?? "Unknown";
+    const pageUrl = `${window.location.origin}${pathname}`;
+    const plainText = `From: ${senderName} (${doctorEmail ?? "No email"})\n\nPage: ${pageUrl}\n\nReason: ${reasonLabel}\n\nMessage:\n${message.trim()}`;
     const html = feedbackEmail({
-      senderName: doctorName ?? "Unknown",
+      senderName,
       senderEmail: doctorEmail ?? "No email",
       reason: reasonLabel,
       message: message.trim(),
+      pageUrl,
+      labels: {
+        subtitle: tEmail("subtitle"),
+        from: tEmail("from"),
+        page: tEmail("page"),
+        reason: tEmail("reason"),
+        preheader: tEmail("preheader").replace("{reason}", reasonLabel).replace("{senderName}", senderName),
+      },
     });
     const res = await fetch("/api/send-email", {
       method: "POST",

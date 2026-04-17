@@ -1,4 +1,5 @@
 import { generateInformePDF, generateCertificadoPDF } from "@/lib/pdf";
+import type { InformePDFLabels, CertificadoPDFLabels } from "@/lib/pdf/helpers";
 import { generateInformeImage, generateCertificadoImage } from "@/lib/report-image";
 import {
   CertOptions,
@@ -13,6 +14,7 @@ interface InformeMediaInput {
   dateStr: string;
   content: string;
   doctorInfo: DoctorInfo | null;
+  labels: InformePDFLabels;
 }
 
 interface CertificadoMediaInput {
@@ -21,6 +23,7 @@ interface CertificadoMediaInput {
   dateStr: string;
   doctorInfo: DoctorInfo | null;
   certOptions: CertOptions | undefined;
+  labels: CertificadoPDFLabels;
 }
 
 export interface GeneratedMedia {
@@ -29,7 +32,7 @@ export interface GeneratedMedia {
 }
 
 export async function generateInformeMedia(input: InformeMediaInput): Promise<GeneratedMedia> {
-  const { patient, patientNameFallback, dateStr, content, doctorInfo } = input;
+  const { patient, patientNameFallback, dateStr, content, doctorInfo, labels } = input;
 
   const pdfBytes = await generateInformePDF({
     patientName: patient?.name ?? patientNameFallback ?? "",
@@ -37,6 +40,7 @@ export async function generateInformeMedia(input: InformeMediaInput): Promise<Ge
     date: dateStr,
     content,
     doctor: doctorInfo,
+    labels,
   });
 
   const pngBuffer = await generateInformeImage({
@@ -51,7 +55,7 @@ export async function generateInformeMedia(input: InformeMediaInput): Promise<Ge
 }
 
 export async function generateCertificadoMedia(input: CertificadoMediaInput): Promise<GeneratedMedia> {
-  const { patient, patientNameFallback, dateStr, doctorInfo, certOptions } = input;
+  const { patient, patientNameFallback, dateStr, doctorInfo, certOptions, labels } = input;
 
   const patientDob = formatPatientDob(patient?.dob);
 
@@ -64,6 +68,7 @@ export async function generateCertificadoMedia(input: CertificadoMediaInput): Pr
     daysOff: certOptions?.daysOff ?? null,
     observations: certOptions?.observations ?? null,
     doctor: doctorInfo,
+    labels,
   });
 
   const pngBuffer = await generateCertificadoImage({

@@ -15,6 +15,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
   const t = useTranslations("welcomeScreen");
+  const tAlt = useTranslations("alt");
   const messageIndex = randomMessageIndex;
 
   const displayName = userName || t("defaultName");
@@ -64,7 +65,7 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
         <div className="ws-image flex items-center justify-center">
           <Image
             src={imiBotWelcome}
-            alt="IMI Health"
+            alt={tAlt("botWelcome")}
             priority
             style={{ maxWidth: "min(90vw, 500px)", height: "auto" }}
           />

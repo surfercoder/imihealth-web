@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
 import { extractDiagnosticoPresuntivo } from "./utils";
+import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,6 +53,8 @@ export async function GET(request: NextRequest) {
       informe.informe_doctor as string | null
     );
 
+    const t = await getTranslations("pdfPedido");
+
     const pdfBytes = await generatePedidoPDF({
       patientName: patient?.name ?? "Paciente",
       obraSocial: patient?.obra_social ?? null,
@@ -72,6 +75,17 @@ export async function GET(request: NextRequest) {
             firmaDigital: doctorData.firma_digital,
           }
         : null,
+      labels: {
+        subtitle: t("subtitle"),
+        patientData: t("patientData"),
+        obraSocial: t("obraSocial"),
+        nroAfiliado: t("nroAfiliado"),
+        nroAfiliadoInline: t("nroAfiliadoInline"),
+        plan: t("plan"),
+        solicito: t("solicito"),
+        diagnosis: t("diagnosis"),
+        footer: t("footer"),
+      },
     });
 
     return new NextResponse(Buffer.from(pdfBytes), {
