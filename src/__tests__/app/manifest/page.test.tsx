@@ -23,7 +23,15 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
-import ManifestPage from '@/app/manifest/page'
+import ManifestPage, { generateMetadata } from '@/app/manifest/page'
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('ManifestPage', () => {
   beforeEach(() => jest.clearAllMocks())

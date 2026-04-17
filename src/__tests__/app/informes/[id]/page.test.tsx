@@ -61,7 +61,7 @@ jest.mock('@/components/transcript-monologue', () => ({
   TranscriptMonologue: ({ transcript }: { transcript: string }) => <div data-testid="transcript-monologue">{transcript}</div>,
 }))
 
-import InformePage from '@/app/informes/[id]/page'
+import InformePage, { generateMetadata } from '@/app/informes/[id]/page'
 
 const doctorData = { name: 'Dr. Test', email: 'dr@test.com', phone: '+5491112345678' }
 
@@ -115,6 +115,14 @@ function setupMocks(informeData: unknown) {
     return informeChain
   })
 }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('InformePage', () => {
   beforeEach(() => {

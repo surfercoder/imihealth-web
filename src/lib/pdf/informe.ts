@@ -76,7 +76,7 @@ export async function generateInformePDF({
 
   drawText(labels.patient, margin + 12, y - 18, helveticaBold, 10, rgb(0.4, 0.4, 0.5));
   drawText(patientName, margin + 12, y - 32, helveticaBold, 13, rgb(0.08, 0.08, 0.12));
-  drawText(labels.phone.replace("{phone}", patientPhone ?? ""), margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
+  drawText(labels.phone.replace("{phone}", patientPhone), margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
 
   y -= 70;
 

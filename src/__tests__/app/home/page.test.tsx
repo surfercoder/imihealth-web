@@ -100,9 +100,17 @@ jest.mock('@/components/public-landing-page', () => {
   }
 })
 
-import HomePage from '@/app/home/page'
+import HomePage, { generateMetadata } from '@/app/home/page'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('HomePage (landing)', () => {
   beforeEach(() => jest.clearAllMocks())

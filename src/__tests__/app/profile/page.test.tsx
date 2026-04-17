@@ -46,7 +46,7 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
-import ProfilePage from '@/app/profile/page'
+import ProfilePage, { generateMetadata } from '@/app/profile/page'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -71,6 +71,14 @@ function makeChain(resolvedValue: unknown) {
   chain.single.mockResolvedValue(resolvedValue)
   return chain
 }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('ProfilePage', () => {
   beforeEach(() => jest.clearAllMocks())

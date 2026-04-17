@@ -18,7 +18,15 @@ jest.mock('@/components/public-header', () => ({
   PublicHeader: () => <div data-testid="public-header" />,
 }))
 
-import SignupPage from '@/app/signup/page'
+import SignupPage, { generateMetadata } from '@/app/signup/page'
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('SignupPage', () => {
   beforeEach(() => jest.clearAllMocks())

@@ -100,7 +100,7 @@ jest.mock('@/components/tab-content-skeleton', () => ({
   TabContentSkeleton: () => <div data-testid="tab-skeleton" />,
 }))
 
-import HomePage, { PatientsTabServer, DashboardTabServer } from '@/app/page'
+import HomePage, { PatientsTabServer, DashboardTabServer, generateMetadata } from '@/app/page'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -178,6 +178,14 @@ function setupMocks({
     return makeChain({ data: null })
   })
 }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('HomePage', () => {
   beforeEach(() => jest.clearAllMocks())

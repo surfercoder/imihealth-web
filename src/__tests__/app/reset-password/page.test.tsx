@@ -15,7 +15,15 @@ jest.mock('@/components/app-header', () => ({
   AppHeader: () => <div data-testid="app-header" />,
 }))
 
-import ResetPasswordPage from '@/app/reset-password/page'
+import ResetPasswordPage, { generateMetadata } from '@/app/reset-password/page'
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('ResetPasswordPage', () => {
   beforeEach(() => jest.clearAllMocks())

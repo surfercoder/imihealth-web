@@ -23,7 +23,14 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
-import AuthErrorPage from '@/app/auth/auth-error/page'
+import AuthErrorPage, { generateMetadata } from '@/app/auth/auth-error/page'
+
+describe('generateMetadata', () => {
+  it('returns title', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+  })
+})
 
 describe('AuthErrorPage', () => {
   it('renders the auth error heading', async () => {

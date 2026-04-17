@@ -31,8 +31,7 @@ interface Props {
 
 /* v8 ignore next 16 */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const [supabase, tMeta] = await Promise.all([createClient(), getTranslations("metadata")]);
+  const [{ id }, supabase, tMeta] = await Promise.all([params, createClient(), getTranslations("metadata")]);
   const { data: patient } = await supabase
     .from("patients")
     .select("name")

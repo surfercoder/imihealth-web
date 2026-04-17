@@ -47,7 +47,7 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
-import GrabarPage from '@/app/informes/[id]/grabar/page'
+import GrabarPage, { generateMetadata } from '@/app/informes/[id]/grabar/page'
 
 function makeChain(resolvedValue: unknown) {
   const chain = {
@@ -85,6 +85,14 @@ const recordingInforme = {
     email: 'juan@email.com',
   },
 }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('GrabarPage', () => {
   beforeEach(() => jest.clearAllMocks())

@@ -16,9 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ManifestPage() {
-  const t = await getTranslations("manifest");
-  const tNav = await getTranslations("common");
-  const tLanding = await getTranslations("landing");
+  const [t, tNav, tLanding] = await Promise.all([getTranslations("manifest"), getTranslations("common"), getTranslations("landing")]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">

@@ -8,6 +8,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,7 @@ export default async function RootLayout({
           </SentryErrorBoundary>
           <Toaster position="bottom-right" richColors={false} />
           <SpeedInsights />
+          <Analytics />
         </NextIntlClientProvider>
       </body>
     </html>

@@ -45,7 +45,7 @@ jest.mock('sonner', () => ({
   toast: { success: jest.fn(), error: jest.fn() },
 }))
 
-import InformeRapidoPage from '@/app/informes-rapidos/[id]/page'
+import InformeRapidoPage, { generateMetadata } from '@/app/informes-rapidos/[id]/page'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 const doctorData = { name: 'Dr. Test' }
@@ -74,6 +74,14 @@ function setupMocks(informeData: unknown) {
     return informeChain
   })
 }
+
+describe('generateMetadata', () => {
+  it('returns title and description', async () => {
+    const metadata = await generateMetadata()
+    expect(metadata.title).toBeTruthy()
+    expect(metadata.description).toBeTruthy()
+  })
+})
 
 describe('InformeRapidoPage', () => {
   beforeEach(() => jest.clearAllMocks())

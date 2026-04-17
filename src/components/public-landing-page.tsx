@@ -24,9 +24,7 @@ const LandingFaq = dynamic(
 );
 
 export async function PublicLandingPage() {
-  const t = await getTranslations("landing");
-  const tNav = await getTranslations("nav");
-  const tAlt = await getTranslations("alt");
+  const [t, tNav, tAlt] = await Promise.all([getTranslations("landing"), getTranslations("nav"), getTranslations("alt")]);
   const faqItems = buildFaqItems(t);
 
   return (
