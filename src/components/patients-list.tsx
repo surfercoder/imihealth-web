@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { PatientWithStats } from "@/actions/patients";
 import { useTranslations, useLocale } from "next-intl";
 import { DeletePatientButton } from "@/components/delete-patient-button";
+import { EditPatientButton } from "@/components/edit-patient-button";
 import { useCurrentTab } from "@/hooks/use-current-tab";
 
 interface PatientsListProps {
@@ -104,7 +105,8 @@ function PatientsListContent({ patients, isLoading }: PatientsListProps) {
               </div>
             </div>
 
-            <div className="relative z-20 pointer-events-auto">
+            <div className="relative z-20 pointer-events-auto flex items-center gap-1">
+              <EditPatientButton patient={patient} />
               <DeletePatientButton patientId={patient.id} patientName={patient.name} />
             </div>
           </div>

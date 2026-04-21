@@ -112,7 +112,7 @@ export default async function InformeRapidoPage({ params }: Props) {
         )}
 
         {informe.status === "completed" && informe.informe_doctor && (
-          <QuickInformeResult informe={informe.informe_doctor} />
+          <QuickInformeResult informeId={informe.id} informe={informe.informe_doctor} />
         )}
       </main>
 

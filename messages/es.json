@@ -372,6 +372,17 @@
     "successTitle": "Paciente eliminado",
     "successMessage": "El paciente {name} fue eliminado correctamente."
   },
+  "editPatientButton": {
+    "srLabel": "Editar paciente",
+    "title": "Editar paciente",
+    "description": "Modificá los datos del paciente.",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "errorTitle": "Error al actualizar el paciente",
+    "successTitle": "Paciente actualizado",
+    "successMessage": "Los datos de {name} fueron actualizados correctamente."
+  },
   "deleteInformeButton": {
     "srLabel": "Eliminar informe",
     "confirmTitle": "¿Eliminar informe?",

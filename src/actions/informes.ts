@@ -5,6 +5,7 @@ export { deleteInforme } from "./informes/delete";
 export { getInformes, getInforme } from "./informes/queries";
 export {
   updateInformeDoctorOnly,
+  updateQuickInformeDoctorOnly,
   updateInformePacienteWithPdf,
   updateInformeReports,
 } from "./informes/updates";

@@ -19,6 +19,10 @@ jest.mock('@/components/delete-patient-button', () => ({
   DeletePatientButton: () => <button>Delete</button>,
 }))
 
+jest.mock('@/components/edit-patient-button', () => ({
+  EditPatientButton: () => <button>Edit</button>,
+}))
+
 import { PatientsList } from '@/components/patients-list'
 import { useLocale } from 'next-intl'
 import type { PatientWithStats } from '@/actions/patients'

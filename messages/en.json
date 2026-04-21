@@ -372,6 +372,17 @@
     "successTitle": "Patient deleted",
     "successMessage": "The patient {name} was successfully deleted."
   },
+  "editPatientButton": {
+    "srLabel": "Edit patient",
+    "title": "Edit patient",
+    "description": "Modify the patient's information.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "errorTitle": "Error updating patient",
+    "successTitle": "Patient updated",
+    "successMessage": "The data for {name} was updated successfully."
+  },
   "deleteInformeButton": {
     "srLabel": "Delete report",
     "confirmTitle": "Delete report?",

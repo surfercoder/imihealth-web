@@ -30,7 +30,7 @@ jest.mock('@/components/app-footer', () => ({
 }))
 
 jest.mock('@/components/quick-informe-result', () => ({
-  QuickInformeResult: ({ informe }: { informe: string }) => <div data-testid="quick-result">{informe}</div>,
+  QuickInformeResult: ({ informeId, informe }: { informeId: string; informe: string }) => <div data-testid="quick-result" data-informe-id={informeId}>{informe}</div>,
 }))
 
 jest.mock('next/link', () => {

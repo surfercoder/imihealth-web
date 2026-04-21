@@ -129,14 +129,14 @@ export function useAudioRecording({
       Sentry.captureException(err, {
         tags: { flow: "microphone-access" },
       });
-      const msg =
-        err instanceof Error
+      const isPermissionDenied =
+        err instanceof DOMException && err.name === "NotAllowedError";
+      const msg = isPermissionDenied
+        ? t("errorMicDenied")
+        : err instanceof Error
           ? err.message
           : t("errorMicAccess");
-      dispatch({
-        type: "SET_ERROR",
-        error: msg.includes("Permission") ? t("errorMicDenied") : msg,
-      });
+      dispatch({ type: "SET_ERROR", error: msg });
       dispatch({ type: "SET_PHASE", phase: "error" });
     }
   }, [startTimer, setupSpeechRecognition, requestWakeLock, t]);

@@ -524,7 +524,62 @@ describe('updatePatient', () => {
     expect(updateChain.update).toHaveBeenCalledWith(
       expect.objectContaining({
         email: null,
-        dob: undefined,
+        dob: null,
+      })
+    )
+  })
+
+  it('passes obraSocial, nroAfiliado, and plan when provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const updateChain = {
+      update: jest.fn(),
+      eq: jest.fn(),
+    }
+    updateChain.update.mockReturnValue(updateChain)
+    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
+    mockFrom.mockReturnValue(updateChain)
+
+    const fd = new FormData()
+    fd.set('name', 'Juan')
+    fd.set('dni', '12345678')
+    fd.set('obraSocial', ' OSDE ')
+    fd.set('nroAfiliado', ' 999 ')
+    fd.set('plan', ' 410 ')
+    const result = await updatePatient('p-1', fd)
+    expect(result).toEqual({})
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        obra_social: 'OSDE',
+        nro_afiliado: '999',
+        plan: '410',
+      })
+    )
+  })
+
+  it('sets all optional fields to null when not provided in FormData', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const updateChain = {
+      update: jest.fn(),
+      eq: jest.fn(),
+    }
+    updateChain.update.mockReturnValue(updateChain)
+    updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({ error: null })
+    mockFrom.mockReturnValue(updateChain)
+
+    const fd = new FormData()
+    fd.set('name', 'Juan')
+    fd.set('dni', '12345678')
+    // Deliberately NOT setting dob, phone, email, obraSocial, nroAfiliado, plan
+    const result = await updatePatient('p-1', fd)
+    expect(result).toEqual({})
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dob: null,
+        phone: null,
+        email: null,
+        obra_social: null,
+        nro_afiliado: null,
+        plan: null,
       })
     )
   })

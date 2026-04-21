@@ -314,7 +314,7 @@ describe('AudioRecorder — error state from mic permission', () => {
   })
 
   it('shows error when mic permission is denied', async () => {
-    mockGetUserMedia.mockRejectedValue(new Error('Permission denied'))
+    mockGetUserMedia.mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'))
     const user = userEvent.setup()
     render(<AudioRecorder {...defaultProps} />)
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
