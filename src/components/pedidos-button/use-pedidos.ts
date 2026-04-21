@@ -15,24 +15,43 @@ interface UsePedidosArgs {
 
 function extractEstudiosSolicitados(text: string): string {
   const lines = text.split("\n");
-  let inSection = false;
+  let inPlan = false;
+  let inEstudios = false;
   const items: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (/estudios?\s+solicitados?/i.test(trimmed) || /solicitud\s+de\s+estudios/i.test(trimmed)) {
-      inSection = true;
+
+    // Detect start of Plan section (e.g. "**P - PLAN**", "P - PLAN", "Plan:")
+    if (/^\*{0,2}P\s*[-–—]\s*PLAN\*{0,2}:?$/i.test(trimmed) || /^\*{0,2}PLAN\*{0,2}:?$/i.test(trimmed)) {
+      inPlan = true;
+      inEstudios = false;
       continue;
     }
-    if (inSection) {
+
+    if (!inPlan) continue;
+
+    // Detect next top-level section after Plan (starts with a letter or **letter, not a list item)
+    // e.g. "**S - SUBJETIVO**", "## Sección", numbered sections like "7."
+    if (/^\*{2}[A-Z]/.test(trimmed) && !(/estudios/i.test(trimmed))) {
+      // Another top-level bold section header that's not estudios → end of Plan
+      break;
+    }
+
+    // Within Plan, match any header containing "estudios"
+    if (/estudios/i.test(trimmed)) {
+      inEstudios = true;
+      continue;
+    }
+
+    if (inEstudios) {
       if (trimmed.startsWith("- ")) {
         items.push(trimmed);
       } else if (trimmed.startsWith("**") || (trimmed.endsWith(":") && !trimmed.startsWith("- "))) {
-        // New section header → stop
-        if (items.length > 0) break;
+        // New subsection header within Plan → leave estudios but keep scanning Plan
+        inEstudios = false;
       } else if (trimmed === "") {
-        // Empty line after items → stop
-        if (items.length > 0) break;
+        if (items.length > 0) inEstudios = false;
       }
     }
   }
