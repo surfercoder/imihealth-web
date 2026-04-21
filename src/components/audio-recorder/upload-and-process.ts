@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import React from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import type { RecorderAction } from "./recorder-state";
 
 export async function uploadAndProcess(
@@ -70,29 +71,44 @@ export async function uploadAndProcess(
     return;
   }
 
-  // Classic report flow - send audio via API route (FormData) to avoid
-  // React Flight serialisation limits on large payloads.
+  // Classic report flow — upload audio to Supabase Storage first, then send
+  // only metadata to the API route.  This avoids Vercel's 4.5 MB serverless
+  // body-size limit that previously caused 413 errors on longer recordings.
   dispatch({ type: "SET_PROGRESS", progress: 30 });
   dispatch({ type: "SET_PHASE", phase: "transcribing" });
 
-  const formData = new FormData();
-  formData.append("informeId", informeId);
-  formData.append("browserTranscript", transcriptToUse);
-  formData.append("language", locale);
-  if (recordingDuration != null) {
-    formData.append("recordingDuration", String(recordingDuration));
-  }
-  /* v8 ignore next */
-  formData.append("audio", blob, `recording.${mimeType.split("/")[1]?.split(";")[0] || "webm"}`);
-
-  dispatch({ type: "SET_PROGRESS", progress: 50 });
-
   let result: { success?: boolean; insufficientContent?: boolean; transcriptionFailed?: boolean; error?: string };
   try {
+    // 1. Upload audio to Supabase Storage
+    const supabase = createClient();
+    /* v8 ignore next */
+    const ext = mimeType.split("/")[1]?.split(";")[0] || "webm";
+    const storagePath = `${informeId}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("audio-recordings")
+      .upload(storagePath, blob, { contentType: mimeType, upsert: true });
+
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+
+    dispatch({ type: "SET_PROGRESS", progress: 50 });
+
+    // 2. Send only metadata + storage path to the API route (tiny payload)
     const response = await fetch("/api/process-informe", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        informeId,
+        browserTranscript: transcriptToUse,
+        language: locale,
+        audioPath: storagePath,
+        ...(recordingDuration != null && { recordingDuration }),
+      }),
     });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Error del servidor (${response.status})`);
+    }
     result = await response.json();
   } catch (fetchErr) {
     Sentry.captureException(fetchErr, {

@@ -19,13 +19,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const formData = await request.formData();
-  const informeId = formData.get("informeId") as string;
-  const browserTranscript = (formData.get("browserTranscript") as string) || "";
-  const language = (formData.get("language") as string) || "es";
-  const audioFile = formData.get("audio") as File | null;
-  const recordingDurationRaw = formData.get("recordingDuration") as string | null;
-  const recordingDuration = recordingDurationRaw ? parseInt(recordingDurationRaw, 10) : null;
+  const body = await request.json();
+  const informeId = body.informeId as string;
+  const browserTranscript = (body.browserTranscript as string) || "";
+  const language = (body.language as string) || "es";
+  const audioPath = (body.audioPath as string) || null;
+  const recordingDuration = body.recordingDuration != null ? Number(body.recordingDuration) : null;
 
   if (!informeId) {
     return NextResponse.json({ error: "Falta el ID del informe" }, { status: 400 });
@@ -38,8 +37,23 @@ export async function POST(request: NextRequest) {
     .eq("doctor_id", user.id);
 
   try {
+    // Download audio from Supabase Storage so we can pass a Buffer to AssemblyAI
+    let audioBuffer: Buffer | null = null;
+    if (audioPath) {
+      const { data: audioData, error: downloadError } = await supabase.storage
+        .from("audio-recordings")
+        .download(audioPath);
+      if (downloadError) {
+        console.warn(`[process-informe] Storage download failed: ${downloadError.message}`);
+      } else if (audioData) {
+        audioBuffer = Buffer.from(await audioData.arrayBuffer());
+      }
+      // Clean up the storage file (fire-and-forget)
+      supabase.storage.from("audio-recordings").remove([audioPath]).catch(() => {});
+    }
+
     const { transcript, assemblyAISucceeded } = await resolveTranscript(
-      audioFile,
+      audioBuffer,
       browserTranscript,
       language,
     );

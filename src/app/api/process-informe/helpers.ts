@@ -19,16 +19,19 @@ interface TranscriptionResult {
  * exposing `.size` and `.arrayBuffer()` (both `File` and `Blob` qualify).
  */
 export async function resolveTranscript(
-  audioFile: Blob | File | null,
+  audioSource: Blob | File | Buffer | null,
   browserTranscript: string,
   language: string,
 ): Promise<TranscriptionResult> {
   let transcript = browserTranscript;
   let assemblyAISucceeded = false;
-  if (audioFile && audioFile.size > 0) {
+  const isBuffer = Buffer.isBuffer(audioSource);
+  const audioSize = isBuffer ? audioSource.length : (audioSource as Blob | null)?.size ?? 0;
+  if (audioSource && audioSize > 0) {
     try {
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const audioBuffer = Buffer.from(arrayBuffer);
+      const audioBuffer = isBuffer
+        ? audioSource
+        : Buffer.from(await (audioSource as Blob).arrayBuffer());
       const langCode = language === "en" ? "en" : "es";
       const result = await transcribeAudio(audioBuffer, langCode);
       if (result.text && result.text.trim().length > 0) {

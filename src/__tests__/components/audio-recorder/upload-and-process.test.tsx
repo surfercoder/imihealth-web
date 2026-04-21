@@ -6,6 +6,17 @@ jest.mock('@/actions/quick-informe', () => ({
   processQuickInforme: (...args: unknown[]) => mockProcessQuickInforme(...args),
 }))
 
+const mockStorageUpload = jest.fn().mockResolvedValue({ error: null })
+jest.mock('@/utils/supabase/client', () => ({
+  createClient: () => ({
+    storage: {
+      from: () => ({
+        upload: mockStorageUpload,
+      }),
+    },
+  }),
+}))
+
 jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
@@ -20,22 +31,24 @@ const router = { push: jest.fn() } as unknown as ReturnType<typeof import('next/
 describe('uploadAndProcess (classic flow)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockStorageUpload.mockResolvedValue({ error: null })
     global.fetch = jest.fn()
   })
 
   it('dispatches done on success and redirects without tab', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({ json: () => Promise.resolve({ success: true }) })
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) })
     const dispatch = jest.fn()
     jest.useFakeTimers()
     await uploadAndProcess(dispatch, [new Blob(['x'])], 'audio/webm', 'doc-1', 'i-1', 'transcript', 'fallback', t, router, 'es')
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'done' })
+    expect(mockStorageUpload).toHaveBeenCalledWith('i-1.webm', expect.any(Blob), expect.objectContaining({ upsert: true }))
     jest.advanceTimersByTime(1200)
     expect((router.push as jest.Mock)).toHaveBeenCalledWith('/informes/i-1')
     jest.useRealTimers()
   })
 
   it('dispatches done with tab url', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({ json: () => Promise.resolve({ success: true }) })
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) })
     const dispatch = jest.fn()
     jest.useFakeTimers()
     await uploadAndProcess(dispatch, [new Blob(['x'])], 'audio/webm', 'doc', 'i-2', '', 'fallback', t, router, 'es', 'informes')
@@ -45,24 +58,38 @@ describe('uploadAndProcess (classic flow)', () => {
   })
 
   it('handles transcriptionFailed result', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({ json: () => Promise.resolve({ transcriptionFailed: true }) })
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ transcriptionFailed: true }) })
     const dispatch = jest.fn()
     await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'transcription_failed' })
   })
 
   it('handles insufficientContent result', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({ json: () => Promise.resolve({ insufficientContent: true }) })
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ insufficientContent: true }) })
     const dispatch = jest.fn()
     await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'insufficient_content' })
   })
 
-  it('handles error result', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({ json: () => Promise.resolve({ error: 'boom' }) })
+  it('handles error result from API', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ error: 'boom' }) })
     const dispatch = jest.fn()
     await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'error' })
+  })
+
+  it('handles non-ok HTTP response without crashing on json parse', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 413, text: () => Promise.resolve('Payload Too Large') })
+    const dispatch = jest.fn()
+    await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Payload Too Large' })
+  })
+
+  it('handles storage upload failure', async () => {
+    mockStorageUpload.mockResolvedValue({ error: { message: 'bucket not found' } })
+    const dispatch = jest.fn()
+    await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Storage upload failed: bucket not found' })
   })
 
   it('handles fetch throwing Error', async () => {

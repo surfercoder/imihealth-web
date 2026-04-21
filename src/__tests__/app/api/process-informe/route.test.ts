@@ -22,9 +22,17 @@ const mockFrom = jest.fn().mockReturnValue({
   select: mockSelect,
 })
 
+const mockStorageDownload = jest.fn()
+const mockStorageRemove = jest.fn().mockResolvedValue({})
+const mockStorageFrom = jest.fn().mockReturnValue({
+  download: mockStorageDownload,
+  remove: mockStorageRemove,
+})
+
 const mockSupabase = {
   auth: { getUser: mockGetUser },
   from: mockFrom,
+  storage: { from: mockStorageFrom },
 }
 
 jest.mock('@/utils/supabase/server', () => ({
@@ -75,16 +83,11 @@ import { NextRequest } from 'next/server'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeFormDataRequest(fields: Record<string, string | File | null>): NextRequest {
-  const formData = new FormData()
-  for (const [key, value] of Object.entries(fields)) {
-    if (value !== null && value !== undefined) {
-      formData.append(key, value)
-    }
-  }
+function makeJsonRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost:3000/api/process-informe', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   })
 }
 
@@ -125,6 +128,9 @@ describe('POST /api/process-informe', () => {
     jest.clearAllMocks()
     // Ensure no leftover mockResolvedValueOnce queues leak between tests
     mockAnthropicCreate.mockReset()
+    // Default: no audio path, so no storage interaction needed
+    mockStorageDownload.mockReset()
+    mockStorageRemove.mockReset().mockResolvedValue({})
 
     // Reset update chain: return this for all .eq() calls, resolve to {} for final
     mockUpdateChain.eq.mockReturnThis()
@@ -150,7 +156,7 @@ describe('POST /api/process-informe', () => {
   it('returns 401 when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
 
-    const req = makeFormDataRequest({ informeId: 'inf-1', browserTranscript: 'hello doctor' })
+    const req = makeJsonRequest({ informeId: 'inf-1', browserTranscript: 'hello doctor', language: 'es' })
     const res = await POST(req)
     const json = await res.json()
 
@@ -163,7 +169,7 @@ describe('POST /api/process-informe', () => {
   it('returns 400 when informeId is missing', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
 
-    const req = makeFormDataRequest({ browserTranscript: 'some transcript' })
+    const req = makeJsonRequest({ browserTranscript: 'some transcript' })
     const res = await POST(req)
     const json = await res.json()
 
@@ -176,7 +182,7 @@ describe('POST /api/process-informe', () => {
   it('returns transcriptionFailed when transcript is too short (no audio, no browserTranscript)', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
 
-    const req = makeFormDataRequest({ informeId: 'inf-1' })
+    const req = makeJsonRequest({ informeId: 'inf-1' })
     const res = await POST(req)
     const json = await res.json()
 
@@ -187,7 +193,7 @@ describe('POST /api/process-informe', () => {
   it('returns transcriptionFailed when browserTranscript is fewer than 10 chars', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
 
-    const req = makeFormDataRequest({ informeId: 'inf-1', browserTranscript: 'short' })
+    const req = makeJsonRequest({ informeId: 'inf-1', browserTranscript: 'short' })
     const res = await POST(req)
     const json = await res.json()
 
@@ -198,7 +204,7 @@ describe('POST /api/process-informe', () => {
   it('resets informe status to recording when transcript is too short', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
 
-    const req = makeFormDataRequest({ informeId: 'inf-1', browserTranscript: 'hi' })
+    const req = makeJsonRequest({ informeId: 'inf-1', browserTranscript: 'hi' })
     await POST(req)
 
     expect(mockFrom).toHaveBeenCalledWith('informes')
@@ -207,35 +213,25 @@ describe('POST /api/process-informe', () => {
 
   // ── Audio transcription ─────────────────────────────────────────────────────
 
-  it('uses AssemblyAI transcript when audio file is provided and transcription succeeds', async () => {
+  it('uses AssemblyAI transcript when audioPath is provided and transcription succeeds', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: 'This is a valid transcript from assembly AI service.' })
     setupAnthropicMock()
-    mockUpdateChain.eq.mockReturnThis()
-    // Final update resolves without error
-    const mockFinalUpdate = { eq: jest.fn().mockReturnThis(), error: null }
-    mockFinalUpdate.eq.mockReturnThis()
-    mockUpdate.mockReturnValueOnce(mockUpdateChain) // status: processing
-      .mockReturnValueOnce(mockUpdateChain)          // transcript save
-      .mockReturnValueOnce({ eq: jest.fn().mockReturnThis(), ...{ then: undefined } })
 
-    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
-    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-
-    const formData = new FormData()
-    formData.append('informeId', 'inf-1')
-    formData.append('browserTranscript', 'fallback transcript text here')
-    formData.append('language', 'en')
-    formData.append('audio', audioFile)
-
-    const req = new NextRequest('http://localhost:3000/api/process-informe', {
-      method: 'POST',
-      body: formData,
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'fallback transcript text here',
+      language: 'en',
+      audioPath: 'inf-1.webm',
     })
 
     const res = await POST(req)
     const json = await res.json()
 
+    expect(mockStorageFrom).toHaveBeenCalledWith('audio-recordings')
+    expect(mockStorageDownload).toHaveBeenCalledWith('inf-1.webm')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'en')
     expect(res.status).toBe(200)
     expect(json.success).toBe(true)
@@ -243,20 +239,15 @@ describe('POST /api/process-informe', () => {
 
   it('falls back to browserTranscript when AssemblyAI returns empty text', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: '   ' })
     setupAnthropicMock()
 
-    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
-    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-
-    const formData = new FormData()
-    formData.append('informeId', 'inf-1')
-    formData.append('browserTranscript', 'This is the browser fallback transcript text')
-    formData.append('audio', audioFile)
-
-    const req = new NextRequest('http://localhost:3000/api/process-informe', {
-      method: 'POST',
-      body: formData,
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'This is the browser fallback transcript text',
+      audioPath: 'inf-1.webm',
     })
 
     const res = await POST(req)
@@ -268,20 +259,15 @@ describe('POST /api/process-informe', () => {
 
   it('falls back to browserTranscript when AssemblyAI throws', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
     mockTranscribeAudio.mockRejectedValue(new Error('AssemblyAI network error'))
     setupAnthropicMock()
 
-    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
-    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-
-    const formData = new FormData()
-    formData.append('informeId', 'inf-1')
-    formData.append('browserTranscript', 'Browser fallback transcript with enough content')
-    formData.append('audio', audioFile)
-
-    const req = new NextRequest('http://localhost:3000/api/process-informe', {
-      method: 'POST',
-      body: formData,
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'Browser fallback transcript with enough content',
+      audioPath: 'inf-1.webm',
     })
 
     const res = await POST(req)
@@ -293,26 +279,40 @@ describe('POST /api/process-informe', () => {
 
   it('uses es language code for AssemblyAI when language is not "en"', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
     mockTranscribeAudio.mockResolvedValue({ text: 'Valid transcript from assembly AI for test.' })
     setupAnthropicMock()
 
-    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
-    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-
-    const formData = new FormData()
-    formData.append('informeId', 'inf-1')
-    formData.append('browserTranscript', '')
-    formData.append('language', 'es')
-    formData.append('audio', audioFile)
-
-    const req = new NextRequest('http://localhost:3000/api/process-informe', {
-      method: 'POST',
-      body: formData,
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: '',
+      language: 'es',
+      audioPath: 'inf-1.webm',
     })
 
     await POST(req)
 
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'es')
+  })
+
+  it('falls back to browserTranscript when storage download fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockStorageDownload.mockResolvedValue({ data: null, error: { message: 'Not found' } })
+    setupAnthropicMock()
+
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'This is the browser fallback transcript text',
+      audioPath: 'inf-1.webm',
+    })
+
+    const res = await POST(req)
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(mockTranscribeAudio).not.toHaveBeenCalled()
   })
 
   // ── Successful processing ───────────────────────────────────────────────────
@@ -321,7 +321,7 @@ describe('POST /api/process-informe', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     setupAnthropicMock()
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'This is a long enough transcript for the test case.',
     })
@@ -341,7 +341,7 @@ describe('POST /api/process-informe', () => {
       makeClaudeResponse({ informe_paciente: 'Summary for patient here' }),
     )
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Patient presenting with chest pain and shortness of breath.',
     })
@@ -356,7 +356,7 @@ describe('POST /api/process-informe', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     setupAnthropicMock()
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript with no dialog entries but valid content.',
     })
@@ -379,7 +379,7 @@ describe('POST /api/process-informe', () => {
     mockGetSpecialtyPrompt.mockReturnValue('Specialty system prompt for cardiologia')
     setupAnthropicMock()
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Patient has chest pain with elevated troponins today.',
     })
@@ -407,7 +407,7 @@ describe('POST /api/process-informe', () => {
       makeClaudeResponse({ informe_paciente: '' }),
     )
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Testing one two three microphone check here.',
     })
@@ -427,7 +427,7 @@ describe('POST /api/process-informe', () => {
       makeClaudeResponse({ informe_paciente: 'And the patient report also has content here' }),
     )
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript that has some content that was processed.',
     })
@@ -448,7 +448,7 @@ describe('POST /api/process-informe', () => {
       .mockResolvedValueOnce(rawResponse)   // doctor
       .mockResolvedValueOnce(rawResponse)   // patient
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript with enough content to proceed past the length check.',
     })
@@ -469,7 +469,7 @@ describe('POST /api/process-informe', () => {
       .mockResolvedValueOnce(nonTextResponse)  // doctor
       .mockResolvedValueOnce(nonTextResponse)  // patient
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript with enough content to pass the short transcript guard.',
     })
@@ -492,7 +492,7 @@ describe('POST /api/process-informe', () => {
       .mockResolvedValueOnce({ content: [{ type: 'text', text: wrappedDoctor }] })
       .mockResolvedValueOnce({ content: [{ type: 'text', text: wrappedPatient }] })
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript content that is long enough for the route to process.',
     })
@@ -525,7 +525,7 @@ describe('POST /api/process-informe', () => {
       return mockUpdateChain
     })
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript that is long enough to pass the validation checks here.',
     })
@@ -542,7 +542,7 @@ describe('POST /api/process-informe', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockAnthropicCreate.mockRejectedValue(new Error('Anthropic API down'))
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript long enough to proceed past initial validation checks.',
     })
@@ -559,7 +559,7 @@ describe('POST /api/process-informe', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockAnthropicCreate.mockRejectedValue('string error')
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript long enough to proceed past initial validation checks.',
     })
@@ -574,7 +574,7 @@ describe('POST /api/process-informe', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     setupAnthropicMock()
 
-    const req = makeFormDataRequest({
+    const req = makeJsonRequest({
       informeId: 'inf-1',
       browserTranscript: 'Transcript that is long enough to proceed past all validation checks.',
       recordingDuration: '120',

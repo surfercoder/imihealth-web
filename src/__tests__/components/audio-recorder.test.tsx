@@ -70,9 +70,25 @@ beforeAll(() => {
   global.fetch = jest.fn()
 })
 
+// Ensure storage mock is always available after jest.clearAllMocks()
+beforeEach(() => {
+  mockStorageUpload.mockResolvedValue({ error: null })
+})
+
 const mockProcessQuickInforme = jest.fn()
 jest.mock('@/actions/quick-informe', () => ({
   processQuickInforme: (...args: unknown[]) => mockProcessQuickInforme(...args),
+}))
+
+const mockStorageUpload = jest.fn().mockResolvedValue({ error: null })
+jest.mock('@/utils/supabase/client', () => ({
+  createClient: () => ({
+    storage: {
+      from: () => ({
+        upload: mockStorageUpload,
+      }),
+    },
+  }),
 }))
 
 import { AudioRecorder } from '@/components/audio-recorder'
@@ -200,7 +216,8 @@ describe('AudioRecorder — stop and process', () => {
     mockGetUserMedia.mockResolvedValue(mockStream)
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
-      json: () => Promise.resolve({ error: 'Processing failed' }),
+      status: 500,
+      text: () => Promise.resolve('Processing failed'),
     })
 
     const user = userEvent.setup()
@@ -219,7 +236,8 @@ describe('AudioRecorder — stop and process', () => {
     mockGetUserMedia.mockResolvedValue(mockStream)
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
-      json: () => Promise.resolve({ error: 'Some error' }),
+      status: 500,
+      text: () => Promise.resolve('Some error'),
     })
 
     const user = userEvent.setup()
@@ -234,7 +252,7 @@ describe('AudioRecorder — stop and process', () => {
     })
   })
 
-  it('calls fetch /api/process-informe with FormData on successful processing', async () => {
+  it('uploads audio to storage and calls fetch /api/process-informe with JSON on successful processing', async () => {
     const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
     mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -247,9 +265,10 @@ describe('AudioRecorder — stop and process', () => {
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
+    expect(mockStorageUpload).toHaveBeenCalled()
     expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.objectContaining({
       method: 'POST',
-      body: expect.any(FormData),
+      headers: { 'Content-Type': 'application/json' },
     }))
     jest.useRealTimers()
   })
