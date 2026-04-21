@@ -9,6 +9,10 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 }
 
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = (() => null) as never;
+}
+
 if (typeof window !== 'undefined') {
   window.HTMLElement.prototype.scrollIntoView = function () {}
 }

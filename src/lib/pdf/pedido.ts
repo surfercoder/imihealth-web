@@ -49,7 +49,8 @@ export async function generatePedidoPDF({
 
   // Patient data box
   const hasObraSocial = obraSocial || nroAfiliado || plan;
-  const boxHeight = hasObraSocial ? 76 : 50;
+  const extraLines = (hasObraSocial ? 1 : 0) + (plan ? 1 : 0);
+  const boxHeight = 42 + extraLines * 12;
   page.drawRectangle({
     x: margin,
     y: y - boxHeight,
@@ -65,21 +66,21 @@ export async function generatePedidoPDF({
 
   let infoY = y - 39;
   if (obraSocial) {
-    const osClean = sanitizeForPdf(labels.obraSocial.replace("{value}", obraSocial));
+    const osClean = sanitizeForPdf(labels.obraSocial + obraSocial);
     drawText(osClean, margin + 12, infoY, helvetica, 9, mutedText);
     if (nroAfiliado) {
-      const nroClean = sanitizeForPdf(labels.nroAfiliadoInline.replace("{value}", nroAfiliado));
+      const nroClean = sanitizeForPdf(labels.nroAfiliadoInline + nroAfiliado);
       const osWidth = helvetica.widthOfTextAtSize(osClean, 9);
       drawText(nroClean, margin + 12 + osWidth + 8, infoY, helvetica, 9, mutedText);
     }
     infoY -= 12;
   } else if (nroAfiliado) {
-    const nroClean = sanitizeForPdf(labels.nroAfiliado.replace("{value}", nroAfiliado));
+    const nroClean = sanitizeForPdf(labels.nroAfiliado + nroAfiliado);
     drawText(nroClean, margin + 12, infoY, helvetica, 9, mutedText);
     infoY -= 12;
   }
   if (plan) {
-    const planClean = sanitizeForPdf(labels.plan.replace("{value}", plan));
+    const planClean = sanitizeForPdf(labels.plan + plan);
     drawText(planClean, margin + 12, infoY, helvetica, 9, mutedText);
   }
 

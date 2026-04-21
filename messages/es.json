@@ -949,10 +949,10 @@
   "pdfPedido": {
     "subtitle": "Pedido Medico",
     "patientData": "DATOS DEL PACIENTE",
-    "obraSocial": "Obra Social: {value}",
-    "nroAfiliado": "Nro. Afiliado: {value}",
-    "nroAfiliadoInline": "- Nro. Afiliado: {value}",
-    "plan": "Plan: {value}",
+    "obraSocial": "Obra Social: ",
+    "nroAfiliado": "Nro. Afiliado: ",
+    "nroAfiliadoInline": " - Nro. Afiliado: ",
+    "plan": "Plan: ",
     "solicito": "Solicito:",
     "diagnosis": "Diagnostico:",
     "footer": "Este pedido fue emitido por el/la profesional firmante."

@@ -949,10 +949,10 @@
   "pdfPedido": {
     "subtitle": "Medical Order",
     "patientData": "PATIENT DATA",
-    "obraSocial": "Health Insurance: {value}",
-    "nroAfiliado": "Member No.: {value}",
-    "nroAfiliadoInline": "- Member No.: {value}",
-    "plan": "Plan: {value}",
+    "obraSocial": "Health Insurance: ",
+    "nroAfiliado": "Member No.: ",
+    "nroAfiliadoInline": " - Member No.: ",
+    "plan": "Plan: ",
     "solicito": "I request:",
     "diagnosis": "Diagnosis:",
     "footer": "This order was issued by the signing professional."

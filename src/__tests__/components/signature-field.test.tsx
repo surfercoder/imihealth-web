@@ -27,8 +27,9 @@ describe('SignatureField', () => {
     const onChange = jest.fn()
     render(<SignatureField onChange={onChange} />)
 
-    // Click the canvas to simulate drawing (triggers onEnd in mock)
-    await user.click(screen.getByTestId('signature-canvas'))
+    // Click the canvas to simulate drawing (triggers endStroke in mock)
+    const canvas = document.querySelector('canvas')!
+    await user.click(canvas)
 
     expect(onChange).toHaveBeenCalledWith('data:image/png;base64,MOCK')
   })
@@ -39,7 +40,8 @@ describe('SignatureField', () => {
     render(<SignatureField onChange={onChange} />)
 
     // First draw something
-    await user.click(screen.getByTestId('signature-canvas'))
+    const canvas = document.querySelector('canvas')!
+    await user.click(canvas)
     onChange.mockClear()
 
     // Click clear button

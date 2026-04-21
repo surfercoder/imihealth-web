@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
-import SignatureCanvas from "react-signature-canvas";
-import type SignatureCanvasType from "react-signature-canvas";
+import { useRef, useCallback, useState, useEffect } from "react";
+import SignaturePad from "signature_pad";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -14,18 +13,62 @@ interface SignatureFieldProps {
 
 export function SignatureField({ onChange, error }: SignatureFieldProps) {
   const t = useTranslations("signatureField");
-  const sigRef = useRef<SignatureCanvasType | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const padRef = useRef<SignaturePad | null>(null);
   const [hasSignature, setHasSignature] = useState(false);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    /* v8 ignore next -- ref is always set after mount */
+    if (!canvas) return;
+
+    const pad = new SignaturePad(canvas, {
+      penColor: "#1E293B",
+      backgroundColor: "rgb(255, 255, 255)",
+    });
+    padRef.current = pad;
+
+    const resizeCanvas = () => {
+      /* v8 ignore next -- devicePixelRatio always defined in browsers */
+      const ratio = Math.max(window.devicePixelRatio ?? 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      /* v8 ignore next -- getContext always returns non-null for 2d */
+      canvas.getContext("2d")?.scale(ratio, ratio);
+      pad.clear();
+    };
+
+    resizeCanvas();
+
+    const observer = new ResizeObserver(resizeCanvas);
+    observer.observe(canvas);
+
+    return () => {
+      observer.disconnect();
+      pad.off();
+    };
+  }, []);
+
   const handleEnd = useCallback(() => {
-    /* v8 ignore next */
-    if (!sigRef.current || sigRef.current.isEmpty()) return;
+    const pad = padRef.current;
+    /* v8 ignore next -- pad is always set after mount */
+    if (!pad || pad.isEmpty()) return;
     setHasSignature(true);
-    onChange(sigRef.current.toDataURL("image/png"));
+    onChange(pad.toDataURL("image/png"));
   }, [onChange]);
 
+  useEffect(() => {
+    const pad = padRef.current;
+    /* v8 ignore next -- pad is always set after mount */
+    if (!pad) return;
+    pad.addEventListener("endStroke", handleEnd);
+    return () => {
+      pad.removeEventListener("endStroke", handleEnd);
+    };
+  }, [handleEnd]);
+
   const handleClear = useCallback(() => {
-    sigRef.current?.clear();
+    padRef.current?.clear();
     setHasSignature(false);
     onChange("");
   }, [onChange]);
@@ -52,15 +95,10 @@ export function SignatureField({ onChange, error }: SignatureFieldProps) {
         }
         style={{ height: "9rem" }}
       >
-        <SignatureCanvas
-          ref={sigRef}
-          penColor="#1E293B"
-          backgroundColor="white"
-          canvasProps={{
-            className: "absolute inset-0 w-full h-full",
-            style: { touchAction: "none" },
-          }}
-          onEnd={handleEnd}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 h-full w-full"
+          style={{ touchAction: "none" }}
         />
         <span
           className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm select-none"

@@ -12,7 +12,7 @@ const config: Config = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^react-signature-canvas$': '<rootDir>/src/__mocks__/react-signature-canvas.tsx',
+    '^signature_pad$': '<rootDir>/src/__mocks__/signature_pad.ts',
     '^next-intl/server$': '<rootDir>/src/__mocks__/next-intl-server.ts',
     '^next-intl$': '<rootDir>/src/__mocks__/next-intl.ts',
     '^assemblyai$': '<rootDir>/src/__mocks__/assemblyai.ts',
