@@ -85,6 +85,13 @@ describe('uploadAndProcess (classic flow)', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Payload Too Large' })
   })
 
+  it('handles non-ok HTTP response with empty text (fallback message)', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 500, text: () => Promise.resolve('') })
+    const dispatch = jest.fn()
+    await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Error del servidor (500)' })
+  })
+
   it('handles storage upload failure', async () => {
     mockStorageUpload.mockResolvedValue({ error: { message: 'bucket not found' } })
     const dispatch = jest.fn()
