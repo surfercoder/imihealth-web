@@ -23,9 +23,6 @@ export async function processQuickInforme(
   language: string = "es",
   recordingDuration?: number,
 ): Promise<ProcessQuickInformeResult> {
-  return Sentry.withServerActionInstrumentation(
-    "processQuickInforme",
-    async () => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -157,5 +154,4 @@ export async function processQuickInforme(
     console.error("[quick-informe] processing error:", err);
     return await failWith(message);
   }
-    });
 }

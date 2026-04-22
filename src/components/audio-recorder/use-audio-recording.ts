@@ -104,7 +104,14 @@ export function useAudioRecording({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch {
+        // Some browsers (iOS Safari/Chrome) throw SyntaxError for mimeTypes
+        // that pass isTypeSupported. Fall back to browser default.
+        mediaRecorder = new MediaRecorder(stream);
+      }
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
