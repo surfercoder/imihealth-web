@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
-import { useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface HomeTabsProps {
@@ -16,24 +15,25 @@ interface HomeTabsProps {
   dashboardContent: React.ReactNode;
 }
 
-function HomeTabsContent({
+export function HomeTabs({
   activeTab,
   translations,
   informesContent,
   patientsContent,
   dashboardContent,
 }: HomeTabsProps) {
-  const router = useRouter();
-  const searchParams = useNextSearchParams();
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
+  const tab = selectedTab ?? activeTab;
 
-  const handleTabChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+  const handleTabChange = useCallback((value: string) => {
+    setSelectedTab(value);
+    const params = new URLSearchParams(window.location.search);
     params.set("tab", value);
-    router.push(`/?${params.toString()}`);
-  };
+    window.history.replaceState(null, "", `/?${params.toString()}`);
+  }, []);
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+    <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-3 mb-8">
         <TabsTrigger value="informes">{translations.informes}</TabsTrigger>
         <TabsTrigger value="misPacientes">{translations.misPacientes}</TabsTrigger>
@@ -52,13 +52,5 @@ function HomeTabsContent({
         {dashboardContent}
       </TabsContent>
     </Tabs>
-  );
-}
-
-export function HomeTabs(props: HomeTabsProps) {
-  return (
-    <Suspense>
-      <HomeTabsContent {...props} />
-    </Suspense>
   );
 }

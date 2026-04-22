@@ -2,12 +2,6 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-const mockRouterPush = jest.fn()
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockRouterPush }),
-  useSearchParams: () => new URLSearchParams(),
-}))
-
 import { HomeTabs } from '@/components/home-tabs'
 
 const defaultProps = {
@@ -21,6 +15,15 @@ const defaultProps = {
   patientsContent: <div data-testid="mis-pacientes-tab">MisPacientesTab</div>,
   dashboardContent: <div data-testid="dashboard-tab">DashboardTab</div>,
 }
+
+const mockReplaceState = jest.fn()
+
+beforeAll(() => {
+  Object.defineProperty(window, 'history', {
+    value: { replaceState: mockReplaceState },
+    writable: true,
+  })
+})
 
 describe('HomeTabs', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -47,28 +50,25 @@ describe('HomeTabs', () => {
     expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
   })
 
-  it('calls router.push with correct tab param when a tab is clicked', async () => {
+  it('updates URL via replaceState when a tab is clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(mockRouterPush).toHaveBeenCalledWith('/?tab=dashboard')
+    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=dashboard')
   })
 
-  it('calls router.push with misPacientes param when misPacientes tab is clicked', async () => {
+  it('updates URL via replaceState with misPacientes when clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Mis pacientes' }))
-    expect(mockRouterPush).toHaveBeenCalledWith('/?tab=misPacientes')
+    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=misPacientes')
   })
 
-  it('preserves existing search params when switching tabs', async () => {
-    jest.mock('next/navigation', () => ({
-      useRouter: () => ({ push: mockRouterPush }),
-      useSearchParams: () => new URLSearchParams('foo=bar'),
-    }))
+  it('switches tab content client-side without server fetch', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
+    expect(screen.getByTestId('informes-tab')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('tab=dashboard'))
+    expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
   })
 })
