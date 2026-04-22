@@ -977,6 +977,62 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
   })
 })
 
+describe('AudioRecorder — MediaRecorder constructor SyntaxError fallback', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mediaRecorderState = 'inactive'
+    mediaRecorderOnstop = null
+    Object.defineProperty(global.window, 'SpeechRecognition', { value: MockSpeechRecognition, writable: true })
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    })
+  })
+
+  it('falls back to new MediaRecorder(stream) when constructor with mimeType throws', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+
+    let callCount = 0
+    ;(MockMediaRecorder as jest.Mock).mockImplementation((_stream: unknown, options?: { mimeType?: string }) => {
+      callCount++
+      // First call: with mimeType options — throw SyntaxError
+      if (callCount === 1 && options) {
+        throw new SyntaxError('mimeType not supported')
+      }
+      // Second call: without options — succeed
+      mediaRecorderState = 'inactive'
+      return {
+        get state() { return mediaRecorderState },
+        get mimeType() { return 'audio/webm' },
+        start: jest.fn().mockImplementation(() => { mediaRecorderState = 'recording' }),
+        stop: mockMediaRecorderStop.mockImplementation(function(this: { onstop: (() => void) | null }) {
+          mediaRecorderState = 'inactive'
+          if (mediaRecorderOnstop) mediaRecorderOnstop()
+        }),
+        pause: mockMediaRecorderPause,
+        resume: mockMediaRecorderResume,
+        set ondataavailable(_fn: (e: { data: Blob }) => void) {},
+        set onstop(fn: () => void) { mediaRecorderOnstop = fn },
+      }
+    })
+
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    // The MediaRecorder constructor should have been called twice:
+    // once with mimeType (which threw), once without
+    expect(callCount).toBe(2)
+
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
+    jest.useRealTimers()
+  })
+})
+
 describe('AudioRecorder — en locale', () => {
   beforeEach(() => {
     jest.clearAllMocks()

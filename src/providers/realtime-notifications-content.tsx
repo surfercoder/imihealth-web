@@ -199,7 +199,20 @@ function RealtimeNotificationsContentInner({
 
     quickChannelRef.current = quickChannel;
 
+    // When the tab regains focus, re-subscribe channels in case the
+    // WebSocket connection went stale while the browser throttled timers
+    // (common on Edge and mobile browsers).
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        channelRef.current?.subscribe();
+        quickChannelRef.current?.subscribe();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }

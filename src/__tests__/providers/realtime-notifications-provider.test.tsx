@@ -693,6 +693,64 @@ describe('RealtimeNotificationsProvider', () => {
     })
   })
 
+  describe('visibility change reconnection', () => {
+    it('re-subscribes both channels when the tab regains focus', () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      // Clear subscribe calls from initial mount
+      mockSubscribe.mockClear()
+
+      // Simulate tab becoming hidden then visible again
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+
+      // Both channels should re-subscribe
+      expect(mockSubscribe).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not re-subscribe when the tab becomes hidden', () => {
+      render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      mockSubscribe.mockClear()
+
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+
+      expect(mockSubscribe).not.toHaveBeenCalled()
+    })
+
+    it('removes the visibilitychange listener on unmount', () => {
+      const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener')
+
+      const { unmount } = render(
+        <RealtimeNotificationsContent userId="user-1">
+          <div>child</div>
+        </RealtimeNotificationsContent>
+      )
+
+      unmount()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'visibilitychange',
+        expect.any(Function)
+      )
+
+      removeEventListenerSpy.mockRestore()
+    })
+  })
+
   describe('toast dismiss on navigation away', () => {
     it('dismisses toasts when navigating away from an informe detail page', () => {
       mockPathname = '/informes/some-id'

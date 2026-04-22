@@ -8,4 +8,9 @@ export const createClient = () =>
   createBrowserClient(
     supabaseUrl!,
     supabaseKey!,
+    {
+      realtime: {
+        worker: true,
+      },
+    },
   );

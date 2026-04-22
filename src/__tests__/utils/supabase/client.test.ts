@@ -1,8 +1,8 @@
 const mockCreateBrowserClient = jest.fn(() => ({ mock: 'browser-client' }))
 
 jest.mock('@supabase/ssr', () => ({
-   
-  createBrowserClient: (url: string, key: string) => (mockCreateBrowserClient as any)(url, key),
+
+  createBrowserClient: (url: string, key: string, options?: unknown) => (mockCreateBrowserClient as any)(url, key, options),
 }))
 
 describe('createClient (browser)', () => {
@@ -22,12 +22,13 @@ describe('createClient (browser)', () => {
 
   it('calls createBrowserClient with env vars and returns the client', () => {
     jest.isolateModules(() => {
-       
+
       const { createClient } = require('@/utils/supabase/client')
       const client = createClient()
       expect(mockCreateBrowserClient).toHaveBeenCalledWith(
         'https://test.supabase.co',
-        'test-key'
+        'test-key',
+        { realtime: { worker: true } }
       )
       expect(client).toEqual({ mock: 'browser-client' })
     })
