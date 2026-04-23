@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { createClient } from '@/utils/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const FEEDBACK_ADDRESS = 'support@imihealth.ai';
 
@@ -22,6 +23,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
+        );
+      }
+
+      const { allowed, retryAfter } = checkRateLimit(user.id, {
+        key: 'send-email',
+        limit: 20,
+        windowSeconds: 60,
+      });
+      if (!allowed) {
+        return NextResponse.json(
+          { success: false, error: 'Too many requests' },
+          { status: 429, headers: { 'Retry-After': String(retryAfter) } }
         );
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateCertificadoPDF } from "@/lib/pdf";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
@@ -13,6 +14,18 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(user.id, {
+      key: "pdf-generation",
+      limit: 30,
+      windowSeconds: 60,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
     }
 
     const params = request.nextUrl.searchParams;

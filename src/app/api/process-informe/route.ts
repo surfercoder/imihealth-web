@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getSpecialtyPrompt } from "@/lib/prompts";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   resolveTranscript,
   parseDoctorResponse,
@@ -17,6 +18,18 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const { allowed, retryAfter } = checkRateLimit(user.id, {
+    key: "process-informe",
+    limit: 10,
+    windowSeconds: 60,
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    );
   }
 
   const body = await request.json();

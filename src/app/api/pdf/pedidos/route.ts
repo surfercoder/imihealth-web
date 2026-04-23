@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { createClient } from "@/utils/supabase/server";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 import { getTranslations } from "next-intl/server";
 
@@ -15,6 +16,18 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(user.id, {
+      key: "pdf-generation",
+      limit: 30,
+      windowSeconds: 60,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
     }
 
     const params = request.nextUrl.searchParams;

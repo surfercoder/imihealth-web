@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   uploadMediaToWhatsApp,
   sendWhatsAppTemplateWithDocument,
@@ -35,6 +36,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(user.id, {
+      key: "send-whatsapp",
+      limit: 15,
+      windowSeconds: 60,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
       );
     }
 
