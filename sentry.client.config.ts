@@ -5,10 +5,24 @@ Sentry.init({
 
   environment: process.env.NODE_ENV,
 
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [
+    Sentry.browserTracingIntegration({
+      // Real navigations are captured by captureRouterTransitionStart in
+      // instrumentation-client.ts. Disable the integration's own navigation
+      // detection so that replaceState calls (e.g. tab switches) don't
+      // create spurious navigation transactions.
+      instrumentNavigation: false,
+      // Don't create trace spans for Sentry's own /monitoring tunnel
+      // requests — prevents a feedback loop.
+      shouldCreateSpanForRequest: (url) => !url.includes("/monitoring"),
+    }),
+  ],
 
-  // Performance Monitoring — capture all traces during MVP, reduce in production
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  // Only attach trace headers to our own API, not to third-party services
+  tracePropagationTargets: ["localhost", /^\//, /\.imihealth\./],
+
+  // Performance Monitoring
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.05 : 1.0,
 
   // Session Replay — configured below via lazy-loading to avoid blocking initial render
   replaysSessionSampleRate: 0.1,
