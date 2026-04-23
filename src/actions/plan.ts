@@ -12,25 +12,34 @@ export interface PlanInfo {
   canSignUp: boolean;
 }
 
-export async function getPlanInfo(): Promise<PlanInfo> {
+export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
   const supabase = await createClient();
 
-  const [{ count: doctorCount }, userResult] = await Promise.all([
+  // Resolve userId if not provided (for backward compatibility)
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    resolvedUserId = user?.id;
+  }
+
+  // Run all queries in parallel
+  const [{ count: doctorCount }, informeResult] = await Promise.all([
     supabase.from("doctors").select("id", { count: "exact", head: true }),
-    supabase.auth.getUser(),
+    resolvedUserId
+      ? supabase
+          .from("inform_generation_log")
+          .select("id", { count: "exact", head: true })
+          .eq("doctor_id", resolvedUserId)
+      : Promise.resolve({ count: 0 }),
   ]);
 
   const currentDoctors = doctorCount ?? 0;
-  let currentInformes = 0;
-
-  if (userResult.data.user) {
-    const { count: informeCount } = await supabase
-      .from("inform_generation_log")
-      .select("id", { count: "exact", head: true })
-      .eq("doctor_id", userResult.data.user.id);
-
-    currentInformes = informeCount ?? 0;
-  }
+  const currentInformes =
+    (typeof informeResult === "object" && "count" in informeResult
+      ? informeResult.count
+      : 0) ?? 0;
 
   return {
     maxInformes: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,

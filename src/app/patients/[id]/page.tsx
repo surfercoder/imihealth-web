@@ -58,7 +58,7 @@ export default async function PatientPage({ params, searchParams }: Props) {
   const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
     supabase.from("doctors").select("name").eq("id", user.id).single(),
-    getPlanInfo(),
+    getPlanInfo(user.id),
   ]);
 
   const { data: patient, error } = await supabase

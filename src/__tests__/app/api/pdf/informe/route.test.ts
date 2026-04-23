@@ -2,6 +2,12 @@
  * @jest-environment node
  */
 
+// ─── Rate-limit mock ──────────────────────────────────────────────────────────
+const mockCheckRateLimit = jest.fn().mockReturnValue({ allowed: true, retryAfter: 0 })
+jest.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+}))
+
 // ─── Supabase mock ─────────────────────────────────────────────────────────────
 const mockGetUser = jest.fn()
 
@@ -224,5 +230,17 @@ describe('GET /api/pdf/informe', () => {
 
     expect(res.status).toBe(500)
     expect(json).toEqual({ error: 'Failed to generate PDF' })
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockCheckRateLimit.mockReturnValue({ allowed: false, retryAfter: 45 })
+
+    const res = await GET(makeRequest({ id: 'inf-1' }))
+    const json = await res.json()
+
+    expect(res.status).toBe(429)
+    expect(json).toEqual({ error: 'Too many requests' })
+    expect(res.headers.get('Retry-After')).toBe('45')
   })
 })

@@ -15,32 +15,37 @@ export interface ChartData {
     average: number;
   };
   informTypes: { type: string; count: number; fill: string }[];
+  summary: {
+    totalPatients: number;
+    completedCount: number;
+    processingCount: number;
+    errorCount: number;
+  };
 }
 
-export async function getDashboardChartData(): Promise<ChartData | null> {
+export async function getDashboardChartData(
+  userId: string
+): Promise<ChartData | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
 
   const [{ data: patients }, { data: informes }, { data: generationLog }] =
     await Promise.all([
       supabase
         .from("patients")
         .select("id, created_at")
-        .eq("doctor_id", user.id)
+        .eq("doctor_id", userId)
         .order("created_at", { ascending: true }),
       supabase
         .from("informes")
-        .select("id, created_at, updated_at, status, informe_doctor, recording_duration")
-        .eq("doctor_id", user.id)
+        .select(
+          "id, created_at, updated_at, status, informe_doctor, recording_duration"
+        )
+        .eq("doctor_id", userId)
         .order("created_at", { ascending: true }),
       supabase
         .from("inform_generation_log")
         .select("inform_type")
-        .eq("doctor_id", user.id),
+        .eq("doctor_id", userId),
     ]);
 
   const allPatients = patients ?? [];
@@ -127,5 +132,12 @@ export async function getDashboardChartData(): Promise<ChartData | null> {
     consultationTime,
     patientsAccumulator: { current: dailyEntries, average: avgPerDay },
     informTypes,
+    summary: {
+      totalPatients: allPatients.length,
+      completedCount: completedInformes.length,
+      processingCount: allInformes.filter((i) => i.status === "processing")
+        .length,
+      errorCount: allInformes.filter((i) => i.status === "error").length,
+    },
   };
 }

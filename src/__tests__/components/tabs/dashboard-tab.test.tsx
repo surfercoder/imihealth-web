@@ -98,6 +98,12 @@ describe('DashboardTab', () => {
         { type: 'classic', count: 3, fill: 'var(--color-classic)' },
         { type: 'quick', count: 2, fill: 'var(--color-quick)' },
       ],
+      summary: {
+        totalPatients: 5,
+        completedCount: 3,
+        processingCount: 1,
+        errorCount: 1,
+      },
     }
     render(<DashboardTab {...defaultProps} chartData={chartData} />)
     expect(screen.getByTestId('dashboard-charts')).toBeInTheDocument()

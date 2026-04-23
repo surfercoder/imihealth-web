@@ -2,6 +2,12 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+const mockReplace = jest.fn()
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}))
+
 import { HomeTabs } from '@/components/home-tabs'
 
 const defaultProps = {
@@ -15,15 +21,6 @@ const defaultProps = {
   patientsContent: <div data-testid="mis-pacientes-tab">MisPacientesTab</div>,
   dashboardContent: <div data-testid="dashboard-tab">DashboardTab</div>,
 }
-
-const mockReplaceState = jest.fn()
-
-beforeAll(() => {
-  Object.defineProperty(window, 'history', {
-    value: { replaceState: mockReplaceState },
-    writable: true,
-  })
-})
 
 describe('HomeTabs', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -50,25 +47,25 @@ describe('HomeTabs', () => {
     expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
   })
 
-  it('updates URL via replaceState when a tab is clicked', async () => {
+  it('navigates via router.replace when a tab is clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=dashboard')
+    expect(mockReplace).toHaveBeenCalledWith('/?tab=dashboard', { scroll: false })
   })
 
-  it('updates URL via replaceState with misPacientes when clicked', async () => {
+  it('navigates via router.replace with misPacientes when clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Mis pacientes' }))
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=misPacientes')
+    expect(mockReplace).toHaveBeenCalledWith('/?tab=misPacientes', { scroll: false })
   })
 
-  it('switches tab content client-side without server fetch', async () => {
+  it('calls router.replace to trigger server fetch on tab switch', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     expect(screen.getByTestId('informes-tab')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
+    expect(mockReplace).toHaveBeenCalledWith('/?tab=dashboard', { scroll: false })
   })
 })

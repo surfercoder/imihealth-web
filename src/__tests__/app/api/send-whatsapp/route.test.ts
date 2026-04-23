@@ -2,6 +2,12 @@
  * @jest-environment node
  */
 
+// ─── Rate-limit mock ──────────────────────────────────────────────────────────
+const mockCheckRateLimit = jest.fn().mockReturnValue({ allowed: true, retryAfter: 0 })
+jest.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+}))
+
 // ─── Supabase mock ─────────────────────────────────────────────────────────────
 const mockGetUser = jest.fn()
 
@@ -710,5 +716,23 @@ describe('POST /api/send-whatsapp', () => {
     expect(res.status).toBe(502)
     expect(json.error).toContain('Failed to send any pedidos')
     consoleSpy.mockRestore()
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    mockCheckRateLimit.mockReturnValue({ allowed: false, retryAfter: 5 })
+
+    const res = await POST(
+      makeRequest({
+        to: '+5491155555555',
+        informeId: 'i-1',
+        type: 'informe',
+        patientName: 'Juan',
+      })
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(429)
+    expect(json).toEqual({ success: false, error: 'Too many requests' })
+    expect(res.headers.get('Retry-After')).toBe('5')
   })
 })

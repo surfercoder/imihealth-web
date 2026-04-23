@@ -192,8 +192,11 @@ describe('createInforme', () => {
   it('returns error when MVP informe limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const countChain = makeChain()
-    countChain.eq.mockResolvedValue({ count: 10 })
-    mockFrom.mockReturnValue(countChain)
+    countChain.eq.mockResolvedValue({ count: 100 })
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'inform_generation_log') return countChain
+      return makeChain()
+    })
     const result = await createInforme('p-1')
     expect(result).toEqual({ error: expect.stringContaining('límite') })
   })

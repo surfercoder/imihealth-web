@@ -61,8 +61,9 @@ jest.mock('@/contexts/plan-context', () => ({
     <div data-testid="plan-provider">{children}</div>
   ),
 }))
+const mockGetDashboardChartData = jest.fn<Promise<unknown>, [string]>(() => Promise.resolve(null))
 jest.mock('@/actions/dashboard-charts', () => ({
-  getDashboardChartData: jest.fn(() => Promise.resolve(null)),
+  getDashboardChartData: (userId: string) => mockGetDashboardChartData(userId),
 }))
 jest.mock('@/components/tabs/informes-tab', () => ({
   InformesTab: () => <div data-testid="informes-tab" />,
@@ -228,6 +229,12 @@ describe('HomePage', () => {
     render(await HomePage({ searchParams: Promise.resolve({ tab: 'misPacientes' }) }))
     expect(screen.getByTestId('home-tabs')).toBeInTheDocument()
   })
+
+  it('renders dashboard tab content via Suspense when tab is dashboard', async () => {
+    setupMocks()
+    render(await HomePage({ searchParams: Promise.resolve({ tab: 'dashboard' }) }))
+    expect(screen.getByTestId('home-tabs')).toBeInTheDocument()
+  })
 })
 
 describe('PatientsTabServer', () => {
@@ -328,14 +335,17 @@ describe('DashboardTabServer', () => {
   beforeEach(() => jest.clearAllMocks())
 
   it('renders DashboardTab with correct counts', async () => {
-    setupMocks({
-      informesRaw: [
-        { id: 'i1', status: 'completed' },
-        { id: 'i2', status: 'completed' },
-        { id: 'i3', status: 'processing' },
-        { id: 'i4', status: 'error' },
-      ],
-      totalPatients: 10,
+    mockGetDashboardChartData.mockResolvedValue({
+      patientsOverTime: [],
+      consultationTime: { avg: 0, min: 0, max: 0, data: [] },
+      patientsAccumulator: { current: [], average: 0 },
+      informTypes: [],
+      summary: {
+        totalPatients: 10,
+        completedCount: 2,
+        processingCount: 1,
+        errorCount: 1,
+      },
     })
     const jsx = await DashboardTabServer({ userId: 'doctor-1', plan: defaultPlan })
     render(jsx)
@@ -347,29 +357,8 @@ describe('DashboardTabServer', () => {
     expect(el).toHaveAttribute('data-error', '1')
   })
 
-  it('handles null informes data', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'informes') {
-        const chain: Record<string, jest.Mock> = {
-          select: jest.fn(),
-          eq: jest.fn(),
-        }
-        chain.select.mockReturnValue(chain)
-        chain.eq.mockResolvedValue({ data: null })
-        return chain
-      }
-      if (table === 'patients') {
-        const chain: Record<string, jest.Mock> = {
-          select: jest.fn(),
-          eq: jest.fn(),
-        }
-        chain.select.mockReturnValue(chain)
-        chain.eq.mockResolvedValue({ count: null })
-        return chain
-      }
-      return makeChain({ data: null })
-    })
-    mockGetPlanInfo.mockResolvedValue(defaultPlan)
+  it('handles null chart data', async () => {
+    mockGetDashboardChartData.mockResolvedValue(null)
 
     const jsx = await DashboardTabServer({ userId: 'doctor-1', plan: defaultPlan })
     render(jsx)

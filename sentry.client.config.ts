@@ -47,6 +47,8 @@ Sentry.init({
     // User aborted requests
     "AbortError",
     "The operation was aborted",
+    // Supabase auth lock contention — benign race between concurrent token refreshes
+    "Lock.*was released because another request stole it",
   ],
 
   denyUrls: [

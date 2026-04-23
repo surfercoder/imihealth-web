@@ -83,6 +83,12 @@ const baseChartData: ChartData = {
     { type: 'classic', count: 10, fill: 'var(--color-classic)' },
     { type: 'quick', count: 5, fill: 'var(--color-quick)' },
   ],
+  summary: {
+    totalPatients: 15,
+    completedCount: 10,
+    processingCount: 3,
+    errorCount: 2,
+  },
 }
 
 describe('DashboardCharts', () => {

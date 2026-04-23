@@ -1,8 +1,6 @@
-const mockGetUser = jest.fn()
 const mockFrom = jest.fn()
 
 const mockSupabase = {
-  auth: { getUser: mockGetUser },
   from: mockFrom,
 }
 
@@ -30,8 +28,6 @@ function setupMocks(
   informesData: unknown[] | null = [],
   generationLogData: { inform_type: string }[] | null = []
 ) {
-  mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
   const patientsChain = makeChain()
   patientsChain.order.mockResolvedValue({ data: patientsData })
 
@@ -50,15 +46,9 @@ function setupMocks(
 describe('getDashboardChartData', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('returns null when user is not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    const result = await getDashboardChartData()
-    expect(result).toBeNull()
-  })
-
   it('returns chart data with empty arrays when no patients or informes', async () => {
     setupMocks([], [], [])
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result).toEqual({
       patientsOverTime: [],
       consultationTime: { avg: 0, min: 0, max: 0, data: [] },
@@ -67,12 +57,13 @@ describe('getDashboardChartData', () => {
         { type: 'classic', count: 0, fill: 'var(--color-classic)' },
         { type: 'quick', count: 0, fill: 'var(--color-quick)' },
       ],
+      summary: { totalPatients: 0, completedCount: 0, processingCount: 0, errorCount: 0 },
     })
   })
 
   it('handles null data from supabase by treating as empty arrays', async () => {
     setupMocks(null, null, null)
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result).toEqual({
       patientsOverTime: [],
       consultationTime: { avg: 0, min: 0, max: 0, data: [] },
@@ -81,6 +72,7 @@ describe('getDashboardChartData', () => {
         { type: 'classic', count: 0, fill: 'var(--color-classic)' },
         { type: 'quick', count: 0, fill: 'var(--color-quick)' },
       ],
+      summary: { totalPatients: 0, completedCount: 0, processingCount: 0, errorCount: 0 },
     })
   })
 
@@ -90,7 +82,7 @@ describe('getDashboardChartData', () => {
       { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
       { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
     ])
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.patientsOverTime).toEqual([
       { date: '2025-01-01', total: 2 },
       { date: '2025-01-02', total: 3 },
@@ -103,7 +95,7 @@ describe('getDashboardChartData', () => {
       { id: 'p-2', created_at: '2025-01-01T14:00:00Z' },
       { id: 'p-3', created_at: '2025-01-02T10:00:00Z' },
     ])
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.patientsAccumulator.average).toBe(1.5)
     expect(result!.patientsAccumulator.current).toEqual([
       { date: '2025-01-01', patients: 2 },
@@ -138,7 +130,7 @@ describe('getDashboardChartData', () => {
         },
       ]
     )
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.consultationTime.avg).toBe(15)
     expect(result!.consultationTime.min).toBe(10)
     expect(result!.consultationTime.max).toBe(20)
@@ -167,7 +159,7 @@ describe('getDashboardChartData', () => {
         },
       ]
     )
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.consultationTime.avg).toBe(10)
     expect(result!.consultationTime.min).toBe(5)
     expect(result!.consultationTime.max).toBe(15)
@@ -194,7 +186,7 @@ describe('getDashboardChartData', () => {
         },
       ]
     )
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.consultationTime.avg).toBe(0)
     expect(result!.consultationTime.min).toBe(0)
     expect(result!.consultationTime.max).toBe(0)
@@ -220,7 +212,7 @@ describe('getDashboardChartData', () => {
         { inform_type: 'quick' },
       ]
     )
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.informTypes).toEqual([
       { type: 'classic', count: 3, fill: 'var(--color-classic)' },
       { type: 'quick', count: 5, fill: 'var(--color-quick)' },
@@ -229,7 +221,7 @@ describe('getDashboardChartData', () => {
 
   it('handles null generation log data as 0 counts', async () => {
     setupMocks([], [], null)
-    const result = await getDashboardChartData()
+    const result = await getDashboardChartData('doctor-1')
     expect(result!.informTypes[0].count).toBe(0)
     expect(result!.informTypes[1].count).toBe(0)
   })

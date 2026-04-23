@@ -114,7 +114,7 @@ describe('processQuickInforme', () => {
       if (table === 'inform_generation_log') {
         return {
           select: jest.fn(() => ({
-            eq: jest.fn().mockResolvedValue({ count: 10, error: null }),
+            eq: jest.fn().mockResolvedValue({ count: 100, error: null }),
           })),
         }
       }

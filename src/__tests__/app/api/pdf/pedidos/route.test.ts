@@ -2,6 +2,12 @@
  * @jest-environment node
  */
 
+// ─── Rate-limit mock ──────────────────────────────────────────────────────────
+const mockCheckRateLimit = jest.fn().mockReturnValue({ allowed: true, retryAfter: 0 })
+jest.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+}))
+
 const mockGetUser = jest.fn()
 
 const mockFrom = jest.fn()
@@ -244,5 +250,16 @@ describe('GET /api/pdf/pedidos', () => {
     const res = await GET(makeRequest({ id: 'inf-1', item: ['Blood test'] }))
     expect(res.status).toBe(500)
     consoleSpy.mockRestore()
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    mockCheckRateLimit.mockReturnValue({ allowed: false, retryAfter: 15 })
+
+    const res = await GET(makeRequest({ id: 'inf-1', item: ['Blood test'] }))
+    const json = await res.json()
+
+    expect(res.status).toBe(429)
+    expect(json).toEqual({ error: 'Too many requests' })
+    expect(res.headers.get('Retry-After')).toBe('15')
   })
 })

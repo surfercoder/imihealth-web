@@ -108,6 +108,43 @@ describe('getPlanInfo', () => {
     expect(result.currentDoctors).toBe(MVP_LIMITS.MAX_DOCTORS)
   })
 
+  it('uses userId parameter when provided instead of fetching from auth', async () => {
+    // doctors count chain
+    const doctorsChain = makeChain()
+    doctorsChain.select.mockResolvedValue({ count: 2 })
+
+    // informes count chain
+    const informesChain = makeChain()
+    informesChain.eq.mockResolvedValue({ count: 5 })
+
+    mockFrom
+      .mockReturnValueOnce(doctorsChain)
+      .mockReturnValueOnce(informesChain)
+
+    const result = await getPlanInfo('explicit-user-id')
+    expect(result.currentInformes).toBe(5)
+    // Should not have called getUser
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('defaults currentInformes to 0 when informeResult lacks count property', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+
+    const doctorsChain = makeChain()
+    doctorsChain.select.mockResolvedValue({ count: 1 })
+
+    // Return an object without a 'count' property (e.g. error scenario)
+    const informesChain = makeChain()
+    informesChain.eq.mockResolvedValue({ error: 'something went wrong' })
+
+    mockFrom
+      .mockReturnValueOnce(doctorsChain)
+      .mockReturnValueOnce(informesChain)
+
+    const result = await getPlanInfo()
+    expect(result.currentInformes).toBe(0)
+  })
+
   it('handles null counts from supabase by defaulting to 0', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
 
