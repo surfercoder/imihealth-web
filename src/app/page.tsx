@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { getTranslations } from "next-intl/server";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { HomeWrapper } from "@/components/home-wrapper";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
@@ -92,10 +93,9 @@ export default async function HomePage({
   const showWelcome = params.welcome === "true";
   const activeTab = params.tab || "informes";
 
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (!user) {
     return <PublicLandingPage />;
@@ -104,7 +104,7 @@ export default async function HomePage({
   // Only await what the shell needs — everything else streams via Suspense
   const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getDoctor(user.id),
     getPlanInfo(user.id),
   ]);
 
@@ -116,7 +116,7 @@ export default async function HomePage({
 
           <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
             <HomeTabs
-              activeTab={activeTab}
+              initialTab={activeTab}
               translations={{
                 informes: t("tabs.informes"),
                 misPacientes: t("tabs.misPacientes"),
@@ -124,22 +124,14 @@ export default async function HomePage({
               }}
               informesContent={<InformesTab />}
               patientsContent={
-                activeTab === "misPacientes" ? (
-                  <Suspense fallback={<TabContentSkeleton variant="patients" />}>
-                    <PatientsTabServer userId={user.id} />
-                  </Suspense>
-                ) : (
-                  <TabContentSkeleton variant="patients" />
-                )
+                <Suspense fallback={<TabContentSkeleton variant="patients" />}>
+                  <PatientsTabServer userId={user.id} />
+                </Suspense>
               }
               dashboardContent={
-                activeTab === "dashboard" ? (
-                  <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
-                    <DashboardTabServer userId={user.id} plan={plan} />
-                  </Suspense>
-                ) : (
-                  <TabContentSkeleton variant="dashboard" />
-                )
+                <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
+                  <DashboardTabServer userId={user.id} plan={plan} />
+                </Suspense>
               }
             />
           </main>

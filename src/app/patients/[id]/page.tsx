@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -48,16 +49,16 @@ export default async function PatientPage({ params, searchParams }: Props) {
   const { id } = await params;
   const searchParamsResolved = await searchParams;
   const tab = searchParamsResolved.tab;
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (!user) redirect("/login");
 
+  const supabase = await createClient();
   const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getDoctor(user.id),
     getPlanInfo(user.id),
   ]);
 

@@ -133,23 +133,19 @@ describe('RealtimeNotificationsProvider', () => {
   })
 
   it('does not create a channel when userId is null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
     render(
-      <RealtimeNotificationsProvider>
+      <RealtimeNotificationsProvider userId={null}>
         <div data-testid="null-child">child</div>
       </RealtimeNotificationsProvider>
     )
     // Provider short-circuits for null userId, rendering children directly
     expect(screen.getByTestId('null-child')).toBeInTheDocument()
-    // Wait for useEffect to resolve
-    await act(async () => {})
     expect(mockChannel).not.toHaveBeenCalled()
   })
 
   it('mounts realtime content inside Suspense when userId is set', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-xyz' } } })
     render(
-      <RealtimeNotificationsProvider>
+      <RealtimeNotificationsProvider userId="user-xyz">
         <div data-testid="auth-child">child</div>
       </RealtimeNotificationsProvider>
     )

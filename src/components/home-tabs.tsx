@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface HomeTabsProps {
-  activeTab: string;
+  initialTab: string;
   translations: {
     informes: string;
     misPacientes: string;
@@ -17,22 +16,21 @@ interface HomeTabsProps {
 }
 
 export function HomeTabs({
-  activeTab,
+  initialTab,
   translations,
   informesContent,
   patientsContent,
   dashboardContent,
 }: HomeTabsProps) {
-  const router = useRouter();
+  const [activeTab, setActiveTab] = useState(() => initialTab);
 
-  const handleTabChange = useCallback(
-    (value: string) => {
-      const params = new URLSearchParams(window.location.search);
-      params.set("tab", value);
-      router.replace(`/?${params.toString()}`, { scroll: false });
-    },
-    [router]
-  );
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    // Sync URL without triggering a server round-trip
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", value);
+    window.history.replaceState(null, "", `/?${params.toString()}`);
+  }, []);
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ProfileForm } from "@/components/profile-form";
@@ -17,10 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (!user) {
     redirect("/login");
@@ -28,11 +27,7 @@ export default async function ProfilePage() {
 
   const [t, { data: doctor }] = await Promise.all([
     getTranslations("profilePage"),
-    supabase
-      .from("doctors")
-      .select("name, email, dni, matricula, phone, especialidad, firma_digital")
-      .eq("id", user.id)
-      .single(),
+    getDoctor(user.id),
   ]);
 
   if (!doctor) {

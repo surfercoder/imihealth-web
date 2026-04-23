@@ -2,16 +2,12 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-const mockReplace = jest.fn()
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mockReplace }),
-}))
-
 import { HomeTabs } from '@/components/home-tabs'
 
+const mockReplaceState = jest.fn()
+
 const defaultProps = {
-  activeTab: 'informes',
+  initialTab: 'informes',
   translations: {
     informes: 'Informes',
     misPacientes: 'Mis pacientes',
@@ -23,7 +19,17 @@ const defaultProps = {
 }
 
 describe('HomeTabs', () => {
-  beforeEach(() => jest.clearAllMocks())
+  const originalReplaceState = window.history.replaceState
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockReplaceState.mockClear()
+    window.history.replaceState = mockReplaceState
+  })
+
+  afterEach(() => {
+    window.history.replaceState = originalReplaceState
+  })
 
   it('renders all three tab triggers', () => {
     render(<HomeTabs {...defaultProps} />)
@@ -37,35 +43,35 @@ describe('HomeTabs', () => {
     expect(screen.getByTestId('informes-tab')).toBeInTheDocument()
   })
 
-  it('renders misPacientes tab content when activeTab is misPacientes', () => {
-    render(<HomeTabs {...defaultProps} activeTab="misPacientes" />)
+  it('renders misPacientes tab content when initialTab is misPacientes', () => {
+    render(<HomeTabs {...defaultProps} initialTab="misPacientes" />)
     expect(screen.getByTestId('mis-pacientes-tab')).toBeInTheDocument()
   })
 
-  it('renders dashboard tab content when activeTab is dashboard', () => {
-    render(<HomeTabs {...defaultProps} activeTab="dashboard" />)
+  it('renders dashboard tab content when initialTab is dashboard', () => {
+    render(<HomeTabs {...defaultProps} initialTab="dashboard" />)
     expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
   })
 
-  it('navigates via router.replace when a tab is clicked', async () => {
+  it('syncs URL via history.replaceState when a tab is clicked', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(mockReplace).toHaveBeenCalledWith('/?tab=dashboard', { scroll: false })
+    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=dashboard')
   })
 
-  it('navigates via router.replace with misPacientes when clicked', async () => {
-    const user = userEvent.setup()
-    render(<HomeTabs {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Mis pacientes' }))
-    expect(mockReplace).toHaveBeenCalledWith('/?tab=misPacientes', { scroll: false })
-  })
-
-  it('calls router.replace to trigger server fetch on tab switch', async () => {
+  it('switches tab content client-side without server round-trip', async () => {
     const user = userEvent.setup()
     render(<HomeTabs {...defaultProps} />)
     expect(screen.getByTestId('informes-tab')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }))
-    expect(mockReplace).toHaveBeenCalledWith('/?tab=dashboard', { scroll: false })
+    expect(screen.getByTestId('dashboard-tab')).toBeInTheDocument()
+  })
+
+  it('syncs URL with misPacientes when clicked', async () => {
+    const user = userEvent.setup()
+    render(<HomeTabs {...defaultProps} />)
+    await user.click(screen.getByRole('tab', { name: 'Mis pacientes' }))
+    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/?tab=misPacientes')
   })
 })

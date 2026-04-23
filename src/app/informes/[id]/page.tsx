@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { Button } from "@/components/ui/button";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Clock, Home } from "lucide-react";
@@ -36,20 +37,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function InformePage({ params, searchParams }: Props) {
-  const { id } = await params;
-  const { tab } = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ id }, { tab }, { data: { user } }] = await Promise.all([
+    params,
+    searchParams,
+    getAuthUser(),
+  ]);
 
   if (!user) redirect("/login");
 
-  const [t, { data: doctor }] = await Promise.all([
+  const [supabase, t, { data: doctor }, locale] = await Promise.all([
+    createClient(),
     getTranslations(),
-    supabase.from("doctors").select("name, email, phone").eq("id", user.id).single(),
+    getDoctor(user.id),
+    getLocale(),
   ]);
-  const locale = await getLocale();
   /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 

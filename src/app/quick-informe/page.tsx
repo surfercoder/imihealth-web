@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { QuickInformeFlow } from "@/components/quick-informe-flow";
@@ -19,16 +19,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function QuickInformePage() {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (!user) redirect("/login");
 
   const [t, { data: doctor }] = await Promise.all([
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getDoctor(user.id),
   ]);
 
   return (

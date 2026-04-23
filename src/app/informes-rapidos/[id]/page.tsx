@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { getTranslations } from "next-intl/server";
 import { AlertCircle, ArrowLeft, Loader2, Mic } from "lucide-react";
 import Link from "next/link";
@@ -24,16 +25,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function InformeRapidoPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (!user) redirect("/login");
 
+  const supabase = await createClient();
   const [t, { data: doctor }] = await Promise.all([
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getDoctor(user.id),
   ]);
 
   const { data: informe, error } = await supabase

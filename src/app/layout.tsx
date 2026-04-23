@@ -9,6 +9,7 @@ import { RealtimeNotificationsProvider } from "@/providers/realtime-notification
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { getAuthUser } from "@/lib/cached-queries";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,7 +45,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
+  const [locale, messages, { data: { user } }] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    getAuthUser(),
+  ]);
 
   return (
     <html lang={locale}>
@@ -54,7 +59,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SentryErrorBoundary>
             <Suspense>
-              <RealtimeNotificationsProvider>
+              <RealtimeNotificationsProvider userId={user?.id ?? null}>
                 <ViewTransition name="page-content">
                   {children}
                 </ViewTransition>

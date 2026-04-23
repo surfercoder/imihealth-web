@@ -1,8 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { Suspense } from "react";
 
 const RealtimeNotificationsProviderContent = dynamic(
   () =>
@@ -13,19 +12,12 @@ const RealtimeNotificationsProviderContent = dynamic(
 );
 
 export function RealtimeNotificationsProvider({
+  userId,
   children,
 }: {
+  userId: string | null;
   children: React.ReactNode;
 }) {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id ?? null);
-    });
-  }, []);
-
   // Skip loading the Supabase realtime client for unauthenticated visitors
   if (!userId) {
     return <>{children}</>;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { AudioRecorder } from "@/components/audio-recorder";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { Button } from "@/components/ui/button";
@@ -25,22 +26,21 @@ interface Props {
 }
 
 export default async function GrabarPage({ params, searchParams }: Props) {
-  const { id } = await params;
-  const { type, tab } = await searchParams;
+  const [{ id }, { type, tab }, { data: { user } }] = await Promise.all([
+    params,
+    searchParams,
+    getAuthUser(),
+  ]);
   const isQuickReport = type === "quick";
-  
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const [t, { data: doctor }] = await Promise.all([
+  const [supabase, t, { data: doctor }, locale] = await Promise.all([
+    createClient(),
     getTranslations(),
-    supabase.from("doctors").select("name").eq("id", user.id).single(),
+    getDoctor(user.id),
+    getLocale(),
   ]);
-  const locale = await getLocale();
   /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
 
