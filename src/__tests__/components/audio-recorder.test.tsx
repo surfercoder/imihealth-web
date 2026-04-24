@@ -176,6 +176,23 @@ describe('AudioRecorder — recording state', () => {
       expect(screen.getByText('Grabando...')).toBeInTheDocument()
     })
   })
+
+  it('closes confirm dialog when cancel button is clicked', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(screen.getByText(/¿Terminaste de grabar\?/)).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /No, seguir grabando/i }))
+    await waitFor(() => {
+      expect(screen.queryByText(/¿Terminaste de grabar\?/)).not.toBeInTheDocument()
+    })
+    // Should still be in recording state
+    expect(screen.getByText('Grabando...')).toBeInTheDocument()
+  })
 })
 
 describe('AudioRecorder — stop and process', () => {
@@ -201,6 +218,7 @@ describe('AudioRecorder — stop and process', () => {
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
@@ -225,6 +243,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al procesar')).toBeInTheDocument()
       expect(screen.getByText('Processing failed')).toBeInTheDocument()
@@ -245,6 +264,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('Error al procesar')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Intentar de nuevo/i }))
     await waitFor(() => {
@@ -262,6 +282,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
     })
@@ -286,6 +307,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText(/No se detectó contenido médico relevante/i)).toBeInTheDocument()
     })
@@ -304,6 +326,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText(/No se pudo transcribir el audio/i)).toBeInTheDocument()
     })
@@ -319,6 +342,7 @@ describe('AudioRecorder — stop and process', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al procesar')).toBeInTheDocument()
       expect(screen.getByText('Network error')).toBeInTheDocument()
@@ -547,6 +571,7 @@ describe('AudioRecorder — ogg mime type', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
   })
@@ -581,6 +606,7 @@ describe('AudioRecorder — mp4 mime type (iOS Safari)', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
   })
@@ -647,6 +673,7 @@ describe('AudioRecorder — stopAndProcess with inactive mediaRecorder', () => {
 
     mediaRecorderState = 'inactive'
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
@@ -779,6 +806,7 @@ describe('AudioRecorder — mime type fallback (line 253 branches)', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
 
     // Verify that fetch was called (blob was appended, not thrown)
@@ -807,6 +835,7 @@ describe('AudioRecorder — fetch throws non-Error (line 265 branch)', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => {
       expect(screen.getByText('Error al procesar')).toBeInTheDocument()
     })
@@ -843,6 +872,7 @@ describe('AudioRecorder — done state with tab param (line 282 branch)', () => 
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
 
     act(() => jest.advanceTimersByTime(1200))
@@ -876,6 +906,7 @@ describe('AudioRecorder — audio/webm (not opus) mime type', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
     ;(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported.mockReturnValue(true)
@@ -929,6 +960,7 @@ describe('AudioRecorder — ondataavailable with data', () => {
     })
 
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
     void OriginalMockMediaRecorder
@@ -971,6 +1003,7 @@ describe('AudioRecorder — mimeType fallback to audio/webm', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.objectContaining({ method: 'POST' }))
     jest.useRealTimers()
@@ -1028,6 +1061,7 @@ describe('AudioRecorder — MediaRecorder constructor SyntaxError fallback', () 
     expect(callCount).toBe(2)
 
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
     await waitFor(() => expect(screen.getByText('¡Informes generados!')).toBeInTheDocument())
     jest.useRealTimers()
   })
@@ -1076,6 +1110,7 @@ describe('AudioRecorder — progress text branches', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Capturando información de la transcripción...')).toBeInTheDocument()
@@ -1098,6 +1133,7 @@ describe('AudioRecorder — progress text branches', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Capturando información de la transcripción...')).toBeInTheDocument()
@@ -1146,6 +1182,7 @@ describe('AudioRecorder — isQuickReport branch', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('¡Informes generados!')).toBeInTheDocument()
@@ -1168,6 +1205,7 @@ describe('AudioRecorder — isQuickReport branch', () => {
     await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
     await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await user.click(screen.getByRole('button', { name: /Sí, finalizar/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Error al procesar')).toBeInTheDocument()

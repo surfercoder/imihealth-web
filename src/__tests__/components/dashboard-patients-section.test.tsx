@@ -1,21 +1,19 @@
 import '@testing-library/jest-dom'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
-const mockSearchPatients = jest.fn()
-jest.mock('@/actions/patients', () => ({
-  searchPatients: (...args: unknown[]) => mockSearchPatients(...args),
+jest.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const map: Record<string, string> = {
+      searchPlaceholder: 'Search by name, DNI or phone…',
+      noSearchResults: 'No patients found for "{query}"',
+    }
+    return map[key] ?? key
+  },
 }))
-jest.mock('@/components/patient-search', () => ({
-  PatientSearch: ({ onSearchChange }: { onSearchChange: (q: string) => void }) => (
-    <input
-      data-testid="patient-search"
-      onChange={(e) => onSearchChange(e.target.value)}
-    />
-  ),
-}))
+
 jest.mock('@/components/patients-list', () => ({
-  PatientsList: ({ patients, isLoading }: { patients: { id: string; name: string }[]; isLoading?: boolean }) => (
-    <div data-testid="patients-list" data-loading={isLoading ? 'true' : 'false'}>
+  PatientsList: ({ patients, searchQuery, noSearchResultsLabel }: { patients: { id: string; name: string }[]; searchQuery?: string; noSearchResultsLabel?: string }) => (
+    <div data-testid="patients-list" data-search={searchQuery ?? ''} data-no-results-label={noSearchResultsLabel ?? ''}>
       {patients.map((p) => (
         <span key={p.id}>{p.name}</span>
       ))}
@@ -25,7 +23,6 @@ jest.mock('@/components/patients-list', () => ({
 
 import { DashboardPatientsSection } from '@/components/dashboard-patients-section'
 import type { PatientWithStats } from '@/actions/patients'
-import { fireEvent } from '@testing-library/react'
 
 const makePatient = (overrides: Partial<PatientWithStats> = {}): PatientWithStats => ({
   id: 'p-1',
@@ -45,165 +42,152 @@ const makePatient = (overrides: Partial<PatientWithStats> = {}): PatientWithStat
 })
 
 describe('DashboardPatientsSection', () => {
-  beforeEach(() => jest.clearAllMocks())
-
-  it('renders initial patients via PatientsList', () => {
-    const patients = [makePatient({ id: 'p-1', name: 'Juan' })]
+  it('renders all patients initially', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan' }),
+      makePatient({ id: 'p-2', name: 'Ana' }),
+    ]
     render(<DashboardPatientsSection patients={patients} />)
-    expect(screen.getByTestId('patients-list')).toBeInTheDocument()
     expect(screen.getByText('Juan')).toBeInTheDocument()
+    expect(screen.getByText('Ana')).toBeInTheDocument()
   })
 
-  it('renders PatientSearch component', () => {
+  it('does not show search input when there are no patients', () => {
     render(<DashboardPatientsSection patients={[]} />)
-    expect(screen.getByTestId('patient-search')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search by name, DNI or phone…')).not.toBeInTheDocument()
   })
 
-  it('does not trigger search when query is less than 2 characters', () => {
+  it('shows search input when there are patients', () => {
     render(<DashboardPatientsSection patients={[makePatient()]} />)
-    fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'a' } })
-    expect(mockSearchPatients).not.toHaveBeenCalled()
+    expect(screen.getByPlaceholderText('Search by name, DNI or phone…')).toBeInTheDocument()
   })
 
-  it('does not trigger search when query is empty or whitespace', () => {
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-    fireEvent.change(screen.getByTestId('patient-search'), { target: { value: '   ' } })
-    expect(mockSearchPatients).not.toHaveBeenCalled()
-  })
+  it('filters patients by name', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan Pérez' }),
+      makePatient({ id: 'p-2', name: 'Ana García' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
 
-  it('triggers search when query has 2+ characters', async () => {
-    mockSearchPatients.mockResolvedValue({
-      data: [{ id: 'p-2', name: 'Ana', dni: '111', email: null, phone: '123', informe_count: 0, last_informe_at: null, match_type: 'patient' }],
-    })
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'An' } })
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: 'ana' },
     })
 
-    expect(mockSearchPatients).toHaveBeenCalledWith('An')
+    expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument()
+    expect(screen.getByText('Ana García')).toBeInTheDocument()
   })
 
-  it('shows search results after successful search', async () => {
-    mockSearchPatients.mockResolvedValue({
-      data: [{ id: 'p-2', name: 'Ana García', dni: '111', email: null, phone: '123', informe_count: 1, last_informe_at: null, match_type: 'patient' }],
+  it('filters patients by DNI', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan', dni: '12345678' }),
+      makePatient({ id: 'p-2', name: 'Ana', dni: '87654321' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: '8765' },
     })
+
+    expect(screen.queryByText('Juan')).not.toBeInTheDocument()
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+  })
+
+  it('filters patients by phone', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan', phone: '+5491155' }),
+      makePatient({ id: 'p-2', name: 'Ana', phone: '+5491166' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: '1166' },
+    })
+
+    expect(screen.queryByText('Juan')).not.toBeInTheDocument()
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+  })
+
+  it('filters patients by email', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan', email: 'juan@test.com' }),
+      makePatient({ id: 'p-2', name: 'Ana', email: 'ana@test.com' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: 'ana@' },
+    })
+
+    expect(screen.queryByText('Juan')).not.toBeInTheDocument()
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+  })
+
+  it('shows all patients when query is cleared', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Carlos López' }),
+      makePatient({ id: 'p-2', name: 'María Ruiz' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    const input = screen.getByPlaceholderText('Search by name, DNI or phone…')
+    fireEvent.change(input, { target: { value: 'Carlos' } })
+    expect(screen.queryByText('María Ruiz')).not.toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: '' } })
+    expect(screen.getByText('Carlos López')).toBeInTheDocument()
+    expect(screen.getByText('María Ruiz')).toBeInTheDocument()
+  })
+
+  it('passes searchQuery and noSearchResultsLabel to PatientsList', () => {
     render(<DashboardPatientsSection patients={[makePatient()]} />)
 
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: 'test' },
+    })
+
+    const list = screen.getByTestId('patients-list')
+    expect(list).toHaveAttribute('data-search', 'test')
+    expect(list).toHaveAttribute('data-no-results-label', 'No patients found for "{query}"')
+  })
+
+  it('shows clear button when query is not empty and clears on click', () => {
+    render(<DashboardPatientsSection patients={[makePatient()]} />)
+
+    const input = screen.getByPlaceholderText('Search by name, DNI or phone…')
+    fireEvent.change(input, { target: { value: 'test' } })
+
+    const clearButton = screen.getByRole('button')
+    fireEvent.click(clearButton)
+
+    expect(input).toHaveValue('')
+  })
+
+  it('is case-insensitive', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: 'Juan Pérez' }),
+      makePatient({ id: 'p-2', name: 'Ana García' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: 'ANA' },
+    })
+
+    expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument()
+    expect(screen.getByText('Ana García')).toBeInTheDocument()
+  })
+
+  it('handles patients with null name, dni, phone, and email gracefully', () => {
+    const patients = [
+      makePatient({ id: 'p-1', name: null as unknown as string, dni: null as unknown as string, phone: null as unknown as string, email: null as unknown as string }),
+      makePatient({ id: 'p-2', name: 'Ana García' }),
+    ]
+    render(<DashboardPatientsSection patients={patients} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Search by name, DNI or phone…'), {
+      target: { value: 'ana' },
     })
 
     expect(screen.getByText('Ana García')).toBeInTheDocument()
-    expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument()
-  })
-
-  it('shows empty results when search returns no data (data undefined)', async () => {
-    mockSearchPatients.mockResolvedValue({ error: 'No autenticado' })
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'xyz' } })
-    })
-
-    // With no data, searchResults is set to [] so no patients shown
-    expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument()
-  })
-
-  it('shows empty results when search throws an error', async () => {
-    mockSearchPatients.mockRejectedValue(new Error('Network error'))
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'err' } })
-    })
-
-    expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument()
-  })
-
-  it('resets to initial patients when query drops below 2 chars', async () => {
-    mockSearchPatients.mockResolvedValue({
-      data: [{ id: 'p-2', name: 'Ana', dni: '111', email: null, phone: '123', informe_count: 0, last_informe_at: null, match_type: 'patient' }],
-    })
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    // First, search
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'Ana' } })
-    })
-    expect(screen.getByText('Ana')).toBeInTheDocument()
-
-    // Then clear
-    await act(async () => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'A' } })
-    })
-
-    // Should reset to initial patients
-    expect(screen.getByText('Juan Pérez')).toBeInTheDocument()
-  })
-
-  it('sets isLoading true during search and false after', async () => {
-    let resolveSearch: (value: unknown) => void
-    mockSearchPatients.mockReturnValue(
-      new Promise((resolve) => { resolveSearch = resolve })
-    )
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    // Before search
-    expect(screen.getByTestId('patients-list')).toHaveAttribute('data-loading', 'false')
-
-    // Trigger search
-    act(() => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'test' } })
-    })
-
-    // During search
-    expect(screen.getByTestId('patients-list')).toHaveAttribute('data-loading', 'true')
-
-    // Resolve search
-    await act(async () => {
-      resolveSearch!({ data: [] })
-    })
-
-    // After search
-    expect(screen.getByTestId('patients-list')).toHaveAttribute('data-loading', 'false')
-  })
-
-  it('ignores stale search results', async () => {
-    let resolveFirst: (value: unknown) => void
-    let resolveSecond: (value: unknown) => void
-
-    mockSearchPatients
-      .mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
-      .mockReturnValueOnce(new Promise((r) => { resolveSecond = r }))
-
-    render(<DashboardPatientsSection patients={[makePatient()]} />)
-
-    // Trigger first search
-    act(() => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'first' } })
-    })
-
-    // Trigger second search (makes first stale)
-    act(() => {
-      fireEvent.change(screen.getByTestId('patient-search'), { target: { value: 'second' } })
-    })
-
-    // Resolve second first
-    await act(async () => {
-      resolveSecond!({
-        data: [{ id: 'p-3', name: 'Second Result', dni: '222', email: null, phone: '456', informe_count: 0, last_informe_at: null, match_type: 'patient' }],
-      })
-    })
-
-    // Resolve first (stale, should be ignored)
-    await act(async () => {
-      resolveFirst!({
-        data: [{ id: 'p-4', name: 'First Result', dni: '333', email: null, phone: '789', informe_count: 0, last_informe_at: null, match_type: 'patient' }],
-      })
-    })
-
-    expect(screen.getByText('Second Result')).toBeInTheDocument()
-    expect(screen.queryByText('First Result')).not.toBeInTheDocument()
   })
 })

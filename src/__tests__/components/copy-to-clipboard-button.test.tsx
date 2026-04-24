@@ -68,4 +68,25 @@ describe('CopyToClipboardButton', () => {
     act(() => { jest.advanceTimersByTime(2000) })
     expect(screen.getByRole('button')).toBeInTheDocument()
   })
+
+  it('toggles between Copy and Check icons when clicked', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: jest.fn().mockResolvedValue(undefined) },
+      writable: true,
+      configurable: true,
+    })
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const { container } = render(<CopyToClipboardButton text="text" />)
+    // Initially shows Copy icon (svg element present)
+    const svgBefore = container.querySelector('svg')
+    expect(svgBefore).toBeInTheDocument()
+    // After clicking — state changes (icon swaps to Check)
+    await user.click(screen.getByRole('button'))
+    const svgAfter = container.querySelector('svg')
+    expect(svgAfter).toBeInTheDocument()
+    // After timeout resets back
+    act(() => { jest.advanceTimersByTime(2000) })
+    const svgFinal = container.querySelector('svg')
+    expect(svgFinal).toBeInTheDocument()
+  })
 })

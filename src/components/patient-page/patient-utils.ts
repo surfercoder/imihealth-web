@@ -29,15 +29,19 @@ export function formatInformeDate(createdAt: string, locale: string): string {
   });
 }
 
-export function buildInformePreview(informeDoctor: string | null): string | null {
-  if (!informeDoctor) return null;
-  const plain = informeDoctor
+export function stripMarkdown(text: string): string {
+  return text
     .replace(/^#+\s*/gm, "")
     .replace(/\*+/g, "")
     .replace(/[_~`>]/g, "")
     .replace(/\n/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+export function buildInformePreview(informeDoctor: string | null): string | null {
+  if (!informeDoctor) return null;
+  const plain = stripMarkdown(informeDoctor);
   return plain.slice(0, 120) + "\u2026";
 }
 

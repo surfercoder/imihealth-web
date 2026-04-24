@@ -110,7 +110,9 @@
     "emptyHint": "Create a new report to register your first patient.",
     "lastConsult": "Last consult:",
     "report": "report",
-    "reports": "reports"
+    "reports": "reports",
+    "searchPlaceholder": "Search by name, DNI or phone…",
+    "noSearchResults": "No patients found for \"{query}\""
   },
   "patientSearch": {
     "placeholder": "Search by name, DNI, phone, or medical report…",
@@ -198,7 +200,9 @@
     "noConsults": "No consultations yet",
     "noConsultsHint": "Start a new consultation using the button above.",
     "newConsult": "New consultation",
-    "creating": "Creating…"
+    "creating": "Creating…",
+    "searchPlaceholder": "Search by date or content…",
+    "noSearchResults": "No reports found for \"{query}\""
   },
   "status": {
     "recording": "Recording",
@@ -293,7 +297,11 @@
     "stateTranscriptionFailedHint": "We couldn't convert the recording to text. This can happen if the microphone didn't capture sound properly, there was too much background noise, or the recording was too short. Please bring the microphone closer and try again.",
     "transcriptionFailedTitle": "Transcription error",
     "transcriptionFailedDescription": "The audio could not be transcribed. Please check that your microphone is working correctly and try again.",
-    "btnTryAgain": "Try again"
+    "btnTryAgain": "Try again",
+    "confirmStopTitle": "Are you done recording?",
+    "confirmStopDescription": "If you finish recording, the audio will be processed. If you pressed the button by mistake, you can go back to recording.",
+    "confirmStopYes": "Yes, finish",
+    "confirmStopNo": "No, keep recording"
   },
   "informeEditor": {
     "edit": "Edit reports",

@@ -1,12 +1,21 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useTranslations } from "next-intl";
 import { useAudioRecording } from "@/components/audio-recorder/use-audio-recording";
 import { useProcessingStep } from "@/components/audio-recorder/recorder-state";
 import { RecorderStatusDisplay } from "@/components/audio-recorder/recorder-status-display";
 import { RecorderControls } from "@/components/audio-recorder/recorder-controls";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface AudioRecorderProps {
   informeId: string;
@@ -35,6 +44,17 @@ function AudioRecorderContent({
     isQuickReport,
     onQuickReportComplete,
   });
+
+  const [showConfirmStop, setShowConfirmStop] = useState(false);
+
+  const handleStopRequest = useCallback(() => {
+    setShowConfirmStop(true);
+  }, []);
+
+  const handleConfirmStop = useCallback(() => {
+    setShowConfirmStop(false);
+    stopAndProcess();
+  }, [stopAndProcess]);
 
   const { phase, error, duration, transcript, progress } = state;
   const isProcessing = ["uploading", "transcribing", "processing", "stopped"].includes(phase);
@@ -83,9 +103,26 @@ function AudioRecorderContent({
         onStart={startRecording}
         onPause={pauseRecording}
         onResume={resumeRecording}
-        onStop={stopAndProcess}
+        onStop={handleStopRequest}
         onRetry={handleRetry}
       />
+
+      <Dialog open={showConfirmStop} onOpenChange={setShowConfirmStop}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{t("confirmStopTitle")}</DialogTitle>
+            <DialogDescription>{t("confirmStopDescription")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmStop(false)}>
+              {t("confirmStopNo")}
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmStop}>
+              {t("confirmStopYes")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {(isActive || isPaused) && transcript && (
         <div className="rounded-lg border border-border bg-muted p-4 max-h-40 overflow-y-auto">

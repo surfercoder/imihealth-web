@@ -110,7 +110,9 @@
     "emptyHint": "Creá un nuevo informe para registrar tu primer paciente.",
     "lastConsult": "Última consulta:",
     "report": "informe",
-    "reports": "informes"
+    "reports": "informes",
+    "searchPlaceholder": "Buscar por nombre, DNI o teléfono…",
+    "noSearchResults": "No se encontraron pacientes para \"{query}\""
   },
   "patientSearch": {
     "placeholder": "Buscar por nombre, DNI, teléfono o informe médico…",
@@ -198,7 +200,9 @@
     "noConsults": "Sin consultas aún",
     "noConsultsHint": "Iniciá una nueva consulta usando el botón de arriba.",
     "newConsult": "Nueva consulta",
-    "creating": "Creando…"
+    "creating": "Creando…",
+    "searchPlaceholder": "Buscar por fecha o contenido…",
+    "noSearchResults": "No se encontraron informes para \"{query}\""
   },
   "status": {
     "recording": "Grabando",
@@ -293,7 +297,11 @@
     "stateTranscriptionFailedHint": "No pudimos convertir la grabación a texto. Esto puede ocurrir si el micrófono no captó bien el sonido, hubo mucho ruido de fondo, o la grabación fue muy corta. Por favor, acercá el micrófono e intentá de nuevo.",
     "transcriptionFailedTitle": "Error de transcripción",
     "transcriptionFailedDescription": "El audio no pudo ser transcrito. Por favor, verificá que el micrófono funcione correctamente e intentá de nuevo.",
-    "btnTryAgain": "Intentar de nuevo"
+    "btnTryAgain": "Intentar de nuevo",
+    "confirmStopTitle": "¿Terminaste de grabar?",
+    "confirmStopDescription": "Si finalizás la grabación, se procesará el audio. Si tocaste el botón por error, podés volver a grabar.",
+    "confirmStopYes": "Sí, finalizar",
+    "confirmStopNo": "No, seguir grabando"
   },
   "informeEditor": {
     "edit": "Editar informes",

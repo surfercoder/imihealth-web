@@ -51,4 +51,14 @@ describe('extractDiagnosticoPresuntivo', () => {
     const text = 'Diagnostico presuntivo'
     expect(extractDiagnosticoPresuntivo(text)).toBeNull()
   })
+
+  it('extracts diagnosis when blank line separates header from content', () => {
+    const text = 'Diagnóstico presuntivo:\n\nOsteoartrosis post-meniscectomía de rodilla derecha\n\nClasificación:'
+    expect(extractDiagnosticoPresuntivo(text)).toBe('Osteoartrosis post-meniscectomía de rodilla derecha')
+  })
+
+  it('extracts multi-line diagnosis after blank line', () => {
+    const text = 'Diagnóstico presuntivo:\n\n- Lumbalgia crónica\n- Hernia discal L4-L5\n\nDiferenciales:'
+    expect(extractDiagnosticoPresuntivo(text)).toBe('Lumbalgia crónica. Hernia discal L4-L5')
+  })
 })

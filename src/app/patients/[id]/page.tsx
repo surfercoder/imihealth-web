@@ -23,6 +23,7 @@ import {
   computePatientAge,
   formatInformeDate,
   formatPatientDob,
+  stripMarkdown,
 } from "@/components/patient-page/patient-utils";
 
 interface Props {
@@ -91,14 +92,22 @@ export default async function PatientPage({ params, searchParams }: Props) {
   const patientAge = computePatientAge(patient.dob);
   const completedCount = informes.filter((i) => i.status === "completed").length;
 
-  const informeItems: InformeHistoryItemData[] = informes.map((informe) => ({
-    id: informe.id,
-    status: informe.status,
-    href: buildInformeHref(informe.id, informe.status, tab),
-    date: formatInformeDate(informe.created_at, locale),
-    preview: buildInformePreview(informe.informe_doctor),
-    statusLabel: t(`status.${informe.status}` as Parameters<typeof t>[0]),
-  }));
+  const informeItems: InformeHistoryItemData[] = informes.map((informe) => {
+    const d = new Date(informe.created_at);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return {
+      id: informe.id,
+      status: informe.status,
+      href: buildInformeHref(informe.id, informe.status, tab),
+      date: formatInformeDate(informe.created_at, locale),
+      dateSearch: `${dd}/${mm}/${yyyy}`,
+      preview: buildInformePreview(informe.informe_doctor),
+      statusLabel: t(`status.${informe.status}` as Parameters<typeof t>[0]),
+      rawText: informe.informe_doctor ? stripMarkdown(informe.informe_doctor) : null,
+    };
+  });
 
   const countLabel = `${informes.length} ${
     informes.length === 1 ? t("patientPage.consult") : t("patientPage.consults2")
@@ -152,6 +161,8 @@ export default async function PatientPage({ params, searchParams }: Props) {
               noConsults: t("patientPage.noConsults"),
               noConsultsHint: t("patientPage.noConsultsHint"),
               reportLinkLabel: t("nav.report"),
+              searchPlaceholder: t("patientPage.searchPlaceholder"),
+              noSearchResults: t("patientPage.noSearchResults"),
             }}
           />
         </main>

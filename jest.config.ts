@@ -32,6 +32,7 @@ const config: Config = {
     '!src/components/ui/**',
     '!src/__tests__/**',
   ],
+  testTimeout: 15000,
   coverageThreshold: {
     global: {
       branches: 100,

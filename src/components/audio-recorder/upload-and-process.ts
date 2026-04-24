@@ -44,10 +44,19 @@ export async function uploadAndProcess(
     dispatch({ type: "SET_PROGRESS", progress: 100 });
 
     if (result.error) {
-      Sentry.captureMessage(result.error, {
-        level: "error",
-        tags: { flow: "quick-informe-client" },
-      });
+      // Expected user-facing errors (no medical content, transcription failure)
+      // are not crashes — don't pollute Sentry with them.
+      const expectedErrors = [
+        "No se detectó contenido médico relevante",
+        "No se pudo transcribir el audio",
+      ];
+      const isExpected = expectedErrors.some((msg) => result.error!.includes(msg));
+      if (!isExpected) {
+        Sentry.captureMessage(result.error, {
+          level: "error",
+          tags: { flow: "quick-informe-client" },
+        });
+      }
       dispatch({ type: "SET_ERROR", error: result.error });
       dispatch({ type: "SET_PHASE", phase: "error" });
       toast.error(t("errorProcess"), { description: result.error });

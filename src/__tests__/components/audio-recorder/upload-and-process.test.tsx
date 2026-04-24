@@ -112,6 +112,17 @@ describe('uploadAndProcess (classic flow)', () => {
     await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es')
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Error de red' })
   })
+
+  it('includes recordingDuration in the request body when provided', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) })
+    const dispatch = jest.fn()
+    jest.useFakeTimers()
+    await uploadAndProcess(dispatch, [new Blob(['x'])], 'audio/webm', 'doc', 'i-dur', 'tx', 'fb', t, router, 'es', null, false, undefined, 42)
+    expect(global.fetch).toHaveBeenCalledWith('/api/process-informe', expect.objectContaining({
+      body: expect.stringContaining('"recordingDuration":42'),
+    }))
+    jest.useRealTimers()
+  })
 })
 
 describe('uploadAndProcess (quick report flow)', () => {

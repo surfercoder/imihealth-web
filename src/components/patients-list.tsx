@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { User, Phone, FileText, Clock, Users, Loader2 } from "lucide-react";
+import { User, Phone, FileText, Clock, Users, Loader2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PatientWithStats } from "@/actions/patients";
 import { useTranslations, useLocale } from "next-intl";
@@ -13,6 +13,7 @@ import { useCurrentTab } from "@/hooks/use-current-tab";
 interface PatientsListProps {
   patients: PatientWithStats[];
   searchQuery?: string;
+  noSearchResultsLabel?: string;
   isLoading?: boolean;
 }
 
@@ -23,7 +24,7 @@ const statusColors: Record<string, string> = {
   error: "text-destructive",
 };
 
-function PatientsListContent({ patients, isLoading }: PatientsListProps) {
+function PatientsListContent({ patients, searchQuery, noSearchResultsLabel, isLoading }: PatientsListProps) {
   const t = useTranslations("patientsList");
   const locale = useLocale();
   const currentTab = useCurrentTab();
@@ -32,6 +33,21 @@ function PatientsListContent({ patients, isLoading }: PatientsListProps) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const isSearchActive = searchQuery && searchQuery.trim().length > 0;
+
+  if (patients.length === 0 && isSearchActive) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center shadow-sm">
+        <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground mb-4">
+          <Search className="size-7" />
+        </div>
+        <p className="font-medium text-card-foreground">
+          {(noSearchResultsLabel ?? "No patients found for \"{query}\"").replace("{query}", searchQuery.trim())}
+        </p>
       </div>
     );
   }
@@ -51,7 +67,7 @@ function PatientsListContent({ patients, isLoading }: PatientsListProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 max-h-[504px] overflow-y-auto">
       {patients.map((patient) => {
         const lastDate = patient.last_informe_at
           ? new Date(patient.last_informe_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
@@ -70,10 +86,10 @@ function PatientsListContent({ patients, isLoading }: PatientsListProps) {
             key={patient.id}
             className="group relative flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
-            <Link 
-              href={currentTab ? `/patients/${patient.id}?tab=${currentTab}` : `/patients/${patient.id}`} 
-              className="absolute inset-0 rounded-xl" 
-              aria-label={patient.name} 
+            <Link
+              href={currentTab ? `/patients/${patient.id}?tab=${currentTab}` : `/patients/${patient.id}`}
+              className="absolute inset-0 rounded-xl"
+              aria-label={patient.name}
             />
 
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary relative z-10 pointer-events-none">

@@ -27,13 +27,13 @@ export async function searchPatients(query: string): Promise<{
     )
     .limit(10);
 
-  // Search by report content (keyword in informe_doctor, informe_paciente, transcript)
+  // Search by report content (keyword in informe_doctor, informe_paciente)
   const reportSearchPromise = supabase
     .from("informes")
     .select(`patient_id, created_at, status, patients!inner(id, name, dni, email, phone)`)
     .eq("doctor_id", user.id)
     .or(
-      `informe_doctor.ilike.%${trimmed}%,informe_paciente.ilike.%${trimmed}%,transcript.ilike.%${trimmed}%`
+      `informe_doctor.ilike.%${trimmed}%,informe_paciente.ilike.%${trimmed}%`
     )
     .limit(10);
 

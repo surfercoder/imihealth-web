@@ -9,8 +9,12 @@ export interface InformeHistoryItemData {
   status: string;
   href: string;
   date: string;
+  /** Date formatted as dd/mm/yyyy for search matching (e.g. "15/04/2026") */
+  dateSearch: string;
   preview: string | null;
   statusLabel: string;
+  /** Full plain-text of informe_doctor (markdown stripped) for client-side search */
+  rawText: string | null;
 }
 
 interface InformeHistoryItemProps {

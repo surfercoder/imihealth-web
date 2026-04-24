@@ -1,81 +1,60 @@
 "use client";
 
-import { useState, useCallback, useRef, Suspense } from "react";
-import { PatientSearch } from "@/components/patient-search";
+import { useState, useMemo } from "react";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { PatientsList } from "@/components/patients-list";
 import type { PatientWithStats } from "@/actions/patients";
-import { searchPatients } from "@/actions/patients";
+import { useTranslations } from "next-intl";
 
 interface DashboardPatientsSectionProps {
   patients: PatientWithStats[];
 }
 
 export function DashboardPatientsSection({ patients }: DashboardPatientsSectionProps) {
-  const [searchResults, setSearchResults] = useState<PatientWithStats[] | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchRef = useRef(0);
+  const [query, setQuery] = useState("");
+  const t = useTranslations("patientsList");
 
-  const handleSearchChange = useCallback((query: string) => {
-    const trimmed = query.trim();
-
-    if (trimmed.length < 2) {
-      setSearchResults(null);
-      setIsSearching(false);
-      return;
-    }
-
-    const searchId = ++searchRef.current;
-    setIsSearching(true);
-    setSearchResults(null);
-
-    searchPatients(trimmed)
-      .then((result) => {
-        if (searchRef.current !== searchId) return;
-        if (result.data) {
-          const mapped: PatientWithStats[] = result.data.map((r) => ({
-            id: r.id,
-            name: r.name,
-            dni: r.dni,
-            email: r.email,
-            phone: r.phone,
-            dob: "",
-            obra_social: null,
-            nro_afiliado: null,
-            plan: null,
-            created_at: "",
-            informe_count: r.informe_count,
-            last_informe_at: r.last_informe_at,
-            last_informe_status: null,
-          }));
-          setSearchResults(mapped);
-        } else {
-          setSearchResults([]);
-        }
-        setIsSearching(false);
-      })
-      .catch(() => {
-        /* v8 ignore next */
-        if (searchRef.current !== searchId) return;
-        setSearchResults([]);
-        setIsSearching(false);
-      });
-  }, []);
-
-  const displayedPatients = searchResults ?? patients;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return patients;
+    return patients.filter((p) => {
+      const name = p.name?.toLowerCase() ?? "";
+      const dni = p.dni?.toLowerCase() ?? "";
+      const phone = p.phone?.toLowerCase() ?? "";
+      const email = p.email?.toLowerCase() ?? "";
+      return name.includes(q) || dni.includes(q) || phone.includes(q) || email.includes(q);
+    });
+  }, [query, patients]);
 
   return (
     <div className="space-y-4">
-      <Suspense fallback={<div className="h-10" />}>
-        <PatientSearch
-          onSearchChange={handleSearchChange}
-        />
-      </Suspense>
-      <Suspense fallback={<PatientsList patients={displayedPatients} isLoading={true} />}>
-        <PatientsList
-          patients={displayedPatients}
-          isLoading={isSearching}
-        />
-      </Suspense>
+      {patients.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            className="pl-9 pr-9 bg-card border-border text-card-foreground placeholder:text-muted-foreground focus-visible:ring-primary/50"
+            autoComplete="off"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+      )}
+      <PatientsList
+        patients={filtered}
+        searchQuery={query}
+        noSearchResultsLabel={t("noSearchResults")}
+      />
     </div>
   );
 }

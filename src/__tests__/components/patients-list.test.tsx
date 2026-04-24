@@ -177,3 +177,37 @@ describe('PatientsList — with patients', () => {
     ;(useLocale as jest.Mock).mockReturnValue('es')
   })
 })
+
+describe('PatientsList — no search results state', () => {
+  it('renders no-search-results state when patients is empty and searchQuery is active', () => {
+    render(
+      <PatientsList
+        patients={[]}
+        searchQuery="xyz"
+        noSearchResultsLabel='No patients found for "{query}"'
+      />
+    )
+    expect(screen.getByText('No patients found for "xyz"')).toBeInTheDocument()
+  })
+
+  it('uses default label when noSearchResultsLabel is not provided', () => {
+    render(
+      <PatientsList
+        patients={[]}
+        searchQuery="abc"
+      />
+    )
+    expect(screen.getByText('No patients found for "abc"')).toBeInTheDocument()
+  })
+
+  it('does not show no-search-results when searchQuery is whitespace-only', () => {
+    render(
+      <PatientsList
+        patients={[]}
+        searchQuery="   "
+      />
+    )
+    // Should show the generic empty state instead
+    expect(screen.getByText('Sin pacientes aún')).toBeInTheDocument()
+  })
+})
