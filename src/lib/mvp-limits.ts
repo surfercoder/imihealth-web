@@ -1,12 +1,6 @@
-/**
- * MVP plan limits.
- *
- * Read from environment variables so they can be changed at runtime
- * without redeploying. Falls back to the original defaults.
- *
- * When moving to production with real subscription plans,
- * replace these with values fetched from the plan/subscription system.
- */
+// MAX_INFORMES_PER_DOCTOR is the Free plan informe quota. Pro is unlimited.
+// MAX_DOCTORS is a global signup cap left over from MVP testing — will be
+// removed when paid plans go live.
 
 export const MVP_LIMITS = {
   MAX_DOCTORS: Number(process.env.MVP_MAX_DOCTORS ?? 20),

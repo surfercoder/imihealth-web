@@ -13,15 +13,51 @@ jest.mock('@/utils/supabase/server', () => ({
 import { getPlanInfo } from '@/actions/plan'
 import { MVP_LIMITS } from '@/lib/mvp-limits'
 
-function makeChain(overrides: Record<string, jest.Mock> = {}) {
-  const chain: Record<string, jest.Mock> = {
-    select: jest.fn(),
-    eq: jest.fn(),
-  }
-  Object.assign(chain, overrides)
-  chain.select.mockReturnValue(chain)
-  chain.eq.mockReturnValue(chain)
-  return chain
+interface SubscriptionFields {
+  plan?: 'free' | 'pro_monthly' | 'pro_yearly'
+  status?: 'active' | 'cancelled' | 'past_due' | 'pending'
+  current_period_end?: string | null
+}
+
+function setupTables({
+  doctorCount = 1,
+  informeCount = 0,
+  informeResultOverride,
+  subscription,
+}: {
+  doctorCount?: number | null
+  informeCount?: number | null
+  informeResultOverride?: Record<string, unknown>
+  subscription?: SubscriptionFields | null
+} = {}) {
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'doctors') {
+      return {
+        select: jest.fn().mockResolvedValue({ count: doctorCount }),
+      }
+    }
+    if (table === 'inform_generation_log') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn().mockResolvedValue(
+            informeResultOverride ?? { count: informeCount },
+          ),
+        })),
+      }
+    }
+    if (table === 'subscriptions') {
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest
+              .fn()
+              .mockResolvedValue({ data: subscription ?? null }),
+          })),
+        })),
+      }
+    }
+    return {}
+  })
 }
 
 describe('getPlanInfo', () => {
@@ -29,14 +65,15 @@ describe('getPlanInfo', () => {
 
   it('returns plan info with zero informes when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-
-    // doctors count chain
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: 3 })
-    mockFrom.mockReturnValue(doctorsChain)
+    setupTables({ doctorCount: 3 })
 
     const result = await getPlanInfo()
     expect(result).toEqual({
+      plan: 'free',
+      status: 'active',
+      isPro: false,
+      isReadOnly: false,
+      periodEnd: null,
       maxInformes: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
       currentInformes: 0,
       canCreateInforme: true,
@@ -46,62 +83,146 @@ describe('getPlanInfo', () => {
     })
   })
 
-  it('returns plan info with currentInformes when user is authenticated', async () => {
+  it('returns plan info with currentInformes when user is authenticated on free plan', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    // doctors count chain (resolved in Promise.all)
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: 5 })
-
-    // informes count chain (called after Promise.all)
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ count: 4 })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+    setupTables({
+      doctorCount: 5,
+      informeCount: 4,
+      subscription: { plan: 'free', status: 'active', current_period_end: null },
+    })
 
     const result = await getPlanInfo()
-    expect(result).toEqual({
-      maxInformes: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
-      currentInformes: 4,
-      canCreateInforme: true,
-      maxDoctors: MVP_LIMITS.MAX_DOCTORS,
-      currentDoctors: 5,
-      canSignUp: true,
-    })
+    expect(result.plan).toBe('free')
+    expect(result.currentInformes).toBe(4)
+    expect(result.canCreateInforme).toBe(true)
+    expect(result.isPro).toBe(false)
+    expect(result.isReadOnly).toBe(false)
   })
 
-  it('returns canCreateInforme false when limit is reached', async () => {
+  it('returns canCreateInforme false when free plan limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: 1 })
-
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ count: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+    setupTables({
+      informeCount: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
+      subscription: { plan: 'free', status: 'active', current_period_end: null },
+    })
 
     const result = await getPlanInfo()
     expect(result.canCreateInforme).toBe(false)
     expect(result.currentInformes).toBe(MVP_LIMITS.MAX_INFORMES_PER_DOCTOR)
   })
 
+  it('grants unlimited informes for active Pro monthly plan', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    const futureDate = new Date(Date.now() + 30 * 86_400_000).toISOString()
+    setupTables({
+      informeCount: 999,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'active',
+        current_period_end: futureDate,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.plan).toBe('pro_monthly')
+    expect(result.isPro).toBe(true)
+    expect(result.canCreateInforme).toBe(true)
+    expect(result.isReadOnly).toBe(false)
+  })
+
+  it('keeps Pro access for cancelled subscription still inside paid period', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    const futureDate = new Date(Date.now() + 5 * 86_400_000).toISOString()
+    setupTables({
+      informeCount: 50,
+      subscription: {
+        plan: 'pro_yearly',
+        status: 'cancelled',
+        current_period_end: futureDate,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isPro).toBe(true)
+    expect(result.isReadOnly).toBe(false)
+    expect(result.canCreateInforme).toBe(true)
+  })
+
+  it('marks read-only when cancelled subscription is past period end', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    const pastDate = new Date(Date.now() - 86_400_000).toISOString()
+    setupTables({
+      informeCount: 50,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'cancelled',
+        current_period_end: pastDate,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isReadOnly).toBe(true)
+    expect(result.isPro).toBe(false)
+    expect(result.canCreateInforme).toBe(false)
+  })
+
+  it('marks read-only when past_due subscription is past period end', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    const pastDate = new Date(Date.now() - 86_400_000).toISOString()
+    setupTables({
+      informeCount: 0,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'past_due',
+        current_period_end: pastDate,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isReadOnly).toBe(true)
+    expect(result.canCreateInforme).toBe(false)
+  })
+
+  it('keeps Pro access for past_due subscription still inside paid period (grace)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    const futureDate = new Date(Date.now() + 86_400_000).toISOString()
+    setupTables({
+      informeCount: 50,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'past_due',
+        current_period_end: futureDate,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isPro).toBe(true)
+    expect(result.canCreateInforme).toBe(true)
+  })
+
+  it('treats pending Pro subscription as free until activated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    setupTables({
+      informeCount: 2,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'pending',
+        current_period_end: null,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isPro).toBe(false)
+    expect(result.isReadOnly).toBe(false)
+    expect(result.canCreateInforme).toBe(true)
+  })
+
   it('returns canSignUp false when doctor limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: MVP_LIMITS.MAX_DOCTORS })
-
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ count: 0 })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+    setupTables({
+      doctorCount: MVP_LIMITS.MAX_DOCTORS,
+      subscription: { plan: 'free', status: 'active', current_period_end: null },
+    })
 
     const result = await getPlanInfo()
     expect(result.canSignUp).toBe(false)
@@ -109,57 +230,71 @@ describe('getPlanInfo', () => {
   })
 
   it('uses userId parameter when provided instead of fetching from auth', async () => {
-    // doctors count chain
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: 2 })
-
-    // informes count chain
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ count: 5 })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+    setupTables({
+      doctorCount: 2,
+      informeCount: 5,
+      subscription: { plan: 'free', status: 'active', current_period_end: null },
+    })
 
     const result = await getPlanInfo('explicit-user-id')
     expect(result.currentInformes).toBe(5)
-    // Should not have called getUser
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
   it('defaults currentInformes to 0 when informeResult lacks count property', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: 1 })
-
-    // Return an object without a 'count' property (e.g. error scenario)
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ error: 'something went wrong' })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+    setupTables({
+      doctorCount: 1,
+      informeResultOverride: { error: 'something went wrong' },
+      subscription: { plan: 'free', status: 'active', current_period_end: null },
+    })
 
     const result = await getPlanInfo()
     expect(result.currentInformes).toBe(0)
   })
 
-  it('handles null counts from supabase by defaulting to 0', async () => {
+  it('defaults to free plan when subscription query result lacks data property', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'doctors') {
+        return { select: jest.fn().mockResolvedValue({ count: 1 }) }
+      }
+      if (table === 'inform_generation_log') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ count: 0 }),
+          })),
+        }
+      }
+      if (table === 'subscriptions') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ error: 'boom' }),
+            })),
+          })),
+        }
+      }
+      return {}
+    })
 
-    const doctorsChain = makeChain()
-    doctorsChain.select.mockResolvedValue({ count: null })
+    const result = await getPlanInfo()
+    expect(result.plan).toBe('free')
+    expect(result.isReadOnly).toBe(false)
+  })
 
-    const informesChain = makeChain()
-    informesChain.eq.mockResolvedValue({ count: null })
-
-    mockFrom
-      .mockReturnValueOnce(doctorsChain)
-      .mockReturnValueOnce(informesChain)
+  it('handles null counts and missing subscription by defaulting safely', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    setupTables({
+      doctorCount: null,
+      informeCount: null,
+      subscription: null,
+    })
 
     const result = await getPlanInfo()
     expect(result.currentDoctors).toBe(0)
     expect(result.currentInformes).toBe(0)
+    expect(result.plan).toBe('free')
+    expect(result.isReadOnly).toBe(false)
   })
 })

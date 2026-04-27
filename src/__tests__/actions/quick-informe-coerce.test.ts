@@ -20,6 +20,22 @@ jest.mock('@/lib/prompts', () => ({
   PATIENT_REPORT_PROMPT: 'patient prompt',
 }))
 
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: jest.fn().mockResolvedValue({
+    plan: 'free',
+    status: 'active',
+    isPro: false,
+    isReadOnly: false,
+    periodEnd: null,
+    maxInformes: 10,
+    currentInformes: 0,
+    canCreateInforme: true,
+    maxDoctors: 20,
+    currentDoctors: 1,
+    canSignUp: true,
+  }),
+}))
+
 jest.mock('@/app/api/process-informe/helpers', () => ({
   generateDoctorReport: jest.fn().mockResolvedValue({
     content: [{ type: 'text', text: '{}' }],
@@ -47,13 +63,6 @@ function setupTableMocks() {
   const doctorSingle = jest.fn().mockResolvedValue({ data: null, error: null })
 
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'inform_generation_log') {
-      return {
-        select: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
-        })),
-      }
-    }
     if (table === 'informes_rapidos') {
       return {
         insert: jest.fn(() => ({

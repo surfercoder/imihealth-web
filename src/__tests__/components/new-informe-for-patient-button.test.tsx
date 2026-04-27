@@ -19,6 +19,11 @@ import { PlanProvider } from '@/contexts/plan-context'
 import type { PlanInfo } from '@/actions/plan'
 
 const defaultPlan: PlanInfo = {
+  plan: 'free',
+  status: 'active',
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
   maxInformes: 7,
   currentInformes: 0,
   canCreateInforme: true,

@@ -5,6 +5,11 @@ import { PlanProvider } from '@/contexts/plan-context'
 import type { PlanInfo } from '@/actions/plan'
 
 const limitedPlan: PlanInfo = {
+  plan: 'free',
+  status: 'active',
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
   maxInformes: 7,
   currentInformes: 7,
   canCreateInforme: false,

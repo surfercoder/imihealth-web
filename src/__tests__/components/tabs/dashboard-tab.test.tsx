@@ -21,6 +21,11 @@ import { DashboardTab } from '@/components/tabs/dashboard-tab'
 import type { PlanInfo } from '@/actions/plan'
 
 const defaultPlan: PlanInfo = {
+  plan: 'free',
+  status: 'active',
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
   maxInformes: 100,
   currentInformes: 5,
   canCreateInforme: true,

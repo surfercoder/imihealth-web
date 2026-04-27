@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
-import { MVP_LIMITS } from "@/lib/mvp-limits";
+import { getPlanInfo } from "@/actions/plan";
 import {
   extractTextFromContent,
   generateDoctorReport,
@@ -29,13 +29,12 @@ export async function processQuickInforme(
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  // MVP informe limit check (counts both classic & quick, based on immutable generation log)
-  const { count: informeCount } = await supabase
-    .from("inform_generation_log")
-    .select("id", { count: "exact", head: true })
-    .eq("doctor_id", user.id);
-  if ((informeCount ?? 0) >= MVP_LIMITS.MAX_INFORMES_PER_DOCTOR) {
-    return { error: `Has alcanzado el límite de ${MVP_LIMITS.MAX_INFORMES_PER_DOCTOR} informes para la prueba MVP.` };
+  const plan = await getPlanInfo(user.id);
+  if (plan.isReadOnly) {
+    return { error: "Tu suscripción Pro fue cancelada. Reactivala para crear nuevos informes." };
+  }
+  if (!plan.canCreateInforme) {
+    return { error: `Alcanzaste el límite de ${plan.maxInformes} informes del plan gratuito. Pasate al plan Pro para informes ilimitados.` };
   }
 
   // Create the persistent record up-front so we have an id we can update at

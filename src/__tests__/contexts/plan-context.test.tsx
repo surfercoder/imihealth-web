@@ -5,6 +5,11 @@ import { PlanProvider, usePlan } from '@/contexts/plan-context'
 import type { PlanInfo } from '@/actions/plan'
 
 const mockPlan: PlanInfo = {
+  plan: 'free',
+  status: 'active',
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
   maxInformes: 7,
   currentInformes: 3,
   canCreateInforme: true,

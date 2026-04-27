@@ -10,6 +10,25 @@ jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve(mockSupabase)),
 }))
 
+const mockGetPlanInfo = jest.fn()
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
+}))
+
+const activePlan = {
+  plan: 'free' as const,
+  status: 'active' as const,
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
+  maxInformes: 10,
+  currentInformes: 0,
+  canCreateInforme: true,
+  maxDoctors: 20,
+  currentDoctors: 1,
+  canSignUp: true,
+}
+
 const mockAnthropicCreate = jest.fn()
 jest.mock('@anthropic-ai/sdk', () => {
   return jest.fn().mockImplementation(() => ({
@@ -61,13 +80,6 @@ function mockTables({
   })
 
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'inform_generation_log') {
-      return {
-        select: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
-        })),
-      }
-    }
     if (table === 'informes_rapidos') {
       return {
         insert: jest.fn(() => ({
@@ -99,7 +111,10 @@ function makeFakeBlob(): Blob {
 }
 
 describe('processQuickInforme', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetPlanInfo.mockResolvedValue(activePlan)
+  })
 
   it('returns error when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
@@ -107,72 +122,33 @@ describe('processQuickInforme', () => {
     expect(result).toEqual({ error: 'No autenticado' })
   })
 
-  it('returns error when MVP informe limit is reached', async () => {
+  it('returns error when free plan informe limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    // Override the inform_generation_log mock to return count >= limit
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'inform_generation_log') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn().mockResolvedValue({ count: 100, error: null }),
-          })),
-        }
-      }
-      return {}
+    mockGetPlanInfo.mockResolvedValue({
+      ...activePlan,
+      currentInformes: 10,
+      canCreateInforme: false,
     })
     const result = await processQuickInforme('transcript con suficiente contenido')
     expect(result).toEqual({ error: expect.stringContaining('límite') })
   })
 
-  it('treats null informeCount as 0 (does not trigger limit)', async () => {
+  it('returns read-only error when subscription is cancelled past period end', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    // Return null count (the ?? 0 branch)
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'inform_generation_log') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn().mockResolvedValue({ count: null, error: null }),
-          })),
-        }
-      }
-      if (table === 'informes_rapidos') {
-        return {
-          insert: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn().mockResolvedValue({ data: { id: RAPIDO_ID }, error: null }),
-            })),
-          })),
-          update: jest.fn(() => ({
-            eq: jest.fn().mockResolvedValue({ error: null }),
-          })),
-        }
-      }
-      if (table === 'doctors') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              single: jest.fn().mockResolvedValue({ data: null, error: null }),
-            })),
-          })),
-        }
-      }
-      return {}
+    mockGetPlanInfo.mockResolvedValue({
+      ...activePlan,
+      plan: 'pro_monthly',
+      status: 'cancelled',
+      isReadOnly: true,
+      canCreateInforme: false,
     })
-    // Should NOT return limit error (null ?? 0 = 0 < 10)
-    const result = await processQuickInforme('hola') // short transcript, gets no-content error
-    expect(result.error).toMatch(/transcribir el audio/i)
+    const result = await processQuickInforme('transcript con suficiente contenido')
+    expect(result.error).toMatch(/cancelada/i)
   })
 
   it('returns fallback error when created is null without createError', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'inform_generation_log') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn().mockResolvedValue({ count: 0, error: null }),
-          })),
-        }
-      }
       if (table === 'informes_rapidos') {
         return {
           insert: jest.fn(() => ({

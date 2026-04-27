@@ -35,6 +35,11 @@ jest.mock('@/components/app-footer', () => ({
 
 jest.mock('@/actions/plan', () => ({
   getPlanInfo: jest.fn(() => Promise.resolve({
+    plan: 'free',
+    status: 'active',
+    isPro: false,
+    isReadOnly: false,
+    periodEnd: null,
     maxInformes: 7,
     currentInformes: 3,
     canCreateInforme: true,

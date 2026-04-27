@@ -106,6 +106,11 @@ import HomePage, { PatientsTabServer, DashboardTabServer, generateMetadata } fro
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
 const defaultPlan = {
+  plan: 'free' as const,
+  status: 'active' as const,
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
   maxInformes: 10,
   currentInformes: 3,
   canCreateInforme: true,

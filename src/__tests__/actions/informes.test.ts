@@ -30,6 +30,25 @@ jest.mock('@/lib/transcribe', () => ({
   transcribeAudio: jest.fn().mockResolvedValue({ text: '', utterances: null }),
 }))
 
+const mockGetPlanInfo = jest.fn()
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
+}))
+
+const activePlan = {
+  plan: 'free' as const,
+  status: 'active' as const,
+  isPro: false,
+  isReadOnly: false,
+  periodEnd: null,
+  maxInformes: 10,
+  currentInformes: 0,
+  canCreateInforme: true,
+  maxDoctors: 20,
+  currentDoctors: 1,
+  canSignUp: true,
+}
+
 import {
   createPatient,
   createInforme,
@@ -162,7 +181,10 @@ describe('createPatient', () => {
 })
 
 describe('createInforme', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetPlanInfo.mockResolvedValue(activePlan)
+  })
 
   it('returns error when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
@@ -189,13 +211,12 @@ describe('createInforme', () => {
     expect(result).toEqual({ data: informeData })
   })
 
-  it('returns error when MVP informe limit is reached', async () => {
+  it('returns error when free plan informe limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const countChain = makeChain()
-    countChain.eq.mockResolvedValue({ count: 100 })
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'inform_generation_log') return countChain
-      return makeChain()
+    mockGetPlanInfo.mockResolvedValue({
+      ...activePlan,
+      currentInformes: 10,
+      canCreateInforme: false,
     })
     const result = await createInforme('p-1')
     expect(result).toEqual({ error: expect.stringContaining('límite') })
