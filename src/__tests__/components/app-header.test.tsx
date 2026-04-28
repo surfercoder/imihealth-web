@@ -74,6 +74,15 @@ describe('AppHeader', () => {
     expect(screen.queryByText(/Hola,/)).not.toBeInTheDocument()
   })
 
+  it('renders without crashing when a doctorAvatar is provided', () => {
+    expect(() =>
+      render(
+        <AppHeader doctorName="Dr. García" doctorAvatar="data:image/png;base64,abc" />
+      )
+    ).not.toThrow()
+    expect(screen.getByText('Hola, Dr. García')).toBeInTheDocument()
+  })
+
   it('renders the IMI Health logo link with tab query when currentTab is set', () => {
     mockSearchParams.set('tab', 'informes')
     render(<AppHeader />)

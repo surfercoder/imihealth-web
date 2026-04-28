@@ -56,6 +56,29 @@ jest.mock('@/components/signature-field', () => ({
   ),
 }))
 
+jest.mock('@/components/avatar-upload', () => ({
+  AvatarUpload: ({
+    value,
+    onChange,
+  }: {
+    value: string | null
+    onChange: (dataUrl: string | null) => void
+  }) => (
+    <div data-testid="avatar-upload">
+      <span data-testid="avatar-upload-value">{value ?? 'null'}</span>
+      <button
+        type="button"
+        onClick={() => onChange('data:image/jpeg;base64,newavatar')}
+      >
+        Upload avatar
+      </button>
+      <button type="button" onClick={() => onChange(null)}>
+        Clear avatar
+      </button>
+    </div>
+  ),
+}))
+
 import { ProfileForm } from '@/components/profile-form'
 
 const defaultDoctor = {
@@ -66,6 +89,7 @@ const defaultDoctor = {
   phone: '5491112345678',
   especialidad: 'Cardiología',
   firma_digital: null,
+  avatar: null,
 }
 
 describe('ProfileForm', () => {
@@ -342,6 +366,29 @@ describe('ProfileForm', () => {
     render(<ProfileForm doctor={defaultDoctor} />)
     const combobox = screen.getByRole('combobox')
     expect(combobox).toBeDisabled()
+  })
+
+  it('includes avatar in formData when avatar is changed', async () => {
+    const user = userEvent.setup()
+    render(<ProfileForm doctor={defaultDoctor} />)
+    await user.click(screen.getByRole('button', { name: 'Upload avatar' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => {
+      expect(mockFormAction).toHaveBeenCalledWith(expect.any(FormData))
+    })
+    const formData: FormData = mockFormAction.mock.calls[0][0]
+    expect(formData.get('avatar')).toBe('data:image/jpeg;base64,newavatar')
+  })
+
+  it('does not include avatar in formData when avatar has not changed', async () => {
+    const user = userEvent.setup()
+    render(<ProfileForm doctor={defaultDoctor} />)
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => {
+      expect(mockFormAction).toHaveBeenCalledWith(expect.any(FormData))
+    })
+    const formData: FormData = mockFormAction.mock.calls[0][0]
+    expect(formData.get('avatar')).toBeNull()
   })
 
   it('sets firmaDigital to empty string when signatureChanged but firmaDigital is undefined', async () => {

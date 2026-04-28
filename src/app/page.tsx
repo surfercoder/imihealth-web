@@ -113,7 +113,7 @@ export default async function HomePage({
     <PlanProvider plan={plan}>
       <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
         <div className="flex min-h-screen flex-col bg-background pt-14">
-          <AppHeader doctorName={doctor?.name} />
+          <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />
           <ReadOnlyBanner plan={plan} />
 
           <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">

@@ -38,6 +38,8 @@ export function SignupForm() {
     formData.set("especialidad", values.especialidad);
     /* v8 ignore next */
     formData.set("firmaDigital", values.firmaDigital ?? "");
+    /* v8 ignore next */
+    formData.set("avatar", values.avatar ?? "");
     setPendingFormData(formData);
     setStep(2);
   }

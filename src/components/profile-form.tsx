@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ProfileHeaderCard } from "@/components/profile-form/profile-header-card";
+import { AvatarSection } from "@/components/profile-form/avatar-section";
 import { PersonalInfoSection } from "@/components/profile-form/personal-info-section";
 import { ProfessionalInfoSection } from "@/components/profile-form/professional-info-section";
 import { SignatureSection } from "@/components/profile-form/signature-section";
@@ -33,6 +34,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
   const [state, formAction] = useActionState(updateProfile, null);
   const [isPending, startTransition] = useTransition();
   const [signatureChanged, setSignatureChanged] = useState(false);
+  const [avatarChanged, setAvatarChanged] = useState(false);
 
   const clientSchema = buildProfileFormSchema(v);
 
@@ -45,6 +47,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
       phone: doctor.phone || "",
       especialidad: doctor.especialidad || "",
       firmaDigital: undefined,
+      avatar: doctor.avatar ?? undefined,
     },
   });
 
@@ -57,6 +60,10 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
     formData.set("especialidad", values.especialidad);
     if (signatureChanged) {
       formData.set("firmaDigital", values.firmaDigital ?? "");
+    }
+    if (avatarChanged) {
+      /* v8 ignore next */
+      formData.set("avatar", values.avatar ?? "");
     }
     startTransition(() => {
       formAction(formData);
@@ -80,6 +87,13 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
               className="flex flex-col gap-6"
               noValidate
             >
+              <AvatarSection
+                form={form}
+                onAvatarChanged={() => setAvatarChanged(true)}
+              />
+
+              <Separator />
+
               <PersonalInfoSection form={form} email={doctor.email} />
 
               <Separator />

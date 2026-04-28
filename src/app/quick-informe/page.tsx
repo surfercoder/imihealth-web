@@ -32,8 +32,8 @@ export default async function QuickInformePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} />}>
-        <AppHeader doctorName={doctor?.name} />
+      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />}>
+        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />
       </Suspense>
 
       <div className="border-b border-border/40">

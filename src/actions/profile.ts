@@ -15,6 +15,7 @@ const profileSchema = z.object({
     .min(1)
     .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val)),
   firmaDigital: z.string().optional(),
+  avatar: z.string().optional(),
 });
 
 type ProfileResult = {
@@ -33,6 +34,7 @@ export async function updateProfile(
     phone: formData.get("phone") ?? "",
     especialidad: formData.get("especialidad") ?? "",
     firmaDigital: formData.get("firmaDigital") ?? undefined,
+    avatar: formData.get("avatar") ?? undefined,
   };
 
   const parsed = profileSchema.safeParse(raw);
@@ -60,6 +62,10 @@ export async function updateProfile(
 
   if (parsed.data.firmaDigital !== undefined) {
     updateData.firma_digital = parsed.data.firmaDigital || null;
+  }
+
+  if (parsed.data.avatar !== undefined) {
+    updateData.avatar = parsed.data.avatar || null;
   }
 
   const { error } = await supabase

@@ -9,6 +9,7 @@ export interface DoctorProfile {
   phone: string;
   especialidad: string;
   firma_digital: string | null;
+  avatar: string | null;
 }
 
 export interface ProfileFormProps {
@@ -22,6 +23,7 @@ export type ProfileFormValues = {
   phone: string;
   especialidad: string;
   firmaDigital?: string;
+  avatar?: string;
 };
 
 type Translator = (key: string) => string;
@@ -45,5 +47,6 @@ export function buildProfileFormSchema(v: Translator) {
         message: v("specialtyInvalid"),
       }),
     firmaDigital: z.string().optional(),
+    avatar: z.string().optional(),
   });
 }

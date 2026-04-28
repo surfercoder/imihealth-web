@@ -54,6 +54,7 @@ export async function signup(
     phone: g("phone"),
     especialidad: g("especialidad"),
     firmaDigital: opt("firmaDigital"),
+    avatar: opt("avatar"),
   };
 
   const parsed = signupSchema.safeParse(raw);
@@ -93,11 +94,21 @@ export async function signup(
     return { error: error.message };
   }
 
-  if (signUpData?.user && parsed.data.firmaDigital) {
+  if (
+    signUpData?.user &&
+    (parsed.data.firmaDigital || parsed.data.avatar)
+  ) {
     const admin = createAdminClient();
+    const updates: Record<string, string> = {};
+    if (parsed.data.firmaDigital) {
+      updates.firma_digital = parsed.data.firmaDigital;
+    }
+    if (parsed.data.avatar) {
+      updates.avatar = parsed.data.avatar;
+    }
     await admin
       .from("doctors")
-      .update({ firma_digital: parsed.data.firmaDigital })
+      .update(updates)
       .eq("id", signUpData.user.id);
   }
 

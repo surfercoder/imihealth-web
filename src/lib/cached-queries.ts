@@ -15,7 +15,7 @@ export const getDoctor = cache(async (userId: string) => {
   const supabase = await createClient();
   return supabase
     .from("doctors")
-    .select("name, email, dni, matricula, phone, especialidad, firma_digital")
+    .select("name, email, dni, matricula, phone, especialidad, firma_digital, avatar")
     .eq("id", userId)
     .single();
 });

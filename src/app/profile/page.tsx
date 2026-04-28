@@ -40,7 +40,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader doctorName={doctor.name} />
+      <AppHeader doctorName={doctor.name} doctorAvatar={doctor.avatar} />
       <ReadOnlyBanner plan={plan} />
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-20">
         <div className="mb-6">

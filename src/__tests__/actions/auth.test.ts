@@ -223,6 +223,61 @@ describe('signup', () => {
     expect(mockAdminUpdate).toHaveBeenCalledWith({ firma_digital: 'data:image/png;base64,signature' })
     expect(mockAdminEq).toHaveBeenCalledWith('id', 'user-123')
   })
+
+  it('updates doctors table with avatar when signUpData.user and avatar are present', async () => {
+    const mockAdminEq = jest.fn().mockResolvedValue({ error: null })
+    const mockAdminUpdate = jest.fn().mockReturnValue({ eq: mockAdminEq })
+    const mockAdminFrom = jest.fn().mockReturnValue({ update: mockAdminUpdate })
+    mockCreateAdminClient.mockReturnValue({ from: mockAdminFrom })
+
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'user-456' } },
+      error: null,
+    })
+
+    const fd = new FormData()
+    fd.set('email', 'doctor@hospital.com')
+    fd.set('password', 'P@ssw0rd1!')
+    fd.set('confirmPassword', 'P@ssw0rd1!')
+    fd.set('matricula', '123456')
+    fd.set('phone', '+54 11 1234-5678')
+    fd.set('especialidad', 'Cardiología')
+    fd.set('avatar', 'data:image/jpeg;base64,avatar')
+
+    const result = await signup(null, fd)
+    expect(result).toEqual({ success: true })
+    expect(mockAdminUpdate).toHaveBeenCalledWith({ avatar: 'data:image/jpeg;base64,avatar' })
+    expect(mockAdminEq).toHaveBeenCalledWith('id', 'user-456')
+  })
+
+  it('updates doctors table with both firma_digital and avatar when both are present', async () => {
+    const mockAdminEq = jest.fn().mockResolvedValue({ error: null })
+    const mockAdminUpdate = jest.fn().mockReturnValue({ eq: mockAdminEq })
+    const mockAdminFrom = jest.fn().mockReturnValue({ update: mockAdminUpdate })
+    mockCreateAdminClient.mockReturnValue({ from: mockAdminFrom })
+
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'user-789' } },
+      error: null,
+    })
+
+    const fd = new FormData()
+    fd.set('email', 'doctor@hospital.com')
+    fd.set('password', 'P@ssw0rd1!')
+    fd.set('confirmPassword', 'P@ssw0rd1!')
+    fd.set('matricula', '123456')
+    fd.set('phone', '+54 11 1234-5678')
+    fd.set('especialidad', 'Cardiología')
+    fd.set('firmaDigital', 'data:image/png;base64,signature')
+    fd.set('avatar', 'data:image/jpeg;base64,avatar')
+
+    const result = await signup(null, fd)
+    expect(result).toEqual({ success: true })
+    expect(mockAdminUpdate).toHaveBeenCalledWith({
+      firma_digital: 'data:image/png;base64,signature',
+      avatar: 'data:image/jpeg;base64,avatar',
+    })
+  })
 })
 
 describe('forgotPassword', () => {

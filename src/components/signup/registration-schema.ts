@@ -25,6 +25,7 @@ export type ClientSignupFormValues = {
   phone: PhoneInputValue;
   especialidad: string;
   firmaDigital?: string;
+  avatar?: string;
 };
 
 /* v8 ignore next 2 */
@@ -68,6 +69,7 @@ export function buildClientSignupSchema(v: Translator) {
           message: v("specialtyInvalid"),
         }),
       firmaDigital: z.string().optional(),
+      avatar: z.string().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: v("passwordsMismatch"),

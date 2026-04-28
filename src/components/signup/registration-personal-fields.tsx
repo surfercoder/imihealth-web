@@ -17,6 +17,7 @@ import {
   detectCountryFromLocale,
 } from "@/components/ui/phone-input";
 import { SpecialtyCombobox } from "@/components/signup/specialty-combobox";
+import { AvatarUpload } from "@/components/avatar-upload";
 import { type ClientSignupFormValues, safeValue } from "@/components/signup/registration-schema";
 
 interface RegistrationPersonalFieldsProps {
@@ -29,8 +30,30 @@ export function RegistrationPersonalFields({ form, isPending }: RegistrationPers
   const [especialidadOpen, setEspecialidadOpen] = useState(false);
   const defaultCountry = detectCountryFromLocale();
 
+  const nameValue = form.watch("name");
+
   return (
     <>
+      <FormField
+        control={form.control}
+        name="avatar"
+        render={({ field, fieldState }) => (
+          <FormItem className="sm:col-span-2">
+            <FormLabel>{t("avatar")}</FormLabel>
+            <FormControl>
+              <AvatarUpload
+                value={field.value ?? null}
+                onChange={(dataUrl) => field.onChange(dataUrl ?? undefined)}
+                initialsSource={nameValue}
+                disabled={isPending}
+                /* v8 ignore next */
+                error={fieldState.error?.message}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       <FormField
         control={form.control}
         name="name"

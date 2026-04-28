@@ -44,6 +44,9 @@ function makeValidFormData(overrides: Record<string, string> = {}) {
   if ('firmaDigital' in overrides) {
     fd.set('firmaDigital', overrides.firmaDigital)
   }
+  if ('avatar' in overrides) {
+    fd.set('avatar', overrides.avatar)
+  }
   return fd
 }
 
@@ -170,6 +173,47 @@ describe('updateProfile', () => {
     expect(result).toEqual({ success: true })
     const updateArg = chain.update.mock.calls[0][0]
     expect(updateArg).not.toHaveProperty('firma_digital')
+  })
+
+  it('includes avatar in update when avatar is provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.eq.mockResolvedValue({ error: null })
+    mockFrom.mockReturnValue(chain)
+
+    const fd = makeValidFormData({ avatar: 'data:image/jpeg;base64,xyz' })
+    const result = await updateProfile(null, fd)
+    expect(result).toEqual({ success: true })
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ avatar: 'data:image/jpeg;base64,xyz' })
+    )
+  })
+
+  it('sets avatar to null when avatar is empty string', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.eq.mockResolvedValue({ error: null })
+    mockFrom.mockReturnValue(chain)
+
+    const fd = makeValidFormData({ avatar: '' })
+    const result = await updateProfile(null, fd)
+    expect(result).toEqual({ success: true })
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ avatar: null })
+    )
+  })
+
+  it('does not include avatar in update when not provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.eq.mockResolvedValue({ error: null })
+    mockFrom.mockReturnValue(chain)
+
+    const fd = makeValidFormData()
+    const result = await updateProfile(null, fd)
+    expect(result).toEqual({ success: true })
+    const updateArg = chain.update.mock.calls[0][0]
+    expect(updateArg).not.toHaveProperty('avatar')
   })
 
   it('allows empty DNI (treated as empty string)', async () => {

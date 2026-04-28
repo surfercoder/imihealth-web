@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense, ViewTransition } from "react";
+import { ViewTransition } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -58,13 +58,11 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SentryErrorBoundary>
-            <Suspense>
-              <RealtimeNotificationsProvider userId={user?.id ?? null}>
-                <ViewTransition name="page-content">
-                  {children}
-                </ViewTransition>
-              </RealtimeNotificationsProvider>
-            </Suspense>
+            <RealtimeNotificationsProvider userId={user?.id ?? null}>
+              <ViewTransition name="page-content">
+                {children}
+              </ViewTransition>
+            </RealtimeNotificationsProvider>
           </SentryErrorBoundary>
           <Toaster position="bottom-right" richColors={false} />
           <SpeedInsights />

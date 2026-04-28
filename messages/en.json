@@ -595,6 +595,7 @@
     "matriculaPlaceholder": "E.g.: 123456",
     "specialty": "Specialty",
     "specialtyPlaceholder": "Select your specialty",
+    "avatar": "Profile photo (optional)",
     "searchSpecialty": "Search specialty…",
     "specialtyNotFound": "Specialty not found.",
     "specialties": {
@@ -717,6 +718,16 @@
     "label": "Digital Signature",
     "clear": "Clear",
     "placeholder": "Draw your signature here"
+  },
+  "avatarUpload": {
+    "alt": "Profile photo",
+    "upload": "Upload photo",
+    "change": "Change photo",
+    "remove": "Remove",
+    "hint": "JPG, PNG or WEBP. Max 5 MB.",
+    "invalidType": "The file must be an image.",
+    "tooLarge": "The image exceeds the 5 MB limit.",
+    "processingFailed": "We couldn't process the image. Try another one."
   },
   "forgotPasswordPage": {
     "title": "Reset password",
@@ -878,6 +889,7 @@
     "editDescription": "Update your personal and professional details",
     "personalInfo": "Personal information",
     "professionalInfo": "Professional information",
+    "avatarSection": "Profile photo",
     "signatureSection": "Digital signature",
     "currentSignature": "Current signature",
     "signatureAlt": "Digital signature",

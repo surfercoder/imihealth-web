@@ -10,6 +10,7 @@ const baseDoctor = {
   phone: '5491112345678',
   especialidad: 'Cardiología',
   firma_digital: null,
+  avatar: null,
 }
 
 describe('ProfileHeaderCard', () => {
@@ -33,5 +34,13 @@ describe('ProfileHeaderCard', () => {
   it('renders the unnamed fallback when name is empty', () => {
     render(<ProfileHeaderCard doctor={{ ...baseDoctor, name: '' }} />)
     expect(screen.getByText('Doctor')).toBeInTheDocument()
+  })
+
+  it('renders without errors when an avatar data URL is provided', () => {
+    const doctor = { ...baseDoctor, avatar: 'data:image/jpeg;base64,abc' }
+    expect(() =>
+      render(<ProfileHeaderCard doctor={doctor} />)
+    ).not.toThrow()
+    expect(screen.getByText('Dr. García')).toBeInTheDocument()
   })
 })

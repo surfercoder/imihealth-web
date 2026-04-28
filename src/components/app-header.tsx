@@ -5,19 +5,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { logout } from "@/actions/auth";
 import { useTranslations } from "next-intl";
 import { useCurrentTab } from "@/hooks/use-current-tab";
+import { getDoctorInitials } from "@/lib/avatar";
 import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 interface AppHeaderProps {
   doctorName?: string | null;
+  doctorAvatar?: string | null;
 }
 
-function AppHeaderContent({ doctorName }: AppHeaderProps) {
+function AppHeaderContent({ doctorName, doctorAvatar }: AppHeaderProps) {
   const t = useTranslations();
+  const tAvatar = useTranslations("avatarUpload");
   const currentTab = useCurrentTab();
+  const initials = getDoctorInitials(doctorName);
 
   return (
     <header className="fixed top-0 left-0 right-0 border-b border-border/60 bg-background/95 backdrop-blur-sm z-50">
@@ -39,9 +44,17 @@ function AppHeaderContent({ doctorName }: AppHeaderProps) {
           {doctorName && (
             <Link
               href="/profile"
-              className="text-sm text-foreground/60 hidden sm:block hover:text-primary hover:underline underline-offset-4 transition-colors"
+              className="flex items-center gap-2 text-sm text-foreground/60 hover:text-primary hover:underline underline-offset-4 transition-colors"
             >
-              {t("nav.greeting", { name: doctorName })}
+              <Avatar className="size-8">
+                {doctorAvatar ? (
+                  <AvatarImage src={doctorAvatar} alt={tAvatar("alt")} />
+                ) : null}
+                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              </Avatar>
+              <span className="hidden sm:block">
+                {t("nav.greeting", { name: doctorName })}
+              </span>
             </Link>
           )}
           <form

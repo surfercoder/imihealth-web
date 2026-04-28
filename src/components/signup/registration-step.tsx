@@ -50,6 +50,7 @@ export function RegistrationStep({ onSubmit, isPending }: RegistrationStepProps)
       },
       especialidad: "",
       firmaDigital: undefined,
+      avatar: undefined,
     },
   });
 

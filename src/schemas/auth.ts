@@ -125,6 +125,7 @@ function createSignupSchema(m: ValidationMessages = defaultMessages) {
           message: m.specialtyInvalid,
         }),
       firmaDigital: z.string().optional(),
+      avatar: z.string().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: m.passwordsMismatch,
