@@ -38,6 +38,30 @@ jest.mock('@/components/profile-form', () => ({
   ),
 }))
 
+jest.mock('@/components/subscription-section', () => ({
+  SubscriptionSection: () => <div data-testid="subscription-section" />,
+}))
+
+jest.mock('@/components/read-only-banner', () => ({
+  ReadOnlyBanner: () => <div data-testid="read-only-banner" />,
+}))
+
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: jest.fn(() => Promise.resolve({
+    plan: 'free',
+    status: 'active',
+    isPro: false,
+    isReadOnly: false,
+    periodEnd: null,
+    maxInformes: 10,
+    currentInformes: 3,
+    canCreateInforme: true,
+    maxDoctors: 20,
+    currentDoctors: 1,
+    canSignUp: true,
+  })),
+}))
+
 jest.mock('next/link', () => {
   const MockLink = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>

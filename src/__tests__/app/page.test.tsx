@@ -32,6 +32,9 @@ jest.mock('@/components/app-header', () => ({
 jest.mock('@/components/app-footer', () => ({
   AppFooter: () => <div data-testid="app-footer" />,
 }))
+jest.mock('@/components/read-only-banner', () => ({
+  ReadOnlyBanner: () => <div data-testid="read-only-banner" />,
+}))
 jest.mock('@/components/home-wrapper', () => ({
   HomeWrapper: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="home-wrapper">{children}</div>

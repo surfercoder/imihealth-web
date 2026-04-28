@@ -7,6 +7,7 @@ import { HomeWrapper } from "@/components/home-wrapper";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { HomeTabs } from "@/components/home-tabs";
+import { ReadOnlyBanner } from "@/components/read-only-banner";
 import type { PatientWithStats } from "@/actions/patients";
 import { getPlanInfo } from "@/actions/plan";
 import { PlanProvider } from "@/contexts/plan-context";
@@ -113,6 +114,7 @@ export default async function HomePage({
       <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
         <div className="flex min-h-screen flex-col bg-background pt-14">
           <AppHeader doctorName={doctor?.name} />
+          <ReadOnlyBanner plan={plan} />
 
           <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
             <HomeTabs

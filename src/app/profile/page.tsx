@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
+import { getPlanInfo } from "@/actions/plan";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ProfileForm } from "@/components/profile-form";
+import { SubscriptionSection } from "@/components/subscription-section";
+import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -25,9 +28,10 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const [t, { data: doctor }] = await Promise.all([
+  const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations("profilePage"),
     getDoctor(user.id),
+    getPlanInfo(user.id),
   ]);
 
   if (!doctor) {
@@ -37,6 +41,7 @@ export default async function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader doctorName={doctor.name} />
+      <ReadOnlyBanner plan={plan} />
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-20">
         <div className="mb-6">
           <Link
@@ -55,7 +60,10 @@ export default async function ProfilePage() {
             {t("subtitle")}
           </p>
         </div>
-        <ProfileForm doctor={doctor} />
+        <div className="space-y-6">
+          <SubscriptionSection plan={plan} />
+          <ProfileForm doctor={doctor} />
+        </div>
       </main>
       <AppFooter />
     </div>
