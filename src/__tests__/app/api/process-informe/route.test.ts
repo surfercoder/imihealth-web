@@ -321,6 +321,64 @@ describe('POST /api/process-informe', () => {
     expect(mockTranscribeAudio).not.toHaveBeenCalled()
   })
 
+  it('removes the temporary audio after successful processing', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
+    mockTranscribeAudio.mockResolvedValue({ text: 'This is a valid transcript from assembly AI service.' })
+    setupAnthropicMock()
+
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'fallback transcript text here',
+      audioPath: 'inf-1.webm',
+    })
+
+    await POST(req)
+
+    expect(mockStorageRemove).toHaveBeenCalledWith(['inf-1.webm'])
+  })
+
+  it('still removes the temporary audio when processing throws', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
+    mockTranscribeAudio.mockResolvedValue({ text: 'Valid transcript text used by tests right here.' })
+    // Force a crash deeper in the pipeline
+    ;(global as { __mockAnthropicCreate?: jest.Mock }).__mockAnthropicCreate?.mockRejectedValue(new Error('boom'))
+
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'fallback transcript text here',
+      audioPath: 'inf-1.webm',
+    })
+
+    const res = await POST(req)
+    expect(res.status).toBe(500)
+    expect(mockStorageRemove).toHaveBeenCalledWith(['inf-1.webm'])
+  })
+
+  it('logs a warning when storage cleanup fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const audioBlob = new Blob([Buffer.from('fake audio')], { type: 'audio/webm' })
+    mockStorageDownload.mockResolvedValue({ data: audioBlob, error: null })
+    mockStorageRemove.mockResolvedValue({ error: { message: 'rls denied' } })
+    mockTranscribeAudio.mockResolvedValue({ text: 'This is a valid transcript from assembly AI service.' })
+    setupAnthropicMock()
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+
+    const req = makeJsonRequest({
+      informeId: 'inf-1',
+      browserTranscript: 'fallback transcript text here',
+      audioPath: 'inf-1.webm',
+    })
+    await POST(req)
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Storage cleanup failed'))
+    consoleSpy.mockRestore()
+  })
+
   // ── Successful processing ───────────────────────────────────────────────────
 
   it('returns success: true for a valid dialog transcript', async () => {

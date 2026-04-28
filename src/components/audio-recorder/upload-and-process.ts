@@ -29,18 +29,44 @@ export async function uploadAndProcess(
 
   const blob = new Blob(chunks, { type: mimeType });
   const transcriptToUse = finalTranscript || fallbackText;
+  /* v8 ignore next */
+  const ext = mimeType.split("/")[1]?.split(";")[0] || "webm";
 
   // For quick reports, skip database storage and use processQuickInforme
   if (isQuickReport) {
     dispatch({ type: "SET_PROGRESS", progress: 30 });
     dispatch({ type: "SET_PHASE", phase: "transcribing" });
 
+    // Upload audio to Supabase Storage first and only pass the path through the
+    // server action — keeps the action body small and avoids Vercel's 4.5 MB
+    // serverless body limit on long recordings. The action removes the file
+    // after processing so the bucket stays empty.
+    const supabase = createClient();
+    const storagePath = `quick/${crypto.randomUUID()}.${ext}`;
+    let audioPath: string | undefined;
+    if (blob.size > 0) {
+      const { error: uploadError } = await supabase.storage
+        .from("audio-recordings")
+        .upload(storagePath, blob, { contentType: mimeType, upsert: false });
+      if (uploadError) {
+        Sentry.captureException(uploadError, {
+          tags: { flow: "quick-informe-client" },
+        });
+        const message = `Storage upload failed: ${uploadError.message}`;
+        dispatch({ type: "SET_ERROR", error: message });
+        dispatch({ type: "SET_PHASE", phase: "error" });
+        toast.error(t("errorProcess"), { description: message });
+        return;
+      }
+      audioPath = storagePath;
+    }
+
     const { processQuickInforme } = await import("@/actions/quick-informe");
 
     dispatch({ type: "SET_PROGRESS", progress: 50 });
     dispatch({ type: "SET_PHASE", phase: "processing" });
 
-    const result = await processQuickInforme(transcriptToUse, blob, locale, recordingDuration);
+    const result = await processQuickInforme(transcriptToUse, audioPath, locale, recordingDuration);
     dispatch({ type: "SET_PROGRESS", progress: 100 });
 
     if (result.error) {
@@ -90,8 +116,6 @@ export async function uploadAndProcess(
   try {
     // 1. Upload audio to Supabase Storage
     const supabase = createClient();
-    /* v8 ignore next */
-    const ext = mimeType.split("/")[1]?.split(";")[0] || "webm";
     const storagePath = `${informeId}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("audio-recordings")

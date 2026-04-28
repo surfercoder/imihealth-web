@@ -128,10 +128,11 @@ describe('uploadAndProcess (classic flow)', () => {
 describe('uploadAndProcess (quick report flow)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockStorageUpload.mockResolvedValue({ error: null })
     global.fetch = jest.fn()
   })
 
-  it('dispatches done on success and invokes onQuickReportComplete with the persisted id', async () => {
+  it('uploads audio to storage and passes the path (not the blob) to the server action', async () => {
     mockProcessQuickInforme.mockResolvedValue({
       informeRapidoId: 'rapido-1',
       informeDoctor: 'My report',
@@ -141,7 +142,7 @@ describe('uploadAndProcess (quick report flow)', () => {
     jest.useFakeTimers()
     await uploadAndProcess(
       dispatch,
-      [],
+      [new Blob(['x'])],
       'audio/webm',
       'doc',
       'i',
@@ -154,11 +155,41 @@ describe('uploadAndProcess (quick report flow)', () => {
       true,
       onQuickReportComplete,
     )
+    expect(mockStorageUpload).toHaveBeenCalledWith(
+      expect.stringMatching(/^quick\/.+\.webm$/),
+      expect.any(Blob),
+      expect.objectContaining({ upsert: false }),
+    )
+    const [, audioPath] = mockProcessQuickInforme.mock.calls[0]
+    expect(audioPath).toMatch(/^quick\/.+\.webm$/)
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'done' })
     jest.advanceTimersByTime(1200)
     expect(onQuickReportComplete).toHaveBeenCalledWith('rapido-1')
     expect((router.push as jest.Mock)).not.toHaveBeenCalled()
     jest.useRealTimers()
+  })
+
+  it('skips storage upload when there is no audio (empty chunks)', async () => {
+    mockProcessQuickInforme.mockResolvedValue({
+      informeRapidoId: 'rapido-2',
+      informeDoctor: 'Report',
+    })
+    const dispatch = jest.fn()
+    jest.useFakeTimers()
+    await uploadAndProcess(dispatch, [], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es', null, true)
+    expect(mockStorageUpload).not.toHaveBeenCalled()
+    const [, audioPath] = mockProcessQuickInforme.mock.calls[0]
+    expect(audioPath).toBeUndefined()
+    jest.useRealTimers()
+  })
+
+  it('dispatches error when storage upload fails', async () => {
+    mockStorageUpload.mockResolvedValue({ error: { message: 'bucket gone' } })
+    const dispatch = jest.fn()
+    await uploadAndProcess(dispatch, [new Blob(['x'])], 'audio/webm', 'doc', 'i', '', 'fb', t, router, 'es', null, true)
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ERROR', error: 'Storage upload failed: bucket gone' })
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_PHASE', phase: 'error' })
+    expect(mockProcessQuickInforme).not.toHaveBeenCalled()
   })
 
   it('dispatches error when processQuickInforme fails', async () => {

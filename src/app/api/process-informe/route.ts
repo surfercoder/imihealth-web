@@ -61,8 +61,6 @@ export async function POST(request: NextRequest) {
       } else if (audioData) {
         audioBuffer = Buffer.from(await audioData.arrayBuffer());
       }
-      // Clean up the storage file (fire-and-forget)
-      supabase.storage.from("audio-recordings").remove([audioPath]).catch(() => {});
     }
 
     const { transcript, assemblyAISucceeded } = await resolveTranscript(
@@ -142,5 +140,16 @@ export async function POST(request: NextRequest) {
       .eq("id", informeId)
       .eq("doctor_id", user.id);
     return NextResponse.json({ error: message }, { status: 500 });
+    /* v8 ignore next */
+  } finally {
+    // Always remove the temporary audio so the bucket stays empty after processing.
+    if (audioPath) {
+      const { error: removeError } = await supabase.storage
+        .from("audio-recordings")
+        .remove([audioPath]);
+      if (removeError) {
+        console.warn(`[process-informe] Storage cleanup failed: ${removeError.message}`);
+      }
+    }
   }
 }

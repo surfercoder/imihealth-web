@@ -1,9 +1,17 @@
 const mockGetUser = jest.fn()
 const mockFrom = jest.fn()
+const mockStorageDownload = jest.fn()
+const mockStorageRemove = jest.fn()
 
 const mockSupabase = {
   auth: { getUser: mockGetUser },
   from: mockFrom,
+  storage: {
+    from: jest.fn(() => ({
+      download: mockStorageDownload,
+      remove: mockStorageRemove,
+    })),
+  },
 }
 
 jest.mock('@/utils/supabase/server', () => ({
@@ -101,19 +109,17 @@ function mockTables({
   return { insertSingle, updateEq, doctorSingle }
 }
 
-function makeFakeBlob(): Blob {
+function makeFakeAudioData(): { arrayBuffer: () => Promise<ArrayBuffer> } {
   const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
-  return {
-    size: data.byteLength,
-    type: 'audio/webm',
-    arrayBuffer: async () => data.buffer,
-  } as unknown as Blob
+  return { arrayBuffer: async () => data.buffer }
 }
 
 describe('processQuickInforme', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetPlanInfo.mockResolvedValue(activePlan)
+    mockStorageDownload.mockResolvedValue({ data: makeFakeAudioData(), error: null })
+    mockStorageRemove.mockResolvedValue({ error: null })
   })
 
   it('returns error when user is not authenticated', async () => {
@@ -340,12 +346,14 @@ describe('processQuickInforme', () => {
       ],
     })
 
-    const result = await processQuickInforme('browser transcript', makeFakeBlob())
+    const result = await processQuickInforme('browser transcript', 'quick/abc.webm')
     expect(result).toEqual({
       informeRapidoId: RAPIDO_ID,
       informeDoctor: 'Informe from AssemblyAI',
     })
     expect(mockTranscribeAudio).toHaveBeenCalled()
+    expect(mockStorageDownload).toHaveBeenCalledWith('quick/abc.webm')
+    expect(mockStorageRemove).toHaveBeenCalledWith(['quick/abc.webm'])
   })
 
   it('falls back to browser transcript when AssemblyAI transcription fails', async () => {
@@ -368,7 +376,7 @@ describe('processQuickInforme', () => {
 
     const result = await processQuickInforme(
       'browser transcript fallback con contenido suficiente',
-      makeFakeBlob(),
+      'quick/fallback.webm',
     )
     expect(result).toEqual({
       informeRapidoId: RAPIDO_ID,
@@ -394,7 +402,7 @@ describe('processQuickInforme', () => {
       ],
     })
 
-    await processQuickInforme('browser transcript suficiente', makeFakeBlob(), 'en')
+    await processQuickInforme('browser transcript suficiente', 'quick/en.webm', 'en')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'en')
   })
 
@@ -416,7 +424,7 @@ describe('processQuickInforme', () => {
       ],
     })
 
-    await processQuickInforme('browser transcript suficiente', makeFakeBlob(), 'es')
+    await processQuickInforme('browser transcript suficiente', 'quick/es.webm', 'es')
     expect(mockTranscribeAudio).toHaveBeenCalledWith(expect.any(Buffer), 'es')
   })
 
@@ -439,6 +447,93 @@ describe('processQuickInforme', () => {
     const result = await processQuickInforme('transcript con suficiente contenido', undefined, 'es', 120)
     expect(result.informeDoctor).toBe('Report')
     expect(updateEq).toHaveBeenCalled()
+  })
+
+  it('logs a warning and falls back to browser transcript when storage download fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables({ doctorEspecialidad: 'Cardiología' })
+    mockStorageDownload.mockResolvedValueOnce({ data: null, error: { message: 'not found' } })
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Informe from browser fallback',
+          }),
+        },
+      ],
+    })
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+    const result = await processQuickInforme(
+      'browser transcript con suficiente contenido',
+      'quick/missing.webm',
+    )
+    expect(result.informeDoctor).toBe('Informe from browser fallback')
+    expect(mockTranscribeAudio).not.toHaveBeenCalled()
+    expect(mockStorageRemove).toHaveBeenCalledWith(['quick/missing.webm'])
+    consoleSpy.mockRestore()
+  })
+
+  it('logs a warning when storage cleanup fails but still returns success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables({ doctorEspecialidad: 'Cardiología' })
+    mockStorageRemove.mockResolvedValueOnce({ error: { message: 'rls denied' } })
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            valid_medical_content: true,
+            informe_doctor: 'Report',
+          }),
+        },
+      ],
+    })
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+    const result = await processQuickInforme(
+      'transcript con suficiente contenido',
+      'quick/leftover.webm',
+    )
+    expect(result.informeDoctor).toBe('Report')
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('storage cleanup failed'))
+    consoleSpy.mockRestore()
+  })
+
+  it('does not touch storage when audioPath is omitted', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables({ doctorEspecialidad: 'Cardiología' })
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ valid_medical_content: true, informe_doctor: 'Report' }),
+        },
+      ],
+    })
+
+    await processQuickInforme('transcript con suficiente contenido')
+    expect(mockStorageDownload).not.toHaveBeenCalled()
+    expect(mockStorageRemove).not.toHaveBeenCalled()
+  })
+
+  it('still removes the audio when processing throws', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockTables()
+
+    mockAnthropicCreate.mockRejectedValue(new Error('boom'))
+
+    const result = await processQuickInforme(
+      'transcript con suficiente contenido',
+      'quick/cleanup.webm',
+    )
+    expect(result.error).toBe('boom')
+    expect(mockStorageRemove).toHaveBeenCalledWith(['quick/cleanup.webm'])
   })
 
   it('returns error when final update fails', async () => {
