@@ -9,6 +9,7 @@ const baseDoctor = {
   matricula: '999',
   phone: '5491112345678',
   especialidad: 'Cardiología',
+  tagline: null,
   firma_digital: null,
   avatar: null,
 }

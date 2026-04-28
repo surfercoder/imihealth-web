@@ -3,11 +3,11 @@ import { generateInformePDF, generateCertificadoPDF } from '@/lib/pdf'
 const informeLabels = {
   subtitle: 'Informe Medico',
   patient: 'Paciente:',
-  phone: 'Tel: {phone}',
+  phoneLine: 'Tel: +54 9 261 123 4567',
   consentTitle: 'Consentimiento informado',
-  consentLine1: 'El/la paciente {patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health',
+  consentLine1: 'El/la paciente Juan Pérez ha sido informado/a previamente sobre el uso del sistema IMI Health',
   consentLine2: 'y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.',
-  consentDate: 'Fecha de consulta: {date}',
+  consentDate: 'Fecha de consulta: 01 de enero de 2025',
   footerGenerated: 'Este informe fue generado automaticamente por IMI Health.',
   footerAdvice: 'Ante cualquier duda, consulte a su medico.',
 }
@@ -15,14 +15,10 @@ const informeLabels = {
 const certificadoLabels = {
   subtitle: 'Certificado Medico',
   patientData: 'DATOS DEL PACIENTE',
-  dni: 'DNI: {dni}',
-  dob: 'Fecha de nacimiento: {dob}',
-  signerFallback: 'el/la profesional firmante',
-  bodyText: 'El/la suscripto/a, {doctorName}, certifica que el/la paciente {patientName} ha sido atendido/a en consulta medica con fecha {date}.',
-  bodyWithMatricula: ', Mat. {matricula}',
-  bodyWithEspecialidad: ', {especialidad}',
-  daysOff1: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
-  daysOffN: 'Por tal motivo, se indica reposo domiciliario por {days} ({days}) dias a partir de la fecha indicada.',
+  dniLine: null as string | null,
+  dobLine: null as string | null,
+  bodyText: 'El/la suscripto/a, el/la profesional firmante, certifica que el/la paciente Juan Pérez ha sido atendido/a en consulta medica con fecha 15 de enero de 2025.',
+  daysOffText: null as string | null,
   diagnosis: 'Diagnostico:',
   observations: 'Observaciones:',
   footer: 'Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.',
@@ -31,7 +27,6 @@ const certificadoLabels = {
 describe('generateInformePDF', () => {
   const baseOptions = {
     patientName: 'Juan Pérez',
-    patientPhone: '+54 9 261 123 4567',
     date: '01 de enero de 2025',
     content: 'Contenido del informe médico.',
     labels: informeLabels,
@@ -194,10 +189,10 @@ describe('generateInformePDF', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('handles null patientPhone gracefully (sanitizeForPdf falsy branch)', async () => {
+  it('handles empty phone line gracefully (sanitizeForPdf falsy branch)', async () => {
     const result = await generateInformePDF({
       ...baseOptions,
-      patientPhone: null,
+      labels: { ...informeLabels, phoneLine: 'Tel: ' },
     })
     expect(result).toBeInstanceOf(Uint8Array)
     expect(result.length).toBeGreaterThan(0)
@@ -249,7 +244,7 @@ describe('generateCertificadoPDF', () => {
   it('includes patient dni when provided', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDni: '12345678',
+      labels: { ...certificadoLabels, dniLine: 'DNI: 12345678' },
     })
     expect(result).toBeInstanceOf(Uint8Array)
     expect(result.length).toBeGreaterThan(0)
@@ -258,7 +253,7 @@ describe('generateCertificadoPDF', () => {
   it('includes patient dob when provided', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDob: '15 de mayo de 1990',
+      labels: { ...certificadoLabels, dobLine: 'Fecha de nacimiento: 15 de mayo de 1990' },
     })
     expect(result).toBeInstanceOf(Uint8Array)
   })
@@ -266,7 +261,7 @@ describe('generateCertificadoPDF', () => {
   it('handles null dob', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDob: null,
+      labels: { ...certificadoLabels, dobLine: null },
     })
     expect(result).toBeInstanceOf(Uint8Array)
   })
@@ -274,7 +269,10 @@ describe('generateCertificadoPDF', () => {
   it('renders daysOff section with 1 day', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      daysOff: 1,
+      labels: {
+        ...certificadoLabels,
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
+      },
     })
     expect(result).toBeInstanceOf(Uint8Array)
   })
@@ -282,7 +280,10 @@ describe('generateCertificadoPDF', () => {
   it('renders daysOff section with multiple days', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      daysOff: 5,
+      labels: {
+        ...certificadoLabels,
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 5 (5) dias a partir de la fecha indicada.',
+      },
     })
     expect(result).toBeInstanceOf(Uint8Array)
   })
@@ -290,15 +291,7 @@ describe('generateCertificadoPDF', () => {
   it('does not render daysOff when null', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      daysOff: null,
-    })
-    expect(result).toBeInstanceOf(Uint8Array)
-  })
-
-  it('does not render daysOff when zero', async () => {
-    const result = await generateCertificadoPDF({
-      ...baseOptions,
-      daysOff: 0,
+      labels: { ...certificadoLabels, daysOffText: null },
     })
     expect(result).toBeInstanceOf(Uint8Array)
   })
@@ -392,10 +385,13 @@ describe('generateCertificadoPDF', () => {
   it('renders all options together', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDob: '15 de mayo de 1990',
-      daysOff: 3,
       diagnosis: 'Flu',
       observations: 'Rest well',
+      labels: {
+        ...certificadoLabels,
+        dobLine: 'Fecha de nacimiento: 15 de mayo de 1990',
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 3 (3) dias a partir de la fecha indicada.',
+      },
       doctor: {
         name: 'Dr. García',
         matricula: '123456',

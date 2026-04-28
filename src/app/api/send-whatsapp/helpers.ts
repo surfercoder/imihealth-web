@@ -9,6 +9,7 @@ interface DoctorRow {
   name: string;
   matricula: string;
   especialidad: string;
+  tagline: string | null;
   firma_digital: string | null;
 }
 
@@ -16,6 +17,7 @@ export interface DoctorInfo {
   name: string;
   matricula: string;
   especialidad: string;
+  tagline: string | null;
   firmaDigital: string | null;
 }
 
@@ -70,6 +72,7 @@ export function mapDoctorInfo(doctorData: DoctorRow | null | undefined): DoctorI
     name: doctorData.name,
     matricula: doctorData.matricula,
     especialidad: doctorData.especialidad,
+    tagline: doctorData.tagline,
     firmaDigital: doctorData.firma_digital,
   };
 }

@@ -61,4 +61,34 @@ describe('extractDiagnosticoPresuntivo', () => {
     const text = 'Diagnóstico presuntivo:\n\n- Lumbalgia crónica\n- Hernia discal L4-L5\n\nDiferenciales:'
     expect(extractDiagnosticoPresuntivo(text)).toBe('Lumbalgia crónica. Hernia discal L4-L5')
   })
+
+  it('returns CIE-10 onwards when present, ignoring prior diagnostic text', () => {
+    const text =
+      'Diagnóstico presuntivo: Luxación acromioclavicular (LAC) de hombro derecho, secundaria a traumatismo deportivo de alta energía relativa. CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
+    expect(extractDiagnosticoPresuntivo(text)).toBe(
+      'CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
+    )
+  })
+
+  it('stops CIE-10 line at next newline (does not bleed into following sections)', () => {
+    const text =
+      'Diagnóstico presuntivo:\n- Lumbalgia crónica\nCIE-10: M54.5 (Lumbago no especificado)\nOtra sección:'
+    expect(extractDiagnosticoPresuntivo(text)).toBe(
+      'CIE-10: M54.5 (Lumbago no especificado)'
+    )
+  })
+
+  it('strips markdown bold around CIE-10 block', () => {
+    const text =
+      'Diagnóstico presuntivo: Contractura cervical. **CIE-10: M54.2 (Cervicalgia)**'
+    expect(extractDiagnosticoPresuntivo(text)).toBe('CIE-10: M54.2 (Cervicalgia)')
+  })
+
+  it('cuts CIE-10 at next section header in run-on text without newlines', () => {
+    const text =
+      'Diagnóstico presuntivo: Luxación acromioclavicular. CIE-10: S43.0 (Luxación de articulación acromioclavicular)Clasificación: Pendiente confirmación imagenológica.Diferenciales considerados:- Fractura'
+    expect(extractDiagnosticoPresuntivo(text)).toBe(
+      'CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
+    )
+  })
 })

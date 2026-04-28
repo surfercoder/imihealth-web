@@ -1,3 +1,5 @@
+import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
+
 export function computePatientAge(dob: string | null): number | null {
   if (!dob) return null;
   const today = new Date();
@@ -41,6 +43,8 @@ export function stripMarkdown(text: string): string {
 
 export function buildInformePreview(informeDoctor: string | null): string | null {
   if (!informeDoctor) return null;
+  const diagnostico = extractDiagnosticoPresuntivo(informeDoctor);
+  if (diagnostico) return diagnostico;
   const plain = stripMarkdown(informeDoctor);
   return plain.slice(0, 120) + "\u2026";
 }

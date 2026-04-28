@@ -37,6 +37,8 @@ export function SignupForm() {
     formData.set("phone", values.phone.e164);
     formData.set("especialidad", values.especialidad);
     /* v8 ignore next */
+    formData.set("tagline", values.tagline ?? "");
+    /* v8 ignore next */
     formData.set("firmaDigital", values.firmaDigital ?? "");
     /* v8 ignore next */
     formData.set("avatar", values.avatar ?? "");

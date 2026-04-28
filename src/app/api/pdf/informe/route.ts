@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateInformePDF } from "@/lib/pdf";
+import { sanitizeForPdf } from "@/lib/pdf/helpers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getTranslations } from "next-intl/server";
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const { data: doctorData } = await supabase
       .from("doctors")
-      .select("name, matricula, especialidad, firma_digital")
+      .select("name, matricula, especialidad, tagline, firma_digital")
       .eq("id", user.id)
       .single();
 
@@ -57,31 +58,34 @@ export async function GET(request: NextRequest) {
 
     const t = await getTranslations("pdfInforme");
 
+    const formattedDate = new Date(informe.created_at).toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const sanitizedPatientName = sanitizeForPdf(patient?.name ?? "Paciente");
+
     const pdfBytes = await generateInformePDF({
       patientName: patient?.name ?? "Paciente",
-      patientPhone: patient?.phone ?? null,
-      date: new Date(informe.created_at).toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
+      date: formattedDate,
       content: informe.informe_paciente,
       doctor: doctorData
         ? {
             name: doctorData.name,
             matricula: doctorData.matricula,
             especialidad: doctorData.especialidad,
+            tagline: doctorData.tagline,
             firmaDigital: doctorData.firma_digital,
           }
         : null,
       labels: {
         subtitle: t("subtitle"),
         patient: t("patient"),
-        phone: t("phone"),
+        phoneLine: t("phone", { phone: sanitizeForPdf(patient?.phone ?? "") }),
         consentTitle: t("consentTitle"),
-        consentLine1: t("consentLine1"),
+        consentLine1: t("consentLine1", { patientName: sanitizedPatientName }),
         consentLine2: t("consentLine2"),
-        consentDate: t("consentDate"),
+        consentDate: t("consentDate", { date: formattedDate }),
         footerGenerated: t("footerGenerated"),
         footerAdvice: t("footerAdvice"),
       },

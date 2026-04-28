@@ -14,6 +14,7 @@ const profileSchema = z.object({
     .string()
     .min(1)
     .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val)),
+  tagline: z.string().max(200),
   firmaDigital: z.string().optional(),
   avatar: z.string().optional(),
 });
@@ -33,6 +34,7 @@ export async function updateProfile(
     matricula: formData.get("matricula") ?? "",
     phone: formData.get("phone") ?? "",
     especialidad: formData.get("especialidad") ?? "",
+    tagline: formData.get("tagline") ?? "",
     firmaDigital: formData.get("firmaDigital") ?? undefined,
     avatar: formData.get("avatar") ?? undefined,
   };
@@ -58,6 +60,7 @@ export async function updateProfile(
     matricula: parsed.data.matricula,
     phone: parsed.data.phone,
     especialidad: parsed.data.especialidad,
+    tagline: parsed.data.tagline.trim() || null,
   };
 
   if (parsed.data.firmaDigital !== undefined) {
@@ -92,7 +95,7 @@ export async function getDoctorProfile() {
 
   const { data: doctor } = await supabase
     .from("doctors")
-    .select("name, email, dni, matricula, phone, especialidad, firma_digital")
+    .select("name, email, dni, matricula, phone, especialidad, tagline, firma_digital")
     .eq("id", user.id)
     .single();
 

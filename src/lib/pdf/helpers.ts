@@ -7,13 +7,14 @@ export interface DoctorSignatureInfo {
   name?: string | null;
   matricula?: string | null;
   especialidad?: string | null;
+  tagline?: string | null;
   firmaDigital?: string | null;
 }
 
 export interface InformePDFLabels {
   subtitle: string;
   patient: string;
-  phone: string;
+  phoneLine: string;
   consentTitle: string;
   consentLine1: string;
   consentLine2: string;
@@ -24,7 +25,6 @@ export interface InformePDFLabels {
 
 export interface GenerateInformePDFOptions {
   patientName: string;
-  patientPhone: string | null;
   date: string;
   content: string;
   doctor?: DoctorSignatureInfo | null;
@@ -34,14 +34,10 @@ export interface GenerateInformePDFOptions {
 export interface CertificadoPDFLabels {
   subtitle: string;
   patientData: string;
-  dni: string;
-  dob: string;
-  signerFallback: string;
-  bodyWithMatricula: string;
-  bodyWithEspecialidad: string;
+  dniLine: string | null;
+  dobLine: string | null;
   bodyText: string;
-  daysOff1: string;
-  daysOffN: string;
+  daysOffText: string | null;
   diagnosis: string;
   observations: string;
   footer: string;
@@ -49,11 +45,8 @@ export interface CertificadoPDFLabels {
 
 export interface GenerateCertificadoPDFOptions {
   patientName: string;
-  patientDni?: string | null;
-  patientDob?: string | null;
   date: string;
   diagnosis?: string | null;
-  daysOff?: number | null;
   observations?: string | null;
   doctor?: DoctorSignatureInfo | null;
   labels: CertificadoPDFLabels;
@@ -180,6 +173,24 @@ export async function drawDoctorBlock({
       color: nameColor,
     });
     infoY -= 12;
+  }
+  if (doctor.tagline) {
+    for (const userLine of doctor.tagline.split("\n")) {
+      const cleanLine = sanitizeForPdf(userLine);
+      if (!cleanLine) continue;
+      const wrapped = wrapText(cleanLine, sigBoxWidth, helvetica, 8);
+      for (const line of wrapped) {
+        const lineWidth = helvetica.widthOfTextAtSize(line, 8);
+        page.drawText(line, {
+          x: sigBoxX + (sigBoxWidth - lineWidth) / 2,
+          y: infoY,
+          font: helvetica,
+          size: 8,
+          color: mutedColor,
+        });
+        infoY -= 10;
+      }
+    }
   }
   if (doctor.especialidad) {
     const cleanEsp = sanitizeForPdf(doctor.especialidad);

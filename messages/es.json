@@ -105,6 +105,29 @@
     },
     "defaultName": "Doctor"
   },
+  "goodbyeScreen": {
+    "greeting": "¡Hasta pronto, {name}!",
+    "messages": {
+      "0": "Gracias por cuidar tan bien a tus pacientes hoy.",
+      "1": "Descansá bien, tu trabajo realmente marca la diferencia.",
+      "2": "¡Que tengas un descanso merecido y reparador!",
+      "3": "Tu dedicación de hoy tocó vidas. Estate orgulloso/a.",
+      "4": "Cuidate como cuidás a tus pacientes.",
+      "5": "¡Que tengas un excelente resto del día!",
+      "6": "Tus pacientes son afortunados de tenerte. ¡Hasta la próxima!",
+      "7": "Misión cumplida, ¡hasta la próxima!",
+      "8": "Recargá energías. El mundo necesita médicos como vos.",
+      "9": "¡Esperamos verte pronto de vuelta. Cuidate!",
+      "10": "Cada consulta importa, y la tuya importó hoy.",
+      "11": "Te deseamos calma, descanso y buenos momentos.",
+      "12": "Gracias por la dedicación que entregás cada día.",
+      "13": "Que tu tiempo libre sea tan gratificante como tu trabajo.",
+      "14": "¡Hasta pronto, seguí siendo increíble!",
+      "15": "Tu compromiso con la medicina inspira de verdad.",
+      "16": "¡Hasta luego, y gracias por todo lo que hacés!"
+    },
+    "defaultName": "Doctor"
+  },
   "patientsList": {
     "empty": "Sin pacientes aún",
     "emptySubtitle": "Creá un nuevo informe para registrar tu primer paciente.",
@@ -595,6 +618,9 @@
     "matriculaPlaceholder": "Ej: 123456",
     "specialty": "Especialidad",
     "specialtyPlaceholder": "Seleccioná tu especialidad",
+    "tagline": "Subtítulo profesional (opcional)",
+    "taglinePlaceholder": "Ej: Especialista en Cardiología.\nMagíster en Medicina Interna.",
+    "taglineHint": "Aparecerá bajo tu nombre en informes, certificados y pedidos. Hasta 2 líneas, máx. 200 caracteres.",
     "avatar": "Foto de perfil (opcional)",
     "searchSpecialty": "Buscar especialidad…",
     "specialtyNotFound": "No se encontró la especialidad.",
@@ -776,7 +802,8 @@
     "phoneRequired": "El teléfono es requerido",
     "phoneInvalid": "Teléfono inválido",
     "specialtyRequired": "La especialidad es requerida",
-    "specialtyInvalid": "Seleccioná una especialidad válida"
+    "specialtyInvalid": "Seleccioná una especialidad válida",
+    "taglineMax": "El subtítulo no puede superar los 200 caracteres"
   },
   "passwordStrength": {
     "minLength": "Al menos 8 caracteres",
@@ -1040,7 +1067,8 @@
     "logo": "IMI Health",
     "botFront": "IMI Bot",
     "botListening": "IMI Bot escuchando",
-    "botWelcome": "Bienvenido a IMI Health"
+    "botWelcome": "Bienvenido a IMI Health",
+    "botGoodbye": "Hasta pronto desde IMI Health"
   },
   "pdfInforme": {
     "subtitle": "Informe Medico",

@@ -26,6 +26,7 @@ describe('buildProfileFormSchema', () => {
       matricula: '123',
       phone: '5',
       especialidad: 'Cardiología',
+      tagline: '',
     })
     expect(result.success).toBe(true)
   })
@@ -127,8 +128,24 @@ describe('buildProfileFormSchema', () => {
       matricula: '123',
       phone: '5',
       especialidad: 'Cardiología',
+      tagline: 'Especialista en Cardiología.',
       firmaDigital: 'data:image/png;base64,abc',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('rejects taglines longer than 200 characters', () => {
+    const result = schema.safeParse({
+      name: 'Doctor Name',
+      dni: '',
+      matricula: '123',
+      phone: '5',
+      especialidad: 'Cardiología',
+      tagline: 'x'.repeat(201),
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.message === 'v:taglineMax')).toBe(true)
+    }
   })
 })

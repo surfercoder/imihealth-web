@@ -70,6 +70,7 @@ type ValidationMessages = {
   phoneInvalid: string;
   specialtyRequired: string;
   specialtyInvalid: string;
+  taglineMax: string;
 };
 
 const defaultMessages: ValidationMessages = {
@@ -89,6 +90,7 @@ const defaultMessages: ValidationMessages = {
   phoneInvalid: "Teléfono inválido",
   specialtyRequired: "La especialidad es requerida",
   specialtyInvalid: "Seleccioná una especialidad válida",
+  taglineMax: "El subtítulo no puede superar los 200 caracteres",
 };
 
 export function createLoginSchema(m: ValidationMessages = defaultMessages) {
@@ -124,6 +126,7 @@ function createSignupSchema(m: ValidationMessages = defaultMessages) {
         .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val), {
           message: m.specialtyInvalid,
         }),
+      tagline: z.string().max(200, m.taglineMax).optional(),
       firmaDigital: z.string().optional(),
       avatar: z.string().optional(),
     })

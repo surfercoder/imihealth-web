@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     const { data: doctorData } = await supabase
       .from("doctors")
-      .select("name, matricula, especialidad, firma_digital")
+      .select("name, matricula, especialidad, tagline, firma_digital")
       .eq("id", user.id)
       .single();
 
@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
             name: doctorData.name,
             matricula: doctorData.matricula,
             especialidad: doctorData.especialidad,
+            tagline: doctorData.tagline,
             firmaDigital: doctorData.firma_digital,
           }
         : null,

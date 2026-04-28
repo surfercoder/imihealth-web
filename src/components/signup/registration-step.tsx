@@ -49,6 +49,7 @@ export function RegistrationStep({ onSubmit, isPending }: RegistrationStepProps)
         e164: "",
       },
       especialidad: "",
+      tagline: undefined,
       firmaDigital: undefined,
       avatar: undefined,
     },

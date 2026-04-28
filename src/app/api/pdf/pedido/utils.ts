@@ -1,5 +1,14 @@
 export function extractDiagnosticoPresuntivo(text: string | null): string | null {
   if (!text) return null;
+  const cieMatch = text.match(/CIE-10[^\n]*/i);
+  if (cieMatch) {
+    const cleaned = cieMatch[0].replace(/\*+/g, "").trim();
+    const sectionBreak = cleaned.search(/[)\s.][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+:/);
+    if (sectionBreak > 0) {
+      return cleaned.slice(0, sectionBreak + 1).trim();
+    }
+    return cleaned;
+  }
   const lines = text.split("\n");
   for (const line of lines) {
     const trimmed = line.trim().replace(/\*+/g, "").trim();

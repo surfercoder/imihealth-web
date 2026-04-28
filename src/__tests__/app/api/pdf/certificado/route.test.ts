@@ -174,9 +174,11 @@ describe('GET /api/pdf/certificado', () => {
     expect(res.status).toBe(200)
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
-        daysOff: 3,
         diagnosis: 'Influenza',
         observations: 'Rest and fluids',
+        labels: expect.objectContaining({
+          daysOffText: expect.stringContaining('3'),
+        }),
       })
     )
   })
@@ -191,14 +193,14 @@ describe('GET /api/pdf/certificado', () => {
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
-        daysOff: null,
         diagnosis: null,
         observations: null,
+        labels: expect.objectContaining({ daysOffText: null }),
       })
     )
   })
 
-  it('passes formatted patient dob to PDF generator', async () => {
+  it('passes formatted patient dob and dni in labels', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockSelectChain.single
       .mockResolvedValueOnce({ data: MOCK_INFORME, error: null })
@@ -209,9 +211,10 @@ describe('GET /api/pdf/certificado', () => {
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Ana García',
-        patientDni: '12345678',
-        // dob is formatted as es-AR locale string
-        patientDob: expect.any(String),
+        labels: expect.objectContaining({
+          dniLine: expect.stringContaining('12345678'),
+          dobLine: expect.any(String),
+        }),
       })
     )
   })
@@ -225,7 +228,10 @@ describe('GET /api/pdf/certificado', () => {
     await GET(makeRequest({ id: 'inf-1' }))
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientName: 'Paciente', patientDni: null, patientDob: null })
+      expect.objectContaining({
+        patientName: 'Paciente',
+        labels: expect.objectContaining({ dniLine: null, dobLine: null }),
+      })
     )
   })
 
@@ -252,12 +258,12 @@ describe('GET /api/pdf/certificado', () => {
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
-        doctor: {
+        doctor: expect.objectContaining({
           name: 'Dr. Juan Pérez',
           matricula: 'MN 12345',
           especialidad: 'Cardiología',
           firmaDigital: null,
-        },
+        }),
       })
     )
   })
@@ -275,7 +281,9 @@ describe('GET /api/pdf/certificado', () => {
     await GET(makeRequest({ id: 'inf-1' }))
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientDob: null })
+      expect.objectContaining({
+        labels: expect.objectContaining({ dobLine: null }),
+      })
     )
   })
 

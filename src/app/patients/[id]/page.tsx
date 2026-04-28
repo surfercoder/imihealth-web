@@ -66,7 +66,7 @@ export default async function PatientPage({ params, searchParams }: Props) {
   const { data: patient, error } = await supabase
     .from("patients")
     .select(
-      `id, name, email, phone, dob, created_at,
+      `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at,
        informes(id, status, created_at, informe_doctor, informe_paciente)`
     )
     .eq("id", id)
@@ -91,6 +91,22 @@ export default async function PatientPage({ params, searchParams }: Props) {
   const dobFormatted = formatPatientDob(patient.dob, locale);
   const patientAge = computePatientAge(patient.dob);
   const completedCount = informes.filter((i) => i.status === "completed").length;
+  const lastInforme = informes[0] ?? null;
+  const patientWithStats = {
+    id: patient.id,
+    name: patient.name,
+    dni: patient.dni,
+    email: patient.email,
+    phone: patient.phone,
+    dob: patient.dob,
+    obra_social: patient.obra_social,
+    nro_afiliado: patient.nro_afiliado,
+    plan: patient.plan,
+    created_at: patient.created_at,
+    informe_count: informes.length,
+    last_informe_at: lastInforme?.created_at ?? null,
+    last_informe_status: lastInforme?.status ?? null,
+  };
 
   const informeItems: InformeHistoryItemData[] = informes.map((informe) => {
     const d = new Date(informe.created_at);
@@ -135,10 +151,7 @@ export default async function PatientPage({ params, searchParams }: Props) {
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
           <PatientInfoCard
-            patientId={patient.id}
-            name={patient.name}
-            email={patient.email}
-            phone={patient.phone}
+            patient={patientWithStats}
             patientAge={patientAge}
             dobFormatted={dobFormatted}
             labels={{

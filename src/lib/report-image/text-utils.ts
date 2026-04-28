@@ -66,5 +66,6 @@ export interface DoctorImageInfo {
   name?: string | null;
   matricula?: string | null;
   especialidad?: string | null;
+  tagline?: string | null;
   firmaDigital?: string | null;
 }

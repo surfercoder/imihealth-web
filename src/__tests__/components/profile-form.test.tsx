@@ -88,6 +88,7 @@ const defaultDoctor = {
   matricula: '98765',
   phone: '5491112345678',
   especialidad: 'Cardiología',
+  tagline: null,
   firma_digital: null,
   avatar: null,
 }

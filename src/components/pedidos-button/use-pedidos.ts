@@ -16,44 +16,47 @@ interface UsePedidosArgs {
 function extractEstudiosSolicitados(text: string): string {
   const lines = text.split("\n");
   let inPlan = false;
-  let inEstudios = false;
+  let inEstudiosSection = false;
   const items: string[] = [];
+
+  // Strip surrounding markdown bold markers so headers like "**Estudios:**" still match.
+  const stripMd = (line: string): string => line.replace(/^\*+/, "").replace(/\*+$/, "").trim();
+
+  const isPlanHeader = (line: string): boolean => {
+    const stripped = stripMd(line);
+    return /^P\s*[-–—]\s*PLAN:?$/i.test(stripped) || /^PLAN:?$/i.test(stripped);
+  };
+
+  // Section header: a non-list line ending with ":" (after stripping markdown bold).
+  const isSectionHeader = (line: string): boolean => {
+    if (line.startsWith("- ")) return false;
+    return stripMd(line).endsWith(":");
+  };
+
+  const isEstudiosHeader = (line: string): boolean =>
+    isSectionHeader(line) && /estudios?/i.test(stripMd(line));
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Detect start of Plan section (e.g. "**P - PLAN**", "P - PLAN", "Plan:")
-    if (/^\*{0,2}P\s*[-–—]\s*PLAN\*{0,2}:?$/i.test(trimmed) || /^\*{0,2}PLAN\*{0,2}:?$/i.test(trimmed)) {
-      inPlan = true;
-      inEstudios = false;
+    if (!inPlan) {
+      if (isPlanHeader(trimmed)) inPlan = true;
       continue;
     }
 
-    if (!inPlan) continue;
+    if (trimmed === "") continue;
 
-    // Detect next top-level section after Plan (starts with a letter or **letter, not a list item)
-    // e.g. "**S - SUBJETIVO**", "## Sección", numbered sections like "7."
-    if (/^\*{2}[A-Z]/.test(trimmed) && !(/estudios/i.test(trimmed))) {
-      // Another top-level bold section header that's not estudios → end of Plan
-      break;
-    }
-
-    // Within Plan, match any header containing "estudios"
-    if (/estudios/i.test(trimmed)) {
-      inEstudios = true;
+    if (!inEstudiosSection) {
+      if (isEstudiosHeader(trimmed)) inEstudiosSection = true;
       continue;
     }
 
-    if (inEstudios) {
-      if (trimmed.startsWith("- ")) {
-        items.push(trimmed);
-      } else if (trimmed.startsWith("**") || (trimmed.endsWith(":") && !trimmed.startsWith("- "))) {
-        // New subsection header within Plan → leave estudios but keep scanning Plan
-        inEstudios = false;
-      } else if (trimmed === "") {
-        if (items.length > 0) inEstudios = false;
-      }
+    if (trimmed.startsWith("- ")) {
+      items.push(trimmed);
+      continue;
     }
+
+    if (isSectionHeader(trimmed)) break;
   }
 
   return items.join("\n");

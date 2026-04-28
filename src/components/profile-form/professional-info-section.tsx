@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   FormControl,
   FormField,
@@ -139,6 +140,25 @@ export function ProfessionalInfoSection({ form }: ProfessionalInfoSectionProps) 
           )}
         />
       </div>
+      <FormField
+        control={form.control}
+        name="tagline"
+        render={({ field }) => (
+          <FormItem className="mt-4">
+            <FormLabel>{tSignup("tagline")}</FormLabel>
+            <FormControl>
+              <Textarea
+                rows={2}
+                maxLength={200}
+                placeholder={tSignup("taglinePlaceholder")}
+                {...field}
+              />
+            </FormControl>
+            <p className="text-xs text-muted-foreground">{tSignup("taglineHint")}</p>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

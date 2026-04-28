@@ -127,12 +127,14 @@ describe('send-whatsapp helpers', () => {
         name: 'Dr. Juan',
         matricula: 'MN 1',
         especialidad: 'Cardio',
+        tagline: 'Especialista en Cardiología',
         firma_digital: 'sig',
       })
       expect(result).toEqual({
         name: 'Dr. Juan',
         matricula: 'MN 1',
         especialidad: 'Cardio',
+        tagline: 'Especialista en Cardiología',
         firmaDigital: 'sig',
       })
     })

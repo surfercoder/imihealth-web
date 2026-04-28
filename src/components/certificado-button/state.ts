@@ -8,7 +8,7 @@ export type State = {
 
 export type Action =
   | { type: "OPEN" }
-  | { type: "CLOSE" }
+  | { type: "CLOSE"; defaultDiagnosis?: string }
   | { type: "SET_FIELD"; field: "daysOff" | "diagnosis" | "observations"; value: string }
   | { type: "SET_CERT_URL"; url: string }
   | { type: "RESET_FORM"; defaultDiagnosis?: string };
@@ -26,7 +26,7 @@ export function reducer(state: State, action: Action): State {
     case "OPEN":
       return { ...state, open: true };
     case "CLOSE":
-      return initialState;
+      return { ...initialState, diagnosis: action.defaultDiagnosis ?? "" };
     case "SET_FIELD":
       return { ...state, [action.field]: action.value };
     case "SET_CERT_URL":

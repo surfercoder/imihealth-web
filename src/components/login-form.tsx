@@ -52,6 +52,7 @@ export function LoginForm() {
       phoneInvalid: v("phoneInvalid"),
       specialtyRequired: v("specialtyRequired"),
       specialtyInvalid: v("specialtyInvalid"),
+      taglineMax: v("taglineMax"),
     })),
     defaultValues: { email: "", password: "" },
   });

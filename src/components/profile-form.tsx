@@ -46,6 +46,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
       matricula: doctor.matricula || "",
       phone: doctor.phone || "",
       especialidad: doctor.especialidad || "",
+      tagline: doctor.tagline ?? "",
       firmaDigital: undefined,
       avatar: doctor.avatar ?? undefined,
     },
@@ -58,6 +59,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
     formData.set("matricula", values.matricula);
     formData.set("phone", values.phone);
     formData.set("especialidad", values.especialidad);
+    formData.set("tagline", values.tagline);
     if (signatureChanged) {
       formData.set("firmaDigital", values.firmaDigital ?? "");
     }

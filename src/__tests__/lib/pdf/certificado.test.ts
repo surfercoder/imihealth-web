@@ -7,14 +7,10 @@ describe('generateCertificadoPDF (module)', () => {
     labels: {
       subtitle: 'Certificado Medico',
       patientData: 'DATOS DEL PACIENTE',
-      dni: 'DNI: {dni}',
-      dob: 'Fecha de nacimiento: {dob}',
-      signerFallback: 'el/la profesional firmante',
-      bodyText: 'El/la suscripto/a, {doctorName}, certifica que el/la paciente {patientName} ha sido atendido/a en consulta medica con fecha {date}.',
-      bodyWithMatricula: ', Mat. {matricula}',
-      bodyWithEspecialidad: ', {especialidad}',
-      daysOff1: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
-      daysOffN: 'Por tal motivo, se indica reposo domiciliario por {days} ({days}) dias a partir de la fecha indicada.',
+      dniLine: null,
+      dobLine: null,
+      bodyText: 'El/la suscripto/a, el/la profesional firmante, certifica que el/la paciente Juan Pérez ha sido atendido/a en consulta medica con fecha 15 de enero de 2025.',
+      daysOffText: null,
       diagnosis: 'Diagnostico:',
       observations: 'Observaciones:',
       footer: 'Este certificado fue emitido a pedido del/la interesado/a para ser presentado ante quien corresponda.',
@@ -31,8 +27,11 @@ describe('generateCertificadoPDF (module)', () => {
   it('renders patient dni and dob', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDni: '12345678',
-      patientDob: '15 de mayo de 1990',
+      labels: {
+        ...baseOptions.labels,
+        dniLine: 'DNI: 12345678',
+        dobLine: 'Fecha de nacimiento: 15 de mayo de 1990',
+      },
     })
     expect(result.length).toBeGreaterThan(0)
   })
@@ -40,27 +39,39 @@ describe('generateCertificadoPDF (module)', () => {
   it('handles null patient dob and dni', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDni: null,
-      patientDob: null,
+      labels: { ...baseOptions.labels, dniLine: null, dobLine: null },
     })
     expect(result.length).toBeGreaterThan(0)
   })
 
   it('renders daysOff section with 1 day', async () => {
-    const result = await generateCertificadoPDF({ ...baseOptions, daysOff: 1 })
+    const result = await generateCertificadoPDF({
+      ...baseOptions,
+      labels: {
+        ...baseOptions.labels,
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 1 (un) dia a partir de la fecha indicada.',
+      },
+    })
     expect(result.length).toBeGreaterThan(0)
   })
 
   it('renders daysOff section with multiple days', async () => {
-    const result = await generateCertificadoPDF({ ...baseOptions, daysOff: 7 })
+    const result = await generateCertificadoPDF({
+      ...baseOptions,
+      labels: {
+        ...baseOptions.labels,
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 7 (7) dias a partir de la fecha indicada.',
+      },
+    })
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('skips daysOff when null or zero', async () => {
-    const r1 = await generateCertificadoPDF({ ...baseOptions, daysOff: null })
-    const r2 = await generateCertificadoPDF({ ...baseOptions, daysOff: 0 })
-    expect(r1.length).toBeGreaterThan(0)
-    expect(r2.length).toBeGreaterThan(0)
+  it('skips daysOff when null', async () => {
+    const result = await generateCertificadoPDF({
+      ...baseOptions,
+      labels: { ...baseOptions.labels, daysOffText: null },
+    })
+    expect(result.length).toBeGreaterThan(0)
   })
 
   it('renders diagnosis when provided', async () => {
@@ -107,11 +118,14 @@ describe('generateCertificadoPDF (module)', () => {
   it('renders all options together', async () => {
     const result = await generateCertificadoPDF({
       ...baseOptions,
-      patientDni: '12345678',
-      patientDob: '15/05/1990',
       diagnosis: 'Flu',
       observations: 'Rest',
-      daysOff: 3,
+      labels: {
+        ...baseOptions.labels,
+        dniLine: 'DNI: 12345678',
+        dobLine: 'Fecha de nacimiento: 15/05/1990',
+        daysOffText: 'Por tal motivo, se indica reposo domiciliario por 3 (3) dias a partir de la fecha indicada.',
+      },
       doctor: {
         name: 'Dr. García',
         matricula: '123456',

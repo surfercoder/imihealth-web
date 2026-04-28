@@ -1,12 +1,11 @@
 import { CheckCircle2, Mail, Phone, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { NewInformeForPatientButton } from "@/components/new-informe-for-patient-button";
+import { EditPatientButton } from "@/components/edit-patient-button";
+import type { PatientWithStats } from "@/actions/patients";
 
 interface PatientInfoCardProps {
-  patientId: string;
-  name: string;
-  email: string | null;
-  phone: string;
+  patient: PatientWithStats;
   patientAge: number | null;
   dobFormatted: string | null;
   labels: {
@@ -19,14 +18,12 @@ interface PatientInfoCardProps {
 }
 
 export function PatientInfoCard({
-  patientId,
-  name,
-  email,
-  phone,
+  patient,
   patientAge,
   dobFormatted,
   labels,
 }: PatientInfoCardProps) {
+  const { id: patientId, name, email, phone } = patient;
   return (
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div className="px-6 py-5 flex items-start gap-4">
@@ -34,7 +31,10 @@ export function PatientInfoCard({
           <User className="size-7" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-semibold text-card-foreground">{name}</h1>
+          <div className="flex items-center gap-1">
+            <h1 className="text-xl font-semibold text-card-foreground">{name}</h1>
+            <EditPatientButton patient={patient} />
+          </div>
           {patientAge !== null && dobFormatted && (
             <p className="text-sm text-muted-foreground mt-0.5">
               {patientAge} {labels.yearsOld} · {dobFormatted}

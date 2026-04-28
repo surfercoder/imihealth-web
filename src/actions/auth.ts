@@ -53,6 +53,7 @@ export async function signup(
     matricula: g("matricula"),
     phone: g("phone"),
     especialidad: g("especialidad"),
+    tagline: opt("tagline"),
     firmaDigital: opt("firmaDigital"),
     avatar: opt("avatar"),
   };
@@ -96,7 +97,7 @@ export async function signup(
 
   if (
     signUpData?.user &&
-    (parsed.data.firmaDigital || parsed.data.avatar)
+    (parsed.data.firmaDigital || parsed.data.avatar || parsed.data.tagline)
   ) {
     const admin = createAdminClient();
     const updates: Record<string, string> = {};
@@ -105,6 +106,9 @@ export async function signup(
     }
     if (parsed.data.avatar) {
       updates.avatar = parsed.data.avatar;
+    }
+    if (parsed.data.tagline) {
+      updates.tagline = parsed.data.tagline;
     }
     await admin
       .from("doctors")

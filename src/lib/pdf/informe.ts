@@ -9,7 +9,6 @@ import {
 
 export async function generateInformePDF({
   patientName,
-  patientPhone,
   date,
   content,
   doctor,
@@ -20,7 +19,6 @@ export async function generateInformePDF({
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   patientName = sanitizeForPdf(patientName);
-  patientPhone = sanitizeForPdf(patientPhone);
   content = content.replace(/[^\x00-\xFF]/g, " ");
 
   const pageWidth = 595;
@@ -76,7 +74,7 @@ export async function generateInformePDF({
 
   drawText(labels.patient, margin + 12, y - 18, helveticaBold, 10, rgb(0.4, 0.4, 0.5));
   drawText(patientName, margin + 12, y - 32, helveticaBold, 13, rgb(0.08, 0.08, 0.12));
-  drawText(labels.phone.replace("{phone}", patientPhone), margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
+  drawText(sanitizeForPdf(labels.phoneLine), margin + 12, y - 44, helvetica, 9, rgb(0.5, 0.5, 0.6));
 
   y -= 70;
 
@@ -119,18 +117,16 @@ export async function generateInformePDF({
   });
 
   drawText(labels.consentTitle, margin + 10, y - 14, helveticaBold, 9, consentGreen);
-  const consentLine1 = sanitizeForPdf(
-    labels.consentLine1.replace("{patientName}", patientName)
-  );
+  const consentLine1 = sanitizeForPdf(labels.consentLine1);
   const consentLine2 = sanitizeForPdf(labels.consentLine2);
   drawText(consentLine1, margin + 10, y - 27, helvetica, 8, rgb(0.15, 0.15, 0.15));
   drawText(consentLine2, margin + 10, y - 38, helvetica, 8, rgb(0.15, 0.15, 0.15));
-  const consentDateClean = sanitizeForPdf(labels.consentDate.replace("{date}", date));
+  const consentDateClean = sanitizeForPdf(labels.consentDate);
   drawText(consentDateClean, margin + 10, y - 50, helvetica, 7.5, rgb(0.4, 0.4, 0.45));
 
   y -= 74;
 
-  const sigBlockHeight = doctor ? 110 : 50;
+  const sigBlockHeight = doctor ? 140 : 50;
   ensureSpace(sigBlockHeight);
 
   const separatorY = y;

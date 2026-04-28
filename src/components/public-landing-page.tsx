@@ -4,10 +4,10 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { PublicHeader } from "@/components/public-header";
-import imiBotFront from "@/../public/assets/images/imi-bot-look-front-transparent.webp";
 import imiBotRight from "@/../public/assets/images/imi-bot-look-right-transparent.webp";
 import imiBotLeft from "@/../public/assets/images/imi-bot-look-left-transparent.webp";
 import imiBotDown from "@/../public/assets/images/imi-boot-look-down-transparent.webp";
+import imihealthLogo from "@/../public/assets/images/imihealth-logo.webp";
 import {
   FEATURES,
   BENEFITS,
@@ -29,17 +29,16 @@ export async function PublicLandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <PublicHeader />
+      <PublicHeader useBotIcon />
 
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center">
           <div className="mx-auto max-w-5xl">
             <Image
-              src={imiBotFront}
-              alt={tAlt("botFront")}
-              width={140}
-              height={140}
-              className="mx-auto mb-6 drop-shadow-lg "
+              src={imihealthLogo}
+              alt={tAlt("logo")}
+              width={320}
+              className="mx-auto mb-6 h-auto w-[260px] sm:w-[320px] mix-blend-multiply"
               priority
             />
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">

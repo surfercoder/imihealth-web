@@ -10,6 +10,7 @@ import {
   CertOptions,
   PatientRelation,
   formatEsArDate,
+  formatPatientDob,
   getDocFilename,
   getDocTemplateName,
   getImgTemplateName,
@@ -20,6 +21,7 @@ import {
 } from "./helpers";
 import { generateCertificadoMedia, generateInformeMedia, GeneratedMedia } from "./media";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
+import { sanitizeForPdf } from "@/lib/pdf/helpers";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 import { getTranslations } from "next-intl/server";
 
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const { data: doctorData } = await supabase
       .from("doctors")
-      .select("name, matricula, especialidad, firma_digital")
+      .select("name, matricula, especialidad, tagline, firma_digital")
       .eq("id", user.id)
       .single();
 
@@ -99,32 +101,58 @@ export async function POST(request: NextRequest) {
       getTranslations("pdfPedido"),
     ]);
 
+    const sanitizedPatientName = sanitizeForPdf(patient?.name ?? patientName ?? "");
+    const patientDob = formatPatientDob(patient?.dob);
+
     const informeLabels = {
       subtitle: tInforme("subtitle"),
       patient: tInforme("patient"),
-      phone: tInforme("phone"),
+      phoneLine: tInforme("phone", { phone: sanitizeForPdf(patient?.phone ?? "") }),
       consentTitle: tInforme("consentTitle"),
-      consentLine1: tInforme("consentLine1"),
+      consentLine1: tInforme("consentLine1", { patientName: sanitizedPatientName }),
       consentLine2: tInforme("consentLine2"),
-      consentDate: tInforme("consentDate"),
+      consentDate: tInforme("consentDate", { date: dateStr }),
       footerGenerated: tInforme("footerGenerated"),
       footerAdvice: tInforme("footerAdvice"),
     };
 
-    const certLabels = {
-      subtitle: tCert("subtitle"),
-      patientData: tCert("patientData"),
-      dni: tCert("dni"),
-      dob: tCert("dob"),
-      signerFallback: tCert("signerFallback"),
-      bodyText: tCert("bodyText"),
-      bodyWithMatricula: tCert("bodyWithMatricula"),
-      bodyWithEspecialidad: tCert("bodyWithEspecialidad"),
-      daysOff1: tCert("daysOff1"),
-      daysOffN: tCert("daysOffN"),
-      diagnosis: tCert("diagnosis"),
-      observations: tCert("observations"),
-      footer: tCert("footer"),
+    const buildCertLabels = (certOpts: CertOptions | undefined) => {
+      const doctorNameBase = doctorInfo?.name
+        ? sanitizeForPdf(doctorInfo.name)
+        : tCert("signerFallback");
+      let doctorNameWithCredentials = doctorNameBase;
+      if (doctorInfo?.matricula) {
+        doctorNameWithCredentials += tCert("bodyWithMatricula", {
+          matricula: sanitizeForPdf(doctorInfo.matricula),
+        });
+      }
+      if (doctorInfo?.especialidad) {
+        doctorNameWithCredentials += tCert("bodyWithEspecialidad", {
+          especialidad: sanitizeForPdf(doctorInfo.especialidad),
+        });
+      }
+      const daysOff = certOpts?.daysOff ?? null;
+      const daysOffText =
+        daysOff && daysOff > 0
+          ? daysOff === 1
+            ? tCert("daysOff1")
+            : tCert("daysOffN", { days: String(daysOff) })
+          : null;
+      return {
+        subtitle: tCert("subtitle"),
+        patientData: tCert("patientData"),
+        dniLine: patient?.dni ? tCert("dni", { dni: patient.dni }) : null,
+        dobLine: patientDob ? tCert("dob", { dob: patientDob }) : null,
+        bodyText: tCert("bodyText", {
+          doctorName: doctorNameWithCredentials,
+          patientName: sanitizedPatientName,
+          date: dateStr,
+        }),
+        daysOffText,
+        diagnosis: tCert("diagnosis"),
+        observations: tCert("observations"),
+        footer: tCert("footer"),
+      };
     };
 
     const pedidoLabels = {
@@ -235,7 +263,7 @@ export async function POST(request: NextRequest) {
         dateStr,
         doctorInfo,
         certOptions,
-        labels: certLabels,
+        labels: buildCertLabels(certOptions),
       });
     }
 

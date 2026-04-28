@@ -50,6 +50,7 @@ export function ResetPasswordForm() {
       phoneInvalid: v("phoneInvalid"),
       specialtyRequired: v("specialtyRequired"),
       specialtyInvalid: v("specialtyInvalid"),
+      taglineMax: v("taglineMax"),
     })),
     defaultValues: { password: "", confirmPassword: "" },
   });

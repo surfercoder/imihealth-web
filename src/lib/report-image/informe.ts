@@ -84,6 +84,18 @@ export async function generateInformeImage({
       );
       offset += 16;
     }
+    if (doctor.tagline) {
+      for (const userLine of doctor.tagline.split("\n")) {
+        if (!userLine.trim()) continue;
+        for (const wrapped of wrapLines(userLine, 32)) {
+          if (!wrapped.text) continue;
+          doctorEls.push(
+            `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">${escapeXml(wrapped.text)}</text>`
+          );
+          offset += 12;
+        }
+      }
+    }
     if (doctor.especialidad) {
       doctorEls.push(
         `<text x="${sigBoxCenterX}" y="${consentY + consentH + 20 + offset}" font-family="${FONT_FAMILY}" font-size="10" fill="#666" text-anchor="middle">${escapeXml(doctor.especialidad)}</text>`

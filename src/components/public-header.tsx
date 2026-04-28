@@ -4,8 +4,13 @@ import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getTranslations } from "next-intl/server";
 import logo from "@/../public/assets/images/imihealth-logo.webp";
+import imiBotFront from "@/../public/assets/images/imi-bot-look-front-transparent.webp";
 
-export async function PublicHeader() {
+interface PublicHeaderProps {
+  useBotIcon?: boolean;
+}
+
+export async function PublicHeader({ useBotIcon = false }: PublicHeaderProps = {}) {
   const t = await getTranslations("nav");
   const tAlt = await getTranslations("alt");
 
@@ -16,13 +21,24 @@ export async function PublicHeader() {
           href="/"
           className="flex items-center min-h-11 min-w-[44px] flex-shrink-0 hover:opacity-80 transition-opacity"
         >
-          <Image
-            src={logo}
-            alt={tAlt("logo")}
-            width={100}
-            priority
-            className="h-auto w-[72px] sm:w-[100px]"
-          />
+          {useBotIcon ? (
+            <Image
+              src={imiBotFront}
+              alt={tAlt("botFront")}
+              width={44}
+              height={44}
+              priority
+              className="h-10 w-10 sm:h-11 sm:w-11 drop-shadow-sm"
+            />
+          ) : (
+            <Image
+              src={logo}
+              alt={tAlt("logo")}
+              width={100}
+              priority
+              className="h-auto w-[72px] sm:w-[100px]"
+            />
+          )}
         </Link>
         <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
           <LanguageSwitcher />

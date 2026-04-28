@@ -64,7 +64,7 @@ export function useCertificado({ informeId, patientName, phone, informeDoctor }:
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
-      dispatch(val ? { type: "OPEN" } : { type: "CLOSE" });
+      dispatch(val ? { type: "OPEN" } : { type: "CLOSE", defaultDiagnosis });
     }
   }
 

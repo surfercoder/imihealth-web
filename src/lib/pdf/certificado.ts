@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { drawDoctorBlock, drawLogoHeader, GenerateCertificadoPDFOptions, pdfColors, sanitizeForPdf, wrapText } from "./helpers";
 
 export async function generateCertificadoPDF({
-  patientName, patientDni, patientDob, date, diagnosis, daysOff, observations, doctor, labels,
+  patientName, date, diagnosis, observations, doctor, labels,
 }: GenerateCertificadoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -59,33 +59,17 @@ export async function generateCertificadoPDF({
   drawText(labels.patientData, margin + 12, y - 14, helveticaBold, 8, mutedText);
   drawText(patientName, margin + 12, y - 27, helveticaBold, 13, darkText);
   let patientInfoY = y - 39;
-  if (patientDni) {
-    const dniClean = sanitizeForPdf(labels.dni.replace("{dni}", patientDni));
-    drawText(dniClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
+  if (labels.dniLine) {
+    drawText(sanitizeForPdf(labels.dniLine), margin + 12, patientInfoY, helvetica, 9, mutedText);
     patientInfoY -= 12;
   }
-  if (patientDob) {
-    const dobClean = sanitizeForPdf(labels.dob.replace("{dob}", patientDob));
-    drawText(dobClean, margin + 12, patientInfoY, helvetica, 9, mutedText);
+  if (labels.dobLine) {
+    drawText(sanitizeForPdf(labels.dobLine), margin + 12, patientInfoY, helvetica, 9, mutedText);
   }
 
   y -= 84;
 
-  const bodyText = (() => {
-    const doctorName = doctor?.name ? sanitizeForPdf(doctor.name) : labels.signerFallback;
-    let text = labels.bodyText.replace("{doctorName}", doctorName).replace("{patientName}", patientName).replace("{date}", date);
-    // Insert credentials before the comma that precedes "certifica"
-    let credentials = "";
-    if (doctor?.matricula) credentials += labels.bodyWithMatricula.replace("{matricula}", sanitizeForPdf(doctor.matricula));
-    if (doctor?.especialidad) credentials += labels.bodyWithEspecialidad.replace("{especialidad}", sanitizeForPdf(doctor.especialidad));
-    if (credentials) {
-      // Insert credentials after doctorName in the body text
-      text = text.replace(doctorName, doctorName + credentials);
-    }
-    return text;
-  })();
-
-  const bodyLines = wrapText(bodyText, contentWidth, helvetica, 11);
+  const bodyLines = wrapText(sanitizeForPdf(labels.bodyText), contentWidth, helvetica, 11);
   for (const line of bodyLines) {
     drawText(line, margin, y, helvetica, 11, darkText);
     y -= 17;
@@ -93,11 +77,8 @@ export async function generateCertificadoPDF({
 
   y -= 10;
 
-  if (daysOff && daysOff > 0) {
-    const daysText = daysOff === 1
-      ? sanitizeForPdf(labels.daysOff1)
-      : sanitizeForPdf(labels.daysOffN.replace(/\{days\}/g, String(daysOff)));
-
+  if (labels.daysOffText) {
+    const daysText = sanitizeForPdf(labels.daysOffText);
     const daysLines = wrapText(daysText, contentWidth - 24, helvetica, 10);
     const daysBoxHeight = 16 + daysLines.length * 14 + 14;
     page.drawRectangle({

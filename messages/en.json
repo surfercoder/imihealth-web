@@ -105,6 +105,29 @@
     },
     "defaultName": "Doctor"
   },
+  "goodbyeScreen": {
+    "greeting": "See you soon, {name}!",
+    "messages": {
+      "0": "Thanks for taking such great care of your patients today.",
+      "1": "Rest well — your work makes a real difference.",
+      "2": "Wishing you a peaceful and well-deserved break!",
+      "3": "Your dedication today touched lives. Be proud.",
+      "4": "Take care of yourself the way you take care of others.",
+      "5": "Have a wonderful rest of your day!",
+      "6": "Your patients are lucky to have you. See you next time!",
+      "7": "Mission accomplished — until next time!",
+      "8": "Recharge well. The world needs doctors like you.",
+      "9": "Hope to see you back soon. Take care!",
+      "10": "Every consultation matters, and yours did today.",
+      "11": "Wishing you calm, rest, and good moments ahead.",
+      "12": "Thank you for the dedication you bring every day.",
+      "13": "May your time off be as fulfilling as your work.",
+      "14": "See you soon — keep being amazing!",
+      "15": "Your commitment to medicine is truly inspiring.",
+      "16": "Goodbye for now, and thanks for everything you do!"
+    },
+    "defaultName": "Doctor"
+  },
   "patientsList": {
     "empty": "No patients yet",
     "emptySubtitle": "Create a new report to register your first patient.",
@@ -595,6 +618,9 @@
     "matriculaPlaceholder": "E.g.: 123456",
     "specialty": "Specialty",
     "specialtyPlaceholder": "Select your specialty",
+    "tagline": "Professional tagline (optional)",
+    "taglinePlaceholder": "E.g.: Cardiology Specialist.\nMaster's in Internal Medicine.",
+    "taglineHint": "Will appear under your name on reports, certificates, and orders. Up to 2 lines, max 200 characters.",
     "avatar": "Profile photo (optional)",
     "searchSpecialty": "Search specialty…",
     "specialtyNotFound": "Specialty not found.",
@@ -776,7 +802,8 @@
     "phoneRequired": "Phone is required",
     "phoneInvalid": "Invalid phone number",
     "specialtyRequired": "Specialty is required",
-    "specialtyInvalid": "Please select a valid specialty"
+    "specialtyInvalid": "Please select a valid specialty",
+    "taglineMax": "Tagline cannot exceed 200 characters"
   },
   "passwordStrength": {
     "minLength": "At least 8 characters",
@@ -1040,7 +1067,8 @@
     "logo": "IMI Health",
     "botFront": "IMI Bot",
     "botListening": "IMI Bot listening",
-    "botWelcome": "IMI Health welcome"
+    "botWelcome": "IMI Health welcome",
+    "botGoodbye": "IMI Health goodbye"
   },
   "pdfInforme": {
     "subtitle": "Medical Report",

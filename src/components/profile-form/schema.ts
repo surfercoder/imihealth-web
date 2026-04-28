@@ -8,6 +8,7 @@ export interface DoctorProfile {
   matricula: string;
   phone: string;
   especialidad: string;
+  tagline: string | null;
   firma_digital: string | null;
   avatar: string | null;
 }
@@ -22,6 +23,7 @@ export type ProfileFormValues = {
   matricula: string;
   phone: string;
   especialidad: string;
+  tagline: string;
   firmaDigital?: string;
   avatar?: string;
 };
@@ -46,6 +48,7 @@ export function buildProfileFormSchema(v: Translator) {
       .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val), {
         message: v("specialtyInvalid"),
       }),
+    tagline: z.string().max(200, v("taglineMax")),
     firmaDigital: z.string().optional(),
     avatar: z.string().optional(),
   });

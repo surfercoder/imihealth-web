@@ -3,17 +3,16 @@ import { generateInformePDF } from '@/lib/pdf/informe'
 describe('generateInformePDF (module)', () => {
   const baseOptions = {
     patientName: 'Juan Pérez',
-    patientPhone: '+54 9 261 123 4567',
     date: '01 de enero de 2025',
     content: 'Contenido del informe médico.',
     labels: {
       subtitle: 'Informe Medico',
       patient: 'Paciente:',
-      phone: 'Tel: {phone}',
+      phoneLine: 'Tel: +54 9 261 123 4567',
       consentTitle: 'Consentimiento informado',
-      consentLine1: 'El/la paciente {patientName} ha sido informado/a previamente sobre el uso del sistema IMI Health',
+      consentLine1: 'El/la paciente Juan Pérez ha sido informado/a previamente sobre el uso del sistema IMI Health',
       consentLine2: 'y ha prestado su consentimiento para el registro y procesamiento de la consulta medica.',
-      consentDate: 'Fecha de consulta: {date}',
+      consentDate: 'Fecha de consulta: 01 de enero de 2025',
       footerGenerated: 'Este informe fue generado automaticamente por IMI Health.',
       footerAdvice: 'Ante cualquier duda, consulte a su medico.',
     },
@@ -50,8 +49,11 @@ describe('generateInformePDF (module)', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('handles null patientPhone', async () => {
-    const result = await generateInformePDF({ ...baseOptions, patientPhone: null })
+  it('handles empty phone line', async () => {
+    const result = await generateInformePDF({
+      ...baseOptions,
+      labels: { ...baseOptions.labels, phoneLine: 'Tel: ' },
+    })
     expect(result.length).toBeGreaterThan(0)
   })
 

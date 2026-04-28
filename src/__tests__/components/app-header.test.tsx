@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 const mockSearchParams = new URLSearchParams()
 
@@ -19,6 +20,13 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/components/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
+}))
+jest.mock('@/components/goodbye-screen', () => ({
+  GoodbyeScreen: ({ userName, onDone }: { userName?: string; onDone: () => void }) => (
+    <button type="button" data-testid="goodbye-screen" onClick={onDone}>
+      {userName ?? 'no-name'}
+    </button>
+  ),
 }))
 jest.mock('@/actions/auth', () => ({
   logout: jest.fn(),
@@ -91,14 +99,35 @@ describe('AppHeader', () => {
     mockSearchParams.delete('tab')
   })
 
-  it('removes imi_welcomed from sessionStorage when the logout form is submitted', async () => {
+  it('removes imi_welcomed from sessionStorage when the logout button is clicked', async () => {
+    const user = userEvent.setup()
     sessionStorage.setItem('imi_welcomed', 'true')
     render(<AppHeader />)
-    const form = screen.getByRole('button', { name: /Cerrar sesión/i }).closest('form')!
-    // Trigger the onSubmit handler by firing the submit event on the form
-    await act(async () => {
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
+    await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }))
     expect(sessionStorage.getItem('imi_welcomed')).toBeNull()
+  })
+
+  it('shows the goodbye screen when the logout button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader doctorName="Dr. García" />)
+    expect(screen.queryByTestId('goodbye-screen')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }))
+    expect(screen.getByTestId('goodbye-screen')).toBeInTheDocument()
+    expect(screen.getByText('Dr. García')).toBeInTheDocument()
+  })
+
+  it('submits the logout form when the goodbye screen finishes', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader doctorName="Dr. García" />)
+    const form = screen.getByRole('button', { name: /Cerrar sesión/i }).closest('form')!
+    const submitSpy = jest.spyOn(form, 'requestSubmit').mockImplementation(() => {})
+
+    await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }))
+    expect(submitSpy).not.toHaveBeenCalled()
+
+    await act(async () => {
+      screen.getByTestId('goodbye-screen').click()
+    })
+    expect(submitSpy).toHaveBeenCalledTimes(1)
   })
 })

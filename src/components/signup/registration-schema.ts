@@ -24,6 +24,7 @@ export type ClientSignupFormValues = {
   matricula: string;
   phone: PhoneInputValue;
   especialidad: string;
+  tagline?: string;
   firmaDigital?: string;
   avatar?: string;
 };
@@ -68,6 +69,10 @@ export function buildClientSignupSchema(v: Translator) {
         .refine((val) => (ESPECIALIDADES as readonly string[]).includes(val), {
           message: v("specialtyInvalid"),
         }),
+      tagline: z
+        .string()
+        .max(200, v("taglineMax"))
+        .optional(),
       firmaDigital: z.string().optional(),
       avatar: z.string().optional(),
     })

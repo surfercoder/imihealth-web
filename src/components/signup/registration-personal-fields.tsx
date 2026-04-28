@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   FormControl,
   FormField,
@@ -171,6 +172,27 @@ export function RegistrationPersonalFields({ form, isPending }: RegistrationPers
               open={especialidadOpen}
               onOpenChange={setEspecialidadOpen}
             />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="tagline"
+        render={({ field }) => (
+          <FormItem className="sm:col-span-2">
+            <FormLabel>{t("tagline")}</FormLabel>
+            <FormControl>
+              <Textarea
+                rows={2}
+                maxLength={200}
+                placeholder={t("taglinePlaceholder")}
+                disabled={isPending}
+                {...field}
+                value={safeValue(field.value)}
+              />
+            </FormControl>
+            <p className="text-xs text-muted-foreground">{t("taglineHint")}</p>
             <FormMessage />
           </FormItem>
         )}

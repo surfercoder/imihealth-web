@@ -10,6 +10,14 @@ describe('certificado-button/state reducer', () => {
     expect(reducer(dirty, { type: 'CLOSE' })).toEqual(initialState)
   })
 
+  it('CLOSE restores defaultDiagnosis when provided', () => {
+    const dirty: State = { open: true, daysOff: '5', diagnosis: 'edited', observations: 'o', certUrl: 'u' }
+    expect(reducer(dirty, { type: 'CLOSE', defaultDiagnosis: 'Rosácea (L71.9)' })).toEqual({
+      ...initialState,
+      diagnosis: 'Rosácea (L71.9)',
+    })
+  })
+
   it('SET_FIELD updates the requested field', () => {
     expect(reducer(initialState, { type: 'SET_FIELD', field: 'daysOff', value: '3' })).toEqual({
       ...initialState,

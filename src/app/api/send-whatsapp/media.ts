@@ -36,7 +36,6 @@ export async function generateInformeMedia(input: InformeMediaInput): Promise<Ge
 
   const pdfBytes = await generateInformePDF({
     patientName: patient?.name ?? patientNameFallback ?? "",
-    patientPhone: patient?.phone ?? null,
     date: dateStr,
     content,
     doctor: doctorInfo,
@@ -61,11 +60,8 @@ export async function generateCertificadoMedia(input: CertificadoMediaInput): Pr
 
   const pdfBytes = await generateCertificadoPDF({
     patientName: patient?.name ?? patientNameFallback ?? "",
-    patientDni: patient?.dni ?? null,
-    patientDob,
     date: dateStr,
     diagnosis: certOptions?.diagnosis ?? null,
-    daysOff: certOptions?.daysOff ?? null,
     observations: certOptions?.observations ?? null,
     doctor: doctorInfo,
     labels,

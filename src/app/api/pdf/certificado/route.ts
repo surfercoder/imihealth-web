@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateCertificadoPDF } from "@/lib/pdf";
+import { sanitizeForPdf } from "@/lib/pdf/helpers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getTranslations } from "next-intl/server";
 
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     const { data: doctorData } = await supabase
       .from("doctors")
-      .select("name, matricula, especialidad, firma_digital")
+      .select("name, matricula, especialidad, tagline, firma_digital")
       .eq("id", user.id)
       .single();
 
@@ -72,37 +73,59 @@ export async function GET(request: NextRequest) {
 
     const t = await getTranslations("pdfCertificado");
 
+    const formattedDate = new Date(informe.created_at).toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const sanitizedPatientName = sanitizeForPdf(patient?.name ?? "Paciente");
+    const doctorNameBase = doctorData?.name
+      ? sanitizeForPdf(doctorData.name)
+      : t("signerFallback");
+    let doctorNameWithCredentials = doctorNameBase;
+    if (doctorData?.matricula) {
+      doctorNameWithCredentials += t("bodyWithMatricula", {
+        matricula: sanitizeForPdf(doctorData.matricula),
+      });
+    }
+    if (doctorData?.especialidad) {
+      doctorNameWithCredentials += t("bodyWithEspecialidad", {
+        especialidad: sanitizeForPdf(doctorData.especialidad),
+      });
+    }
+    const daysOffNum = daysOff ? parseInt(daysOff, 10) : null;
+    const daysOffText =
+      daysOffNum && daysOffNum > 0
+        ? daysOffNum === 1
+          ? t("daysOff1")
+          : t("daysOffN", { days: String(daysOffNum) })
+        : null;
+
     const certBytes = await generateCertificadoPDF({
       patientName: patient?.name ?? "Paciente",
-      patientDni: patient?.dni ?? null,
-      patientDob,
-      date: new Date(informe.created_at).toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
+      date: formattedDate,
       diagnosis: diagnosis || null,
-      daysOff: daysOff ? parseInt(daysOff, 10) : null,
       observations: observations || null,
       doctor: doctorData
         ? {
             name: doctorData.name,
             matricula: doctorData.matricula,
             especialidad: doctorData.especialidad,
+            tagline: doctorData.tagline,
             firmaDigital: doctorData.firma_digital,
           }
         : null,
       labels: {
         subtitle: t("subtitle"),
         patientData: t("patientData"),
-        dni: t("dni"),
-        dob: t("dob"),
-        signerFallback: t("signerFallback"),
-        bodyText: t("bodyText"),
-        bodyWithMatricula: t("bodyWithMatricula"),
-        bodyWithEspecialidad: t("bodyWithEspecialidad"),
-        daysOff1: t("daysOff1"),
-        daysOffN: t("daysOffN"),
+        dniLine: patient?.dni ? t("dni", { dni: patient.dni }) : null,
+        dobLine: patientDob ? t("dob", { dob: patientDob }) : null,
+        bodyText: t("bodyText", {
+          doctorName: doctorNameWithCredentials,
+          patientName: sanitizedPatientName,
+          date: formattedDate,
+        }),
+        daysOffText,
         diagnosis: t("diagnosis"),
         observations: t("observations"),
         footer: t("footer"),

@@ -196,12 +196,14 @@ function PlanCard({
           <span className="text-muted-foreground"> {period}</span>
         ) : null}
       </div>
-      {subPrice ? (
-        <p className="mt-1 text-xs text-muted-foreground">{subPrice}</p>
-      ) : null}
-      {extraNote ? (
-        <p className="mt-1 text-xs text-primary">{extraNote}</p>
-      ) : null}
+      <div className="mt-1 min-h-9">
+        {subPrice ? (
+          <p className="text-xs text-muted-foreground">{subPrice}</p>
+        ) : null}
+        {extraNote ? (
+          <p className="mt-1 text-xs text-primary">{extraNote}</p>
+        ) : null}
+      </div>
       <div className="mt-6">{cta}</div>
       <ul className="mt-6 space-y-2 text-sm">
         {features.map((feature) => (

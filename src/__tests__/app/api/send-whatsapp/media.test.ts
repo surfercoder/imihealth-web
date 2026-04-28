@@ -35,17 +35,18 @@ const DOCTOR = {
   name: 'Dr. Juan',
   matricula: 'MN 1',
   especialidad: 'Cardio',
+  tagline: null,
   firmaDigital: null,
 }
 
 const INFORME_LABELS = {
   subtitle: 'Informe Medico',
   patient: 'Paciente:',
-  phone: 'Tel: {phone}',
+  phoneLine: 'Tel: +5491100000000',
   consentTitle: 'Consentimiento informado',
-  consentLine1: 'El/la paciente {patientName} ha sido informado/a',
+  consentLine1: 'El/la paciente Ana ha sido informado/a',
   consentLine2: 'y ha prestado su consentimiento.',
-  consentDate: 'Fecha de consulta: {date}',
+  consentDate: 'Fecha de consulta: 01/06/2024',
   footerGenerated: 'Generado por IMI Health.',
   footerAdvice: 'Consulte a su medico.',
 }
@@ -53,14 +54,10 @@ const INFORME_LABELS = {
 const CERT_LABELS = {
   subtitle: 'Certificado Medico',
   patientData: 'DATOS DEL PACIENTE',
-  dni: 'DNI: {dni}',
-  dob: 'Fecha de nacimiento: {dob}',
-  signerFallback: 'el/la profesional firmante',
-  bodyText: 'El/la suscripto/a, {doctorName}, certifica que el/la paciente {patientName} ha sido atendido/a en consulta medica con fecha {date}.',
-  bodyWithMatricula: ', Mat. {matricula}',
-  bodyWithEspecialidad: ', {especialidad}',
-  daysOff1: 'Reposo por 1 dia.',
-  daysOffN: 'Reposo por {days} dias.',
+  dniLine: 'DNI: 12345678' as string | null,
+  dobLine: 'Fecha de nacimiento: 15 de mayo de 1990' as string | null,
+  bodyText: 'El/la suscripto/a, Dr. Juan, certifica que el/la paciente Ana ha sido atendido/a en consulta medica con fecha 01/06/2024.',
+  daysOffText: 'Reposo por 3 dias.' as string | null,
   diagnosis: 'Diagnostico:',
   observations: 'Observaciones:',
   footer: 'Emitido a pedido del interesado.',
@@ -89,7 +86,6 @@ describe('generateInformeMedia', () => {
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Ana',
-        patientPhone: '+5491100000000',
         date: '01/06/2024',
         content: 'Report content',
         doctor: DOCTOR,
@@ -134,7 +130,7 @@ describe('generateInformeMedia', () => {
     })
 
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientName: 'Fallback', patientPhone: null, doctor: null })
+      expect.objectContaining({ patientName: 'Fallback', doctor: null })
     )
     expect(mockGenerateInformeImage).toHaveBeenCalledWith(
       expect.objectContaining({ patientName: 'Fallback', patientPhone: null })
@@ -157,15 +153,12 @@ describe('generateCertificadoMedia', () => {
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Ana',
-        patientDni: '12345678',
-        daysOff: 3,
         diagnosis: 'Flu',
         observations: 'Rest',
         doctor: DOCTOR,
+        labels: CERT_LABELS,
       })
     )
-    const dobArg = mockGenerateCertificadoPDF.mock.calls[0][0].patientDob
-    expect(typeof dobArg).toBe('string')
 
     expect(mockGenerateCertificadoImage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -189,11 +182,8 @@ describe('generateCertificadoMedia', () => {
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith({
       patientName: 'Fallback',
-      patientDni: null,
-      patientDob: null,
       date: '01/06/2024',
       diagnosis: null,
-      daysOff: null,
       observations: null,
       doctor: null,
       labels: CERT_LABELS,
@@ -227,7 +217,7 @@ describe('generateCertificadoMedia', () => {
     )
   })
 
-  it('passes null patientDob when patient dob is null', async () => {
+  it('passes null patientDob to image when patient dob is null', async () => {
     await generateCertificadoMedia({
       patient: { ...PATIENT, dob: null },
       patientNameFallback: 'Fallback',
@@ -237,7 +227,7 @@ describe('generateCertificadoMedia', () => {
       labels: CERT_LABELS,
     })
 
-    expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
+    expect(mockGenerateCertificadoImage).toHaveBeenCalledWith(
       expect.objectContaining({ patientDob: null })
     )
   })

@@ -177,20 +177,22 @@ describe('GET /api/pdf/informe', () => {
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Carlos López',
-        patientPhone: '+5491166666666',
         content: 'Your consultation summary goes here.',
         date: expect.any(String),
-        doctor: {
+        doctor: expect.objectContaining({
           name: 'María Rodríguez',
           matricula: 'MP 54321',
           especialidad: 'Pediatría',
           firmaDigital: 'base64signaturedata',
-        },
+        }),
+        labels: expect.objectContaining({
+          phoneLine: expect.stringContaining('+5491166666666'),
+        }),
       })
     )
   })
 
-  it('uses "Paciente" as patient name and null phone when patients relation is null', async () => {
+  it('uses "Paciente" as patient name when patients relation is null', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockSelectChain.single
       .mockResolvedValueOnce({ data: { ...MOCK_INFORME, patients: null }, error: null })
@@ -199,7 +201,7 @@ describe('GET /api/pdf/informe', () => {
     await GET(makeRequest({ id: 'inf-1' }))
 
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientName: 'Paciente', patientPhone: null })
+      expect.objectContaining({ patientName: 'Paciente' })
     )
   })
 

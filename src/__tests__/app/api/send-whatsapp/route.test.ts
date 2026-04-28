@@ -281,8 +281,10 @@ describe('POST /api/send-whatsapp', () => {
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Ana García',
-        patientPhone: '+5491155555555',
         content: 'Patient report content here.',
+        labels: expect.objectContaining({
+          phoneLine: expect.stringContaining('+5491155555555'),
+        }),
       })
     )
     expect(mockGenerateInformeImage).toHaveBeenCalledWith(
@@ -300,7 +302,7 @@ describe('POST /api/send-whatsapp', () => {
     )
 
     expect(mockGenerateInformePDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientName: 'Fallback Name', patientPhone: null })
+      expect.objectContaining({ patientName: 'Fallback Name' })
     )
   })
 
@@ -317,10 +319,12 @@ describe('POST /api/send-whatsapp', () => {
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
       expect.objectContaining({
         patientName: 'Ana García',
-        patientDni: '12345678',
-        daysOff: 3,
         diagnosis: 'Influenza',
         observations: 'Rest',
+        labels: expect.objectContaining({
+          dniLine: expect.stringContaining('12345678'),
+          daysOffText: expect.stringContaining('3'),
+        }),
       })
     )
     expect(mockGenerateCertificadoImage).toHaveBeenCalledWith(
@@ -341,7 +345,11 @@ describe('POST /api/send-whatsapp', () => {
     )
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ daysOff: null, diagnosis: null, observations: null })
+      expect.objectContaining({
+        diagnosis: null,
+        observations: null,
+        labels: expect.objectContaining({ daysOffText: null }),
+      })
     )
   })
 
@@ -353,11 +361,11 @@ describe('POST /api/send-whatsapp', () => {
     )
 
     const callArg = mockGenerateCertificadoPDF.mock.calls[0][0]
-    expect(callArg.patientDob).not.toBeNull()
-    expect(typeof callArg.patientDob).toBe('string')
+    expect(callArg.labels.dobLine).not.toBeNull()
+    expect(typeof callArg.labels.dobLine).toBe('string')
   })
 
-  it('passes null patientDob when patient dob is null for certificado', async () => {
+  it('passes null dobLine when patient dob is null for certificado', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
     mockInformeSingle.mockResolvedValue({
       data: { ...MOCK_INFORME, patients: { ...MOCK_INFORME.patients, dob: null } },
@@ -369,7 +377,9 @@ describe('POST /api/send-whatsapp', () => {
     )
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientDob: null })
+      expect.objectContaining({
+        labels: expect.objectContaining({ dobLine: null }),
+      })
     )
   })
 
@@ -382,7 +392,10 @@ describe('POST /api/send-whatsapp', () => {
     )
 
     expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ patientName: 'Body Name', patientDni: null })
+      expect.objectContaining({
+        patientName: 'Body Name',
+        labels: expect.objectContaining({ dniLine: null }),
+      })
     )
     expect(mockGenerateCertificadoImage).toHaveBeenCalledWith(
       expect.objectContaining({ patientName: 'Body Name' })

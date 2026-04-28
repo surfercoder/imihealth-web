@@ -35,7 +35,7 @@ describe('usePedidos', () => {
   it('extracts items and stops at empty line', () => {
     const { result } = renderHook(() => usePedidos({
       ...defaultArgs,
-      informeDoctor: '**P - PLAN**\n**Estudios solicitados**\n- Item A\n- Item B\n\nOther content here',
+      informeDoctor: '**P - PLAN**\n**Estudios solicitados:**\n- Item A\n- Item B\n\nOther content here',
     }))
     expect(result.current.extractedItems).toContain('- Item A')
     expect(result.current.extractedItems).toContain('- Item B')
@@ -62,12 +62,37 @@ describe('usePedidos', () => {
     expect(result.current.extractedItems).toContain('- Radiografía')
   })
 
+  it('does not include items from later sections that mention "estudios" in content', () => {
+    const informeDoctor = [
+      'P - PLAN',
+      '',
+      'Estudios complementarios:',
+      '- Radiografía de hombro derecho',
+      '- Resonancia Magnética de hombro',
+      '',
+      'Tratamiento inmediato:',
+      '- Inmovilización con cabestrillo',
+      '',
+      'Seguimiento:',
+      '- Control en 7 días para evaluación de estudios imagenológicos',
+      '- Definir indicación quirúrgica vs. manejo conservador según hallazgos de RM',
+    ].join('\n')
+
+    const { result } = renderHook(() => usePedidos({ ...defaultArgs, informeDoctor }))
+    expect(result.current.extractedItems).toContain('- Radiografía de hombro derecho')
+    expect(result.current.extractedItems).toContain('- Resonancia Magnética de hombro')
+    expect(result.current.extractedItems).not.toContain('Inmovilización')
+    expect(result.current.extractedItems).not.toContain('Definir indicación quirúrgica')
+    expect(result.current.extractedItems).not.toContain('Control en 7 días')
+  })
+
   it('extracts items and stops at section ending with colon', () => {
     const { result } = renderHook(() => usePedidos({
       ...defaultArgs,
-      informeDoctor: '**P - PLAN**\n**Solicitud de estudios**\n- Item X\nOtra sección:\nContent',
+      informeDoctor: '**P - PLAN**\n**Solicitud de estudios:**\n- Item X\nOtra sección:\nContent',
     }))
     expect(result.current.extractedItems).toContain('- Item X')
+    expect(result.current.extractedItems).not.toContain('Content')
   })
 
   it('starts with closed state', () => {
