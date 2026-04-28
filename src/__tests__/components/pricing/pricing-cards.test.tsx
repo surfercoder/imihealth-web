@@ -26,17 +26,17 @@ describe('PricingCards', () => {
     expect(screen.getByText('Organización')).toBeInTheDocument()
   })
 
-  it('starts on monthly cycle showing $30.000 ARS per month', () => {
+  it('starts on monthly cycle showing USD 30 per month', () => {
     render(<PricingCards />)
-    expect(screen.getByText('$30.000')).toBeInTheDocument()
+    expect(screen.getByText('USD 30')).toBeInTheDocument()
     expect(screen.getByText(/\/ mes/)).toBeInTheDocument()
   })
 
-  it('switches to yearly showing $300.000 ARS per year and savings hint', async () => {
+  it('switches to yearly showing USD 300 per year and savings hint', async () => {
     const user = userEvent.setup()
     render(<PricingCards />)
     await user.click(screen.getByRole('tab', { name: /Anual/ }))
-    expect(screen.getByText('$300.000')).toBeInTheDocument()
+    expect(screen.getByText('USD 300')).toBeInTheDocument()
     expect(screen.getByText(/\/ año/)).toBeInTheDocument()
     expect(screen.getByText(/2 meses gratis/i)).toBeInTheDocument()
   })
@@ -46,8 +46,26 @@ describe('PricingCards', () => {
     render(<PricingCards />)
     await user.click(screen.getByRole('tab', { name: /Anual/ }))
     await user.click(screen.getByRole('tab', { name: /Mensual/ }))
-    expect(screen.getByText('$30.000')).toBeInTheDocument()
+    expect(screen.getByText('USD 30')).toBeInTheDocument()
     expect(screen.queryByText(/2 meses gratis/i)).not.toBeInTheDocument()
+  })
+
+  it('renders the live ARS subtitle when arsPrices are provided', () => {
+    render(<PricingCards arsPrices={{ monthly: 42510, yearly: 425100 }} />)
+    expect(screen.getByText(/AR\$\s*42\.510/)).toBeInTheDocument()
+  })
+
+  it('updates the ARS subtitle when toggling cycle', async () => {
+    const user = userEvent.setup()
+    render(<PricingCards arsPrices={{ monthly: 42510, yearly: 425100 }} />)
+    expect(screen.getByText(/AR\$\s*42\.510/)).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /Anual/ }))
+    expect(screen.getByText(/AR\$\s*425\.100/)).toBeInTheDocument()
+  })
+
+  it('omits the ARS subtitle when arsPrices is missing', () => {
+    render(<PricingCards />)
+    expect(screen.queryByText(/AR\$/)).not.toBeInTheDocument()
   })
 
   it('Free CTA links to /signup', () => {
@@ -97,8 +115,8 @@ describe('PricingCards', () => {
     expect(screen.getByText(/Más elegido/i)).toBeInTheDocument()
   })
 
-  it('shows the "Save $60.000" badge on the yearly toggle', () => {
+  it('shows the "Save USD 60" badge on the yearly toggle', () => {
     render(<PricingCards />)
-    expect(screen.getByText(/Ahorrás \$60\.000/i)).toBeInTheDocument()
+    expect(screen.getByText(/Ahorrás USD 60/i)).toBeInTheDocument()
   })
 })

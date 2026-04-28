@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/utils/supabase/server";
 import {
   createPreapproval,
+  getUsdToArsRate,
   updatePreapprovalStatus,
 } from "@/lib/mercadopago/api";
 
@@ -44,26 +45,41 @@ export async function submitEnterpriseLead(
 export type ProPlanTier = "pro_monthly" | "pro_yearly";
 
 interface PlanConfig {
-  planIdEnv: string;
-  amount: number;
+  usdAmount: number;
   frequency: number;
   frequencyType: "months";
+  reason: string;
 }
 
 const PLAN_CONFIG: Record<ProPlanTier, PlanConfig> = {
   pro_monthly: {
-    planIdEnv: "MERCADOPAGO_PRO_MONTHLY_PLAN_ID",
-    amount: 30000,
+    usdAmount: 30,
     frequency: 1,
     frequencyType: "months",
+    reason: "IMI Health Pro — mensual",
   },
   pro_yearly: {
-    planIdEnv: "MERCADOPAGO_PRO_YEARLY_PLAN_ID",
-    amount: 300000,
+    usdAmount: 300,
     frequency: 12,
     frequencyType: "months",
+    reason: "IMI Health Pro — anual",
   },
 };
+
+/** USD prices are anchored; the ARS amount is computed from MP's daily rate at checkout time. */
+export function getUsdPrice(plan: ProPlanTier): number {
+  return PLAN_CONFIG[plan].usdAmount;
+}
+
+/** Rounds to whole ARS — MP rejects fractional amounts. */
+function usdToArs(usd: number, rate: number): number {
+  return Math.round(usd * rate);
+}
+
+export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
+  const rate = await getUsdToArsRate();
+  return usdToArs(PLAN_CONFIG[plan].usdAmount, rate);
+}
 
 export async function createCheckout(
   plan: ProPlanTier,
@@ -76,10 +92,8 @@ export async function createCheckout(
     return { error: "No autenticado" };
   }
 
-  const config = PLAN_CONFIG[plan];
-  const planId = process.env[config.planIdEnv];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!planId || !appUrl) {
+  if (!appUrl) {
     return { error: "Suscripciones no están configuradas todavía." };
   }
 
@@ -100,14 +114,24 @@ export async function createCheckout(
     return { error: "Ya tenés una suscripción Pro activa." };
   }
 
+  const config = PLAN_CONFIG[plan];
+
+  let arsAmount: number;
+  try {
+    const rate = await getUsdToArsRate();
+    arsAmount = usdToArs(config.usdAmount, rate);
+  } catch (err) {
+    console.error("[billing] getUsdToArsRate failed", err);
+    return { error: "No se pudo obtener el tipo de cambio. Intentá nuevamente." };
+  }
+
+  // Standalone preapproval (no plan_id) — gives us a per-user ARS amount that
+  // reflects the FX rate at signup time. Subscribers stay locked to that
+  // amount; new signups always get the latest rate.
   let preapproval;
   try {
     preapproval = await createPreapproval({
-      preapproval_plan_id: planId,
-      reason:
-        plan === "pro_monthly"
-          ? "IMI Health Pro — mensual"
-          : "IMI Health Pro — anual",
+      reason: config.reason,
       external_reference: user.id,
       payer_email: user.email,
       back_url: `${appUrl}/billing/return`,
@@ -115,7 +139,7 @@ export async function createCheckout(
       auto_recurring: {
         frequency: config.frequency,
         frequency_type: config.frequencyType,
-        transaction_amount: config.amount,
+        transaction_amount: arsAmount,
         currency_id: "ARS",
       },
     });

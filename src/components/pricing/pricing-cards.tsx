@@ -13,6 +13,8 @@ type Cycle = "monthly" | "yearly";
 
 interface Props {
   isSignedIn?: boolean;
+  /** Pre-computed ARS amounts for each cycle (USD × MP rate at request time). */
+  arsPrices?: { monthly: number; yearly: number };
 }
 
 const FREE_FEATURES = [
@@ -35,7 +37,14 @@ const ENT_FEATURES = [
   "dedicated_support",
 ] as const;
 
-export function PricingCards({ isSignedIn = false }: Props) {
+function formatArs(amount: number): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "decimal",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export function PricingCards({ isSignedIn = false, arsPrices }: Props) {
   const t = useTranslations("pricing");
   const [cycle, setCycle] = useState<Cycle>("monthly");
 
@@ -43,6 +52,15 @@ export function PricingCards({ isSignedIn = false }: Props) {
     cycle === "monthly" ? t("proPriceMonthly") : t("proPriceYearly");
   const proPeriod = cycle === "monthly" ? t("perMonth") : t("perYear");
   const proPlan = cycle === "monthly" ? "pro_monthly" : "pro_yearly";
+  const arsForCycle = arsPrices
+    ? cycle === "monthly"
+      ? arsPrices.monthly
+      : arsPrices.yearly
+    : null;
+  const arsHint =
+    arsForCycle != null
+      ? t("arsHint", { amount: formatArs(arsForCycle) })
+      : undefined;
 
   return (
     <div>
@@ -106,6 +124,7 @@ export function PricingCards({ isSignedIn = false }: Props) {
           subtitle={t("proSubtitle")}
           price={proPrice}
           period={proPeriod}
+          subPrice={arsHint}
           highlighted
           highlightLabel={t("popular")}
           extraNote={cycle === "yearly" ? t("yearlyHint") : undefined}
@@ -140,6 +159,7 @@ interface PlanCardProps {
   subtitle: string;
   price: string;
   period?: string;
+  subPrice?: string;
   features: string[];
   cta: React.ReactNode;
   highlighted?: boolean;
@@ -152,6 +172,7 @@ function PlanCard({
   subtitle,
   price,
   period,
+  subPrice,
   features,
   cta,
   highlighted,
@@ -175,6 +196,9 @@ function PlanCard({
           <span className="text-muted-foreground"> {period}</span>
         ) : null}
       </div>
+      {subPrice ? (
+        <p className="mt-1 text-xs text-muted-foreground">{subPrice}</p>
+      ) : null}
       {extraNote ? (
         <p className="mt-1 text-xs text-primary">{extraNote}</p>
       ) : null}

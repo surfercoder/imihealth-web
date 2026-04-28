@@ -4,6 +4,8 @@ import {
   getPreapproval,
   updatePreapprovalStatus,
   getAuthorizedPayment,
+  getUsdToArsRate,
+  __clearRateCacheForTests,
 } from '@/lib/mercadopago/api'
 
 const ORIGINAL_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN
@@ -148,5 +150,83 @@ describe('mercadopago api wrapper', () => {
   it('throws with status and body on non-OK response', async () => {
     mockFail(400, '{"message":"bad request"}')
     await expect(getPreapproval('bad')).rejects.toThrow(/400/)
+  })
+})
+
+describe('getUsdToArsRate', () => {
+  beforeEach(() => {
+    process.env.MERCADOPAGO_ACCESS_TOKEN = 'test-token'
+    global.fetch = jest.fn()
+    __clearRateCacheForTests()
+  })
+
+  afterEach(() => {
+    __clearRateCacheForTests()
+    jest.restoreAllMocks()
+  })
+
+  it('fetches the USD→ARS rate from MercadoPago', async () => {
+    const validUntil = new Date(Date.now() + 60_000).toISOString()
+    mockOk({ currency_base: 'USD', currency_quote: 'ARS', rate: 1417, valid_until: validUntil })
+    const rate = await getUsdToArsRate()
+    expect(rate).toBe(1417)
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      'https://api.mercadopago.com/currency_conversions/search?from=USD&to=ARS',
+    )
+  })
+
+  it('caches the rate until valid_until', async () => {
+    const validUntil = new Date(Date.now() + 60_000).toISOString()
+    mockOk({ currency_base: 'USD', currency_quote: 'ARS', rate: 1417, valid_until: validUntil })
+    await getUsdToArsRate()
+    await getUsdToArsRate()
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(1)
+  })
+
+  it('refetches when the cached entry has expired', async () => {
+    const expired = new Date(Date.now() - 1000).toISOString()
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ currency_base: 'USD', currency_quote: 'ARS', rate: 1400, valid_until: expired }),
+          ),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              currency_base: 'USD',
+              currency_quote: 'ARS',
+              rate: 1500,
+              valid_until: new Date(Date.now() + 60_000).toISOString(),
+            }),
+          ),
+      })
+    expect(await getUsdToArsRate()).toBe(1400)
+    expect(await getUsdToArsRate()).toBe(1500)
+  })
+
+  it('falls back to a 1h cache window when valid_until is unparseable', async () => {
+    mockOk({ currency_base: 'USD', currency_quote: 'ARS', rate: 1410, valid_until: 'not-a-date' })
+    const rate = await getUsdToArsRate()
+    expect(rate).toBe(1410)
+    // A second call must still hit the cache (no parse error fallout).
+    await getUsdToArsRate()
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(1)
+  })
+
+  it('throws when MP returns a non-positive rate', async () => {
+    mockOk({ currency_base: 'USD', currency_quote: 'ARS', rate: 0, valid_until: new Date().toISOString() })
+    await expect(getUsdToArsRate()).rejects.toThrow(/invalid USD/)
+  })
+
+  it('throws when MP returns no rate field', async () => {
+    mockOk({ currency_base: 'USD', currency_quote: 'ARS', valid_until: new Date().toISOString() })
+    await expect(getUsdToArsRate()).rejects.toThrow(/invalid USD/)
   })
 })

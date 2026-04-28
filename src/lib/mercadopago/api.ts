@@ -90,7 +90,8 @@ export async function createPreapprovalPlan(
 }
 
 export interface PreapprovalInput {
-  preapproval_plan_id: string;
+  /** Optional: when omitted MP creates a "standalone" preapproval with the per-user amount. */
+  preapproval_plan_id?: string;
   reason: string;
   external_reference: string;
   payer_email: string;
@@ -108,7 +109,7 @@ export type PreapprovalStatus =
 
 export interface Preapproval {
   id: string;
-  preapproval_plan_id: string;
+  preapproval_plan_id: string | null;
   status: PreapprovalStatus;
   external_reference: string;
   payer_email: string;
@@ -163,4 +164,52 @@ export async function getAuthorizedPayment(
     "GET",
     `/authorized_payments/${encodeURIComponent(String(id))}`,
   );
+}
+
+interface CurrencyConversion {
+  currency_base: string;
+  currency_quote: string;
+  rate: number;
+  valid_until: string;
+}
+
+interface CachedRate {
+  rate: number;
+  validUntilMs: number;
+}
+
+const rateCache = new Map<string, CachedRate>();
+
+/** Test-only hook to clear the in-process exchange rate cache. */
+export function __clearRateCacheForTests(): void {
+  rateCache.clear();
+}
+
+/**
+ * MercadoPago's own USD→ARS rate. The endpoint returns a `valid_until`
+ * timestamp (~24h ahead); we cache until then and refetch lazily.
+ */
+export async function getUsdToArsRate(): Promise<number> {
+  const cacheKey = "USD->ARS";
+  const now = Date.now();
+  const cached = rateCache.get(cacheKey);
+  if (cached && cached.validUntilMs > now) {
+    return cached.rate;
+  }
+
+  const data = await call<CurrencyConversion>(
+    "GET",
+    "/currency_conversions/search?from=USD&to=ARS",
+  );
+
+  if (!data.rate || data.rate <= 0) {
+    throw new Error("MercadoPago returned an invalid USD→ARS rate");
+  }
+
+  const validUntilMs = Date.parse(data.valid_until);
+  rateCache.set(cacheKey, {
+    rate: data.rate,
+    validUntilMs: Number.isFinite(validUntilMs) ? validUntilMs : now + 60 * 60 * 1000,
+  });
+  return data.rate;
 }

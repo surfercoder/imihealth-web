@@ -11,16 +11,20 @@ jest.mock('@/utils/supabase/server', () => ({
 
 const mockCreatePreapproval = jest.fn()
 const mockUpdatePreapprovalStatus = jest.fn()
+const mockGetUsdToArsRate = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
   createPreapproval: (...args: unknown[]) => mockCreatePreapproval(...args),
   updatePreapprovalStatus: (...args: unknown[]) =>
     mockUpdatePreapprovalStatus(...args),
+  getUsdToArsRate: (...args: unknown[]) => mockGetUsdToArsRate(...args),
 }))
 
 import {
   submitEnterpriseLead,
   createCheckout,
   cancelSubscription,
+  getCurrentArsPrice,
+  getUsdPrice,
 } from '@/actions/billing'
 
 const validInput = {
@@ -88,21 +92,13 @@ describe('submitEnterpriseLead', () => {
   })
 })
 
-const ENV_BACKUP = {
-  monthly: process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID,
-  yearly: process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID,
-  appUrl: process.env.NEXT_PUBLIC_APP_URL,
-}
+const ENV_BACKUP = { appUrl: process.env.NEXT_PUBLIC_APP_URL }
 
 function setBillingEnv() {
-  process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID = 'plan-monthly'
-  process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID = 'plan-yearly'
   process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
 }
 
 afterAll(() => {
-  process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID = ENV_BACKUP.monthly
-  process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID = ENV_BACKUP.yearly
   process.env.NEXT_PUBLIC_APP_URL = ENV_BACKUP.appUrl
 })
 
@@ -124,6 +120,7 @@ describe('createCheckout', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setBillingEnv()
+    mockGetUsdToArsRate.mockResolvedValue(1417)
   })
 
   it('returns error when not authenticated', async () => {
@@ -136,13 +133,6 @@ describe('createCheckout', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u1', email: null } } })
     const result = await createCheckout('pro_monthly')
     expect(result.error).toBe('No autenticado')
-  })
-
-  it('returns config error when plan id env var is missing', async () => {
-    delete process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const result = await createCheckout('pro_monthly')
-    expect(result.error).toMatch(/no están configuradas/i)
   })
 
   it('returns config error when app URL env var is missing', async () => {
@@ -167,7 +157,7 @@ describe('createCheckout', () => {
     expect(result.error).toMatch(/ya tenés/i)
   })
 
-  it('creates a monthly preapproval and upserts the subscription row', async () => {
+  it('converts USD 30 to ARS at the live rate and creates a standalone monthly preapproval', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const { upsert } = adminMaybeSingle({ data: null })
     mockCreatePreapproval.mockResolvedValue({
@@ -176,18 +166,18 @@ describe('createCheckout', () => {
     })
     const result = await createCheckout('pro_monthly')
     expect(result.initPoint).toBe('https://mp/checkout/abc')
-    expect(mockCreatePreapproval).toHaveBeenCalledWith(
+    expect(mockGetUsdToArsRate).toHaveBeenCalled()
+    const call = mockCreatePreapproval.mock.calls[0][0]
+    expect(call.preapproval_plan_id).toBeUndefined()
+    expect(call.external_reference).toBe('user-1')
+    expect(call.payer_email).toBe('doc@example.com')
+    expect(call.status).toBe('pending')
+    expect(call.auto_recurring).toEqual(
       expect.objectContaining({
-        preapproval_plan_id: 'plan-monthly',
-        external_reference: 'user-1',
-        payer_email: 'doc@example.com',
-        status: 'pending',
-        auto_recurring: expect.objectContaining({
-          frequency: 1,
-          frequency_type: 'months',
-          transaction_amount: 30000,
-          currency_id: 'ARS',
-        }),
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: 30 * 1417,
+        currency_id: 'ARS',
       }),
     )
     expect(upsert).toHaveBeenCalledWith(
@@ -201,7 +191,7 @@ describe('createCheckout', () => {
     )
   })
 
-  it('creates a yearly preapproval with frequency 12 months', async () => {
+  it('converts USD 300 to ARS for the yearly plan with frequency 12', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: null })
     mockCreatePreapproval.mockResolvedValue({
@@ -211,13 +201,23 @@ describe('createCheckout', () => {
     await createCheckout('pro_yearly')
     expect(mockCreatePreapproval).toHaveBeenCalledWith(
       expect.objectContaining({
-        preapproval_plan_id: 'plan-yearly',
         auto_recurring: expect.objectContaining({
           frequency: 12,
-          transaction_amount: 300000,
+          transaction_amount: 300 * 1417,
         }),
       }),
     )
+  })
+
+  it('returns user-facing error when MP rate fetch fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    adminMaybeSingle({ data: null })
+    mockGetUsdToArsRate.mockRejectedValue(new Error('mp down'))
+    const errSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await createCheckout('pro_monthly')
+    expect(result.error).toMatch(/tipo de cambio/i)
+    expect(mockCreatePreapproval).not.toHaveBeenCalled()
+    errSpy.mockRestore()
   })
 
   it('returns error when MP createPreapproval fails', async () => {
@@ -239,6 +239,24 @@ describe('createCheckout', () => {
     })
     const result = await createCheckout('pro_monthly')
     expect(result.initPoint).toBe('https://mp/checkout/ghi')
+  })
+})
+
+describe('getUsdPrice / getCurrentArsPrice', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetUsdToArsRate.mockResolvedValue(1417)
+  })
+
+  it('exposes the USD-anchor amounts', () => {
+    expect(getUsdPrice('pro_monthly')).toBe(30)
+    expect(getUsdPrice('pro_yearly')).toBe(300)
+  })
+
+  it('multiplies USD by the current MP rate and rounds to whole ARS', async () => {
+    mockGetUsdToArsRate.mockResolvedValue(1417.5)
+    expect(await getCurrentArsPrice('pro_monthly')).toBe(Math.round(30 * 1417.5))
+    expect(await getCurrentArsPrice('pro_yearly')).toBe(Math.round(300 * 1417.5))
   })
 })
 
