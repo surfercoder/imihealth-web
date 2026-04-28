@@ -272,14 +272,16 @@ describe('InformePage', () => {
   })
 
   it('decrements age when birthday is same month but day not yet reached', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const today = new Date()
-    const futureDay = today.getDate() + 1
-    if (futureDay > 28) return
-    const dob = `1990-${String(today.getMonth() + 1).padStart(2, '0')}-${String(futureDay).padStart(2, '0')}`
-    setupMocks({ ...completedInforme, patients: { ...completedInforme.patients, dob } })
-    render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText(/años/i)).toBeInTheDocument()
+    jest.useFakeTimers({ now: new Date('2025-06-10T12:00:00Z').getTime() })
+    try {
+      mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+      const dob = '1990-06-11'
+      setupMocks({ ...completedInforme, patients: { ...completedInforme.patients, dob } })
+      render(await InformePage({ params: Promise.resolve({ id: 'i-1' }), searchParams: Promise.resolve({}) }))
+      expect(screen.getByText(/años/i)).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('renders completed informe even with transcript_dialog in data', async () => {

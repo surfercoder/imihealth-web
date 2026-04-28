@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     Sentry.setUser(null);
   }
 
-  const publicPaths = ["/home", "/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest", "/assets", "/api/send-email"];
+  const publicPaths = ["/home", "/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest", "/assets", "/api/send-email", "/pricing"];
   const isPublicPath =
     request.nextUrl.pathname === "/" ||
     publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));

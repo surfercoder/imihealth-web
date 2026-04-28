@@ -140,6 +140,9 @@ export async function PublicLandingPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-3">
             <FeedbackDialog doctorName={null} doctorEmail={null} />
+            <Link href="/pricing" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
+              {tNav("pricing")}
+            </Link>
             <Link href="/manifest" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               {tNav("manifest")}
             </Link>

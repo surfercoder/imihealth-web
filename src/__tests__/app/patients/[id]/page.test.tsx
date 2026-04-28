@@ -330,14 +330,16 @@ describe('PatientPage', () => {
   })
 
   it('decrements age when birthday has not yet occurred this year', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const today = new Date()
-    const futureDay = today.getDate() + 1
-    if (futureDay > 28) return // skip edge case around month end
-    const dob = `1990-${String(today.getMonth() + 1).padStart(2, '0')}-${String(futureDay).padStart(2, '0')}`
-    setupMocks({ ...basePatient, dob })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText(/años/i)).toBeInTheDocument()
+    jest.useFakeTimers({ now: new Date('2025-06-10T12:00:00Z').getTime() })
+    try {
+      mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+      const dob = '1990-06-11' // birthday is tomorrow → exercises m===0 && day< branch
+      setupMocks({ ...basePatient, dob })
+      render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
+      expect(screen.getByText(/años/i)).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('appends tab query param to informe link when tab searchParam is provided', async () => {
@@ -355,14 +357,16 @@ describe('PatientPage', () => {
   })
 
   it('computes correct age when birthday month has not yet arrived', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const today = new Date()
-    // Use a month in the future
-    const futureMonth = ((today.getMonth() + 2) % 12) + 1
-    const dob = `1990-${String(futureMonth).padStart(2, '0')}-15`
-    setupMocks({ ...basePatient, dob })
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByText(/años/i)).toBeInTheDocument()
+    jest.useFakeTimers({ now: new Date('2025-06-10T12:00:00Z').getTime() })
+    try {
+      mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+      const dob = '1990-09-15' // birthday is in a future month
+      setupMocks({ ...basePatient, dob })
+      render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
+      expect(screen.getByText(/años/i)).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('uses en-US locale when getLocale returns en', async () => {
