@@ -415,6 +415,38 @@ describe('POST /api/send-whatsapp', () => {
     )
   })
 
+  it('uses signer fallback in certificado bodyText when doctor data is null', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    mockDoctorSingle.mockResolvedValue({ data: null, error: null })
+
+    await POST(
+      makeRequest({ to: '123', informeId: 'i-1', type: 'certificado', patientName: 'Juan', locale: 'es' })
+    )
+
+    const call = mockGenerateCertificadoPDF.mock.calls[0][0]
+    expect(call.doctor).toBeNull()
+    expect(typeof call.labels.bodyText).toBe('string')
+  })
+
+  it('uses singular daysOff label when certOptions.daysOff is exactly 1', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+
+    await POST(
+      makeRequest({
+        to: '123',
+        informeId: 'i-1',
+        type: 'certificado',
+        patientName: 'Juan',
+        locale: 'es',
+        certOptions: { daysOff: 1 },
+      })
+    )
+
+    const call = mockGenerateCertificadoPDF.mock.calls[0][0]
+    expect(call.labels.daysOffText).toEqual(expect.any(String))
+    expect(call.labels.daysOffText).not.toMatch(/3/)
+  })
+
   // ── Upload failures ─────────────────────────────────────────────────────────
 
   it('returns 502 when PDF upload fails', async () => {

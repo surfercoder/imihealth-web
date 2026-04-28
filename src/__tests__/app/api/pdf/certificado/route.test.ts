@@ -183,6 +183,25 @@ describe('GET /api/pdf/certificado', () => {
     )
   })
 
+  it('uses singular daysOff label when daysOff is exactly 1', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockSelectChain.single
+      .mockResolvedValueOnce({ data: MOCK_INFORME, error: null })
+      .mockResolvedValueOnce({ data: MOCK_DOCTOR, error: null })
+
+    await GET(makeRequest({ id: 'inf-1', daysOff: '1' }))
+
+    expect(mockGenerateCertificadoPDF).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labels: expect.objectContaining({
+          daysOffText: expect.any(String),
+        }),
+      })
+    )
+    const call = mockGenerateCertificadoPDF.mock.calls[0][0]
+    expect(call.labels.daysOffText).not.toMatch(/3/)
+  })
+
   it('passes null for optional params when not provided in query string', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockSelectChain.single

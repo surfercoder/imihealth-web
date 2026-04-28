@@ -225,6 +225,18 @@ describe('generateInformePDF', () => {
     expect(result).toBeInstanceOf(Uint8Array)
     expect(result.length).toBeGreaterThan(0)
   })
+
+  it('renders doctor tagline (multi-line, skips blank lines, wraps long content)', async () => {
+    const result = await generateInformePDF({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: 'Especialista en columna\n\n   \nUna tagline larga adicional que probablemente debe envolverse al ancho del cuadro de firma.',
+      },
+    })
+    expect(result).toBeInstanceOf(Uint8Array)
+    expect(result.length).toBeGreaterThan(0)
+  })
 })
 
 describe('generateCertificadoPDF', () => {

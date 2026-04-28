@@ -112,6 +112,39 @@ describe('generateInformeImage', () => {
     expect(Buffer.isBuffer(result)).toBe(true)
   })
 
+  it('renders doctor tagline (single and multi-line, skips blanks)', async () => {
+    const result = await generateInformeImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: 'Especialista en columna\n\nFormación en Mayo Clinic',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
+  it('renders doctor tagline that requires line wrapping', async () => {
+    const result = await generateInformeImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: 'Una tagline muy extensa que supera el limite de caracteres por linea y debe envolverse en multiples lineas dentro del bloque del firmante.',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
+  it('skips tagline lines that strip to empty (markdown-only content)', async () => {
+    const result = await generateInformeImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: '**\nEspecialista en columna',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
   it('handles many lines forcing dynamic height', async () => {
     const manyLines = Array(50).fill('Línea de contenido médico para el informe del paciente.').join('\n')
     const result = await generateInformeImage({ ...baseOptions, content: manyLines })

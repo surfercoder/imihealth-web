@@ -86,6 +86,15 @@ describe('usePedidos', () => {
     expect(result.current.extractedItems).not.toContain('Control en 7 días')
   })
 
+  it('ignores list-item lines between Plan header and Estudios header', () => {
+    const { result } = renderHook(() => usePedidos({
+      ...defaultArgs,
+      informeDoctor: 'P - PLAN\n- Indicacion previa al solicitar estudios\n**Estudios solicitados:**\n- Hemograma',
+    }))
+    expect(result.current.extractedItems).toContain('- Hemograma')
+    expect(result.current.extractedItems).not.toContain('Indicacion previa')
+  })
+
   it('extracts items and stops at section ending with colon', () => {
     const { result } = renderHook(() => usePedidos({
       ...defaultArgs,

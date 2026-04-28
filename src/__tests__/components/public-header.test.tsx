@@ -63,4 +63,12 @@ describe('PublicHeader', () => {
     render(Component)
     expect(screen.getByRole('banner')).toBeInTheDocument()
   })
+
+  it('renders the IMI bot icon when useBotIcon is true', async () => {
+    const Component = await PublicHeader({ useBotIcon: true })
+    render(Component)
+    const botImg = screen.getByRole('img', { name: /imi.*bot/i })
+    expect(botImg).toBeInTheDocument()
+    expect(botImg.closest('a')).toHaveAttribute('href', '/')
+  })
 })

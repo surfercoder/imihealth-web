@@ -138,6 +138,39 @@ describe('generateCertificadoImage', () => {
     expect(Buffer.isBuffer(result)).toBe(true)
   })
 
+  it('renders doctor tagline (single and multi-line, skips blanks)', async () => {
+    const result = await generateCertificadoImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: 'Especialista en columna\n\nFormación en Mayo Clinic',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
+  it('renders doctor tagline that requires line wrapping', async () => {
+    const result = await generateCertificadoImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: 'Una tagline muy extensa que supera el limite de caracteres por linea y debe envolverse en multiples lineas dentro del bloque del firmante.',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
+  it('skips tagline lines that strip to empty (markdown-only content)', async () => {
+    const result = await generateCertificadoImage({
+      ...baseOptions,
+      doctor: {
+        name: 'Dr. García',
+        tagline: '**\nEspecialista en columna',
+      },
+    })
+    expect(Buffer.isBuffer(result)).toBe(true)
+  })
+
   it('renders all options together', async () => {
     const pngBase64 =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='

@@ -28,7 +28,7 @@ describe('PedidosButton', () => {
     render(
       <PedidosButton
         informeId="inf-1"
-        informeDoctor={"**P - PLAN**\n**Estudios Solicitados**\n- Hemograma"}
+        informeDoctor={"**P - PLAN**\n**Estudios Solicitados:**\n- Hemograma"}
         patientName="Carlos"
         phone="+54911"
       />
@@ -41,7 +41,7 @@ describe('PedidosButton', () => {
     render(
       <PedidosButton
         informeId="inf-1"
-        informeDoctor={"**P - PLAN**\n**Estudios Solicitados**\n- Hemograma"}
+        informeDoctor={"**P - PLAN**\n**Estudios Solicitados:**\n- Hemograma"}
         patientName="Carlos"
         phone="+54911"
       />
@@ -59,7 +59,7 @@ describe('PedidosButton', () => {
     render(
       <PedidosButton
         informeId="inf-1"
-        informeDoctor={"**P - PLAN**\n**Estudios Solicitados**\n- Hemograma"}
+        informeDoctor={"**P - PLAN**\n**Estudios Solicitados:**\n- Hemograma"}
         patientName="Carlos"
         phone="+54911"
       />
@@ -88,7 +88,7 @@ describe('PedidosButton', () => {
     render(
       <PedidosButton
         informeId="inf-1"
-        informeDoctor={"**P - PLAN**\n**Estudios Solicitados**\n- Hemograma"}
+        informeDoctor={"**P - PLAN**\n**Estudios Solicitados:**\n- Hemograma"}
         patientName="Carlos"
         phone="+54911"
       />
@@ -117,7 +117,7 @@ describe('PedidosButton', () => {
     render(
       <PedidosButton
         informeId="inf-1"
-        informeDoctor={"**P - PLAN**\n**Estudios Solicitados**\n- Hemograma"}
+        informeDoctor={"**P - PLAN**\n**Estudios Solicitados:**\n- Hemograma"}
         patientName="Carlos"
         phone="+54911"
       />
