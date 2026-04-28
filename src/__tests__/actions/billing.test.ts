@@ -248,9 +248,9 @@ describe('getUsdPrice / getCurrentArsPrice', () => {
     mockGetUsdToArsRate.mockResolvedValue(1417)
   })
 
-  it('exposes the USD-anchor amounts', () => {
-    expect(getUsdPrice('pro_monthly')).toBe(30)
-    expect(getUsdPrice('pro_yearly')).toBe(300)
+  it('exposes the USD-anchor amounts', async () => {
+    expect(await getUsdPrice('pro_monthly')).toBe(30)
+    expect(await getUsdPrice('pro_yearly')).toBe(300)
   })
 
   it('multiplies USD by the current MP rate and rounds to whole ARS', async () => {

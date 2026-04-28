@@ -67,7 +67,7 @@ const PLAN_CONFIG: Record<ProPlanTier, PlanConfig> = {
 };
 
 /** USD prices are anchored; the ARS amount is computed from MP's daily rate at checkout time. */
-export function getUsdPrice(plan: ProPlanTier): number {
+export async function getUsdPrice(plan: ProPlanTier): Promise<number> {
   return PLAN_CONFIG[plan].usdAmount;
 }
 

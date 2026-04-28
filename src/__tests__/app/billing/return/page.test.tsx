@@ -9,7 +9,15 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
-import BillingReturnPage from '@/app/billing/return/page'
+import BillingReturnPage, { generateMetadata } from '@/app/billing/return/page'
+
+describe('generateMetadata', () => {
+  it('returns translated title and description', async () => {
+    const meta = await generateMetadata()
+    expect(meta.title).toBeTruthy()
+    expect(meta.description).toBeTruthy()
+  })
+})
 
 describe('BillingReturnPage', () => {
   it('renders confirmation copy and a back-to-dashboard link', async () => {

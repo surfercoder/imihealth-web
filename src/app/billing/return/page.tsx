@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pricing");
+  return {
+    title: t("returnTitle"),
+    description: t("returnDescription"),
+  };
+}
 
 export default async function BillingReturnPage() {
   const t = await getTranslations("pricing");

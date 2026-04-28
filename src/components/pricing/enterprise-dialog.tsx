@@ -22,47 +22,48 @@ interface Props {
   children: ReactNode;
 }
 
+interface FormState {
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  notes: string;
+}
+
+const EMPTY_FORM: FormState = {
+  companyName: "",
+  contactName: "",
+  email: "",
+  phone: "",
+  notes: "",
+};
+
 export function EnterpriseDialog({ children }: Props) {
   const t = useTranslations("pricing.enterpriseForm");
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [companyName, setCompanyName] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [notes, setNotes] = useState("");
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  const updateField = (field: keyof FormState) => (value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
 
   const requiredOk =
-    companyName.trim() !== "" &&
-    contactName.trim() !== "" &&
-    email.trim() !== "";
-
-  function reset() {
-    setCompanyName("");
-    setContactName("");
-    setEmail("");
-    setPhone("");
-    setNotes("");
-  }
+    form.companyName.trim() !== "" &&
+    form.contactName.trim() !== "" &&
+    form.email.trim() !== "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!requiredOk) return;
     setSubmitting(true);
-    const result = await submitEnterpriseLead({
-      companyName,
-      contactName,
-      email,
-      phone,
-      notes,
-    });
+    const result = await submitEnterpriseLead(form);
     setSubmitting(false);
     if (result.error) {
       toast.error(t("errorTitle"), { description: result.error });
       return;
     }
     toast.success(t("successTitle"), { description: t("successMessage") });
-    reset();
+    setForm(EMPTY_FORM);
     setOpen(false);
   }
 
@@ -80,8 +81,8 @@ export function EnterpriseDialog({ children }: Props) {
               <Label htmlFor="ent-company">{t("companyLabel")}</Label>
               <Input
                 id="ent-company"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
+                value={form.companyName}
+                onChange={(e) => updateField("companyName")(e.target.value)}
                 required
                 maxLength={200}
               />
@@ -90,8 +91,8 @@ export function EnterpriseDialog({ children }: Props) {
               <Label htmlFor="ent-contact">{t("contactLabel")}</Label>
               <Input
                 id="ent-contact"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
+                value={form.contactName}
+                onChange={(e) => updateField("contactName")(e.target.value)}
                 required
                 maxLength={200}
               />
@@ -101,8 +102,8 @@ export function EnterpriseDialog({ children }: Props) {
               <Input
                 id="ent-email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => updateField("email")(e.target.value)}
                 required
                 maxLength={200}
               />
@@ -112,8 +113,8 @@ export function EnterpriseDialog({ children }: Props) {
               <Input
                 id="ent-phone"
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={form.phone}
+                onChange={(e) => updateField("phone")(e.target.value)}
                 maxLength={50}
               />
             </div>
@@ -121,8 +122,8 @@ export function EnterpriseDialog({ children }: Props) {
               <Label htmlFor="ent-notes">{t("notesLabel")}</Label>
               <Textarea
                 id="ent-notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={form.notes}
+                onChange={(e) => updateField("notes")(e.target.value)}
                 rows={3}
                 maxLength={2000}
                 className="resize-none"

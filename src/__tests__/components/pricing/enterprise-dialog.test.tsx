@@ -2,6 +2,14 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+interface FiberLike {
+  memoizedProps?: {
+    onSubmit?: (e: { preventDefault: () => void }) => unknown
+    onClick?: (e: { preventDefault: () => void }) => unknown
+  }
+  return?: FiberLike
+}
+
 const mockToastSuccess = jest.fn()
 const mockToastError = jest.fn()
 jest.mock('sonner', () => ({
@@ -153,8 +161,7 @@ describe('EnterpriseDialog', () => {
       (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternals'),
     )
     if (fiberKey) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let fiber = (submitBtn as any)[fiberKey]
+      let fiber = (submitBtn as unknown as Record<string, FiberLike | undefined>)[fiberKey]
       while (fiber && !fiber.memoizedProps?.onSubmit && !fiber.memoizedProps?.onClick) {
         fiber = fiber.return
       }
