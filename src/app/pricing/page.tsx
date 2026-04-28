@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { createClient } from "@/utils/supabase/server";
 import { PublicHeader } from "@/components/public-header";
 import { PricingCards } from "@/components/pricing/pricing-cards";
 
@@ -13,6 +14,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PricingPage() {
   const t = await getTranslations("pricing");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
@@ -27,7 +32,7 @@ export default async function PricingPage() {
               {t("heroSubtitle")}
             </p>
           </div>
-          <PricingCards />
+          <PricingCards isSignedIn={!!user} />
         </section>
       </main>
     </div>

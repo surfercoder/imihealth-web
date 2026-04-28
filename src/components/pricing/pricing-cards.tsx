@@ -7,8 +7,13 @@ import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EnterpriseDialog } from "./enterprise-dialog";
+import { ProCheckoutButton } from "./pro-checkout-button";
 
 type Cycle = "monthly" | "yearly";
+
+interface Props {
+  isSignedIn?: boolean;
+}
 
 const FREE_FEATURES = [
   "informes_10",
@@ -30,16 +35,14 @@ const ENT_FEATURES = [
   "dedicated_support",
 ] as const;
 
-export function PricingCards() {
+export function PricingCards({ isSignedIn = false }: Props) {
   const t = useTranslations("pricing");
   const [cycle, setCycle] = useState<Cycle>("monthly");
 
-  const proPrice = cycle === "monthly" ? 30 : 300;
+  const proPrice =
+    cycle === "monthly" ? t("proPriceMonthly") : t("proPriceYearly");
   const proPeriod = cycle === "monthly" ? t("perMonth") : t("perYear");
-  const proSignupHref =
-    cycle === "monthly"
-      ? "/signup?plan=pro_monthly"
-      : "/signup?plan=pro_yearly";
+  const proPlan = cycle === "monthly" ? "pro_monthly" : "pro_yearly";
 
   return (
     <div>
@@ -88,7 +91,7 @@ export function PricingCards() {
         <PlanCard
           title={t("freeTitle")}
           subtitle={t("freeSubtitle")}
-          price="$0"
+          price={t("freePrice")}
           period={t("forever")}
           features={FREE_FEATURES.map((key) => t(`features.${key}`))}
           cta={
@@ -101,16 +104,16 @@ export function PricingCards() {
         <PlanCard
           title={t("proTitle")}
           subtitle={t("proSubtitle")}
-          price={`$${proPrice}`}
+          price={proPrice}
           period={proPeriod}
           highlighted
           highlightLabel={t("popular")}
           extraNote={cycle === "yearly" ? t("yearlyHint") : undefined}
           features={PRO_FEATURES.map((key) => t(`features.${key}`))}
           cta={
-            <Button asChild className="w-full">
-              <Link href={proSignupHref}>{t("proCta")}</Link>
-            </Button>
+            <ProCheckoutButton plan={proPlan} isSignedIn={isSignedIn}>
+              {t("proCta")}
+            </ProCheckoutButton>
           }
         />
 

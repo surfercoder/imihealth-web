@@ -8,6 +8,7 @@
     "dev": "PORT=3002 next dev",
     "lint": "eslint",
     "start": "next start",
+    "setup:mp-plans": "node --env-file=.env scripts/setup-mp-plans.mjs",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "test": "jest",
