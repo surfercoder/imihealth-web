@@ -155,7 +155,7 @@ describe('POST /api/send-whatsapp', () => {
     const json = await res.json()
 
     expect(res.status).toBe(400)
-    expect(json).toEqual({ success: false, error: 'Missing required fields: to, informeId, type' })
+    expect(json).toEqual({ success: false, error: 'Missing required fields: to, type' })
   })
 
   it('returns 400 when "informeId" is missing', async () => {

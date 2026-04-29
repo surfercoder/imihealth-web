@@ -56,16 +56,138 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { to, type, informeId, patientName, locale } = body;
 
-    if (!to || !informeId || !type) {
+    if (!to || !type) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields: to, informeId, type" },
+        { success: false, error: "Missing required fields: to, type" },
         { status: 400 }
       );
     }
 
+    const isPedidosPatient = type === "pedidos-patient";
     const isPedidos = type === "pedidos";
     const isInforme = type === "informe";
     const langCode = getLanguageCode(locale);
+
+    if (isPedidosPatient) {
+      const { patientId, pedidoItems, diagnostico } = body as {
+        patientId?: string;
+        pedidoItems?: string[];
+        diagnostico?: string | null;
+      };
+
+      if (!patientId) {
+        return NextResponse.json(
+          { success: false, error: "Missing patientId" },
+          { status: 400 }
+        );
+      }
+
+      if (!pedidoItems || pedidoItems.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "No pedido items provided" },
+          { status: 400 }
+        );
+      }
+
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("name, obra_social, nro_afiliado, plan")
+        .eq("id", patientId)
+        .eq("doctor_id", user.id)
+        .single();
+
+      if (!patient) {
+        return NextResponse.json(
+          { success: false, error: "Patient not found" },
+          { status: 404 }
+        );
+      }
+
+      const { data: doctorData } = await supabase
+        .from("doctors")
+        .select("name, matricula, especialidad, tagline, firma_digital")
+        .eq("id", user.id)
+        .single();
+
+      const doctorInfo = mapDoctorInfo(doctorData);
+      const tPedido = await getTranslations("pdfPedido");
+      const dateStr = new Date().toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+      const pedidoLabels = {
+        subtitle: tPedido("subtitle"),
+        patientData: tPedido("patientData"),
+        obraSocial: tPedido("obraSocial"),
+        nroAfiliado: tPedido("nroAfiliado"),
+        nroAfiliadoInline: tPedido("nroAfiliadoInline"),
+        plan: tPedido("plan"),
+        solicito: tPedido("solicito"),
+        diagnosis: tPedido("diagnosis"),
+        footer: tPedido("footer"),
+      };
+
+      const pedidoTemplateName = getPedidoDocTemplateName(locale);
+      const cleanDiagnostico = diagnostico && diagnostico.trim() ? diagnostico.trim() : null;
+      let sentCount = 0;
+
+      for (const item of pedidoItems) {
+        const pdfBytes = await generatePedidoPDF({
+          patientName: patient.name ?? patientName ?? "",
+          obraSocial: patient.obra_social ?? null,
+          nroAfiliado: patient.nro_afiliado ?? null,
+          plan: patient.plan ?? null,
+          date: dateStr,
+          item,
+          diagnostico: cleanDiagnostico,
+          doctor: doctorInfo,
+          labels: pedidoLabels,
+        });
+
+        const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
+        if (!pdfUpload.success) {
+          console.error(`[WhatsApp] Patient pedido PDF upload failed for item: ${item}`, pdfUpload.error);
+          continue;
+        }
+
+        const docResult = await sendWhatsAppTemplateWithDocument({
+          to,
+          templateName: pedidoTemplateName,
+          languageCode: langCode,
+          bodyParameters: [],
+          mediaId: pdfUpload.mediaId,
+          documentFilename: "pedido-medico.pdf",
+        });
+
+        if (docResult.success) {
+          sentCount++;
+        } else {
+          console.error(`[WhatsApp] Patient pedido template failed for item: ${item}`, docResult.error);
+        }
+      }
+
+      if (sentCount === 0) {
+        return NextResponse.json(
+          { success: false, error: "Failed to send any pedidos" },
+          { status: 502 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        sentCount,
+        totalItems: pedidoItems.length,
+      });
+    }
+
+    if (!informeId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required field: informeId" },
+        { status: 400 }
+      );
+    }
 
     const { data: informe } = await supabase
       .from("informes")

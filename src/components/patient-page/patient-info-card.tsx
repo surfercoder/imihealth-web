@@ -1,6 +1,7 @@
 import { CheckCircle2, Mail, Phone, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { NewInformeForPatientButton } from "@/components/new-informe-for-patient-button";
+import { DictarPedidosButton } from "@/components/dictar-pedidos-button";
 import { EditPatientButton } from "@/components/edit-patient-button";
 import type { PatientWithStats } from "@/actions/patients";
 
@@ -41,8 +42,13 @@ export function PatientInfoCard({
             </p>
           )}
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex w-44 flex-col items-stretch gap-2 [&_button]:w-full [&_button]:justify-start">
           <NewInformeForPatientButton patientId={patientId} />
+          <DictarPedidosButton
+            patientId={patientId}
+            patientName={name}
+            phone={phone}
+          />
         </div>
       </div>
 

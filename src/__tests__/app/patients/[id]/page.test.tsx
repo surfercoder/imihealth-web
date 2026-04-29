@@ -69,6 +69,12 @@ jest.mock('@/components/new-informe-for-patient-button', () => ({
   ),
 }))
 
+jest.mock('@/components/dictar-pedidos-button', () => ({
+  DictarPedidosButton: ({ patientId }: { patientId: string }) => (
+    <button data-testid="dictar-pedidos-btn">{patientId}</button>
+  ),
+}))
+
 jest.mock('@/components/delete-informe-button', () => ({
   DeleteInformeButton: ({ informeId, date }: { informeId: string; date: string }) => (
     <button data-testid={`delete-${informeId}`}>{date}</button>
