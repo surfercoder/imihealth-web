@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { createClient, createServiceClient } from "@/utils/supabase/server";
 import {
   createPreapproval,
@@ -143,6 +144,7 @@ export async function startProCheckout(
     });
   } catch (err) {
     console.error("[billing] createPreapproval failed", err);
+    Sentry.captureException(err, { tags: { flow: "startProCheckout" } });
     return { error: "No se pudo iniciar el pago. Intentá nuevamente." };
   }
 
@@ -204,6 +206,10 @@ export async function startProCheckoutForPendingSignup(
     return { initPoint: preapproval.init_point, preapprovalId: preapproval.id };
   } catch (err) {
     console.error("[billing] createPreapproval failed", err);
+    Sentry.captureException(err, {
+      tags: { flow: "startProCheckoutForPendingSignup" },
+      extra: { pendingSignupId, plan, email },
+    });
     return { error: "No se pudo iniciar el pago. Intentá nuevamente." };
   }
 }
