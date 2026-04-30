@@ -4,7 +4,7 @@ import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { createClient, createServiceClient } from "@/utils/supabase/server";
 import {
-  getPreapprovalPlan,
+  createPreapproval,
   updatePreapprovalStatus,
 } from "@/lib/mercadopago/api";
 
@@ -78,36 +78,28 @@ export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
   return PLAN_CONFIG[plan].arsAmount;
 }
 
-function planEnvIdFor(plan: ProPlanTier): string | undefined {
-  return plan === "pro_monthly"
-    ? process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
-    : process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID;
-}
-
-function buildSubscriptionInitPoint(
-  baseInitPoint: string,
-  externalReference: string,
-): string {
-  const url = new URL(baseInitPoint);
-  url.searchParams.set("external_reference", externalReference);
-  return url.toString();
-}
-
 /**
- * Resolves the MercadoPago checkout URL for a Pro plan, redirecting the user
- * to MP's hosted subscription page. MP creates the preapproval server-side at
- * the moment the user confirms, binding it to whatever MP account they're
- * logged in with — so we never need to know the buyer's email upfront. The
- * webhook reconciles the new preapproval back to our user via
- * `external_reference`.
+ * Creates a per-user MercadoPago preapproval and returns its init_point.
+ *
+ * We deliberately do NOT use the plan's hosted init_point. Going through
+ * `POST /preapproval` lets us set `back_url` and `external_reference`
+ * explicitly per checkout — meaning the redirect after payment lands on our
+ * site (not whatever URL the plan happens to remember) and we can reconcile
+ * the buyer back to our user without depending on MP carrying query params
+ * through. Amount and frequency come from PLAN_CONFIG, so changing pricing
+ * is a code change with no MP-side plan re-creation needed.
+ *
+ * `payer_email` is intentionally left unset so the doctor can pay with any
+ * MercadoPago account, not just one whose email matches their signup email.
  */
 export async function startProCheckout(
   plan: ProPlanTier,
   userId: string,
 ): Promise<{ initPoint?: string; error?: string }> {
-  const planId = planEnvIdFor(plan);
-  if (!planId) {
-    return { error: "Suscripciones no están configuradas todavía." };
+  const config = PLAN_CONFIG[plan];
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return { error: "La aplicación no está configurada para cobros." };
   }
 
   const admin = createServiceClient();
@@ -128,56 +120,38 @@ export async function startProCheckout(
     return { error: "Ya tenés esta suscripción activa." };
   }
 
-  let mpPlan;
+  // start_date must be in the future. Five minutes out gives MP time to
+  // process the user's confirmation without race-rejecting the request.
+  const startDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
   try {
-    mpPlan = await getPreapprovalPlan(planId);
+    const preapproval = await createPreapproval(
+      {
+        reason: config.reason,
+        external_reference: userId,
+        back_url: `${appUrl}/billing/return`,
+        status: "pending",
+        auto_recurring: {
+          frequency: config.frequency,
+          frequency_type: config.frequencyType,
+          transaction_amount: config.arsAmount,
+          currency_id: "ARS",
+          start_date: startDate,
+        },
+      },
+      // Idempotency key keyed on user+plan, so a double-clicked submit
+      // doesn't create two preapprovals at MP.
+      `${userId}:${plan}:${Date.now()}`,
+    );
+    return { initPoint: preapproval.init_point };
   } catch (err) {
-    console.error("[billing] getPreapprovalPlan failed", err);
-    Sentry.captureException(err, { tags: { flow: "startProCheckout" } });
-    return { error: "No se pudo iniciar el pago. Intentá nuevamente." };
-  }
-
-  if (mpPlan.status !== "active") {
-    return { error: "El plan no está disponible. Contactá soporte." };
-  }
-
-  return { initPoint: buildSubscriptionInitPoint(mpPlan.init_point, userId) };
-}
-
-/**
- * Same as `startProCheckout` but for brand-new signups whose user/doctor/
- * subscription rows don't exist yet. The `external_reference` is the
- * pending_signups id; the webhook will look it up and materialize the
- * auth.users + doctor + subscription rows on payment authorization.
- */
-export async function startProCheckoutForPendingSignup(
-  pendingSignupId: string,
-  plan: ProPlanTier,
-): Promise<{ initPoint?: string; error?: string }> {
-  const planId = planEnvIdFor(plan);
-  if (!planId) {
-    return { error: "Suscripciones no están configuradas todavía." };
-  }
-
-  let mpPlan;
-  try {
-    mpPlan = await getPreapprovalPlan(planId);
-  } catch (err) {
-    console.error("[billing] getPreapprovalPlan failed", err);
+    console.error("[billing] createPreapproval failed", err);
     Sentry.captureException(err, {
-      tags: { flow: "startProCheckoutForPendingSignup" },
-      extra: { pendingSignupId, plan },
+      tags: { flow: "startProCheckout" },
+      extra: { plan, userId },
     });
     return { error: "No se pudo iniciar el pago. Intentá nuevamente." };
   }
-
-  if (mpPlan.status !== "active") {
-    return { error: "El plan no está disponible. Contactá soporte." };
-  }
-
-  return {
-    initPoint: buildSubscriptionInitPoint(mpPlan.init_point, pendingSignupId),
-  };
 }
 
 export async function createCheckout(

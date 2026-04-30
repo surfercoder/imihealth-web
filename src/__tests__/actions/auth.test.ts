@@ -34,82 +34,37 @@ jest.mock('@/utils/supabase/admin', () => ({
   createAdminClient: (...args: unknown[]) => mockCreateAdminClient(...args),
 }))
 
-const mockStartProCheckoutForPendingSignup = jest.fn()
-jest.mock('@/actions/billing', () => ({
-  startProCheckoutForPendingSignup: (...args: unknown[]) =>
-    mockStartProCheckoutForPendingSignup(...args),
+const mockAnonSignUp = jest.fn()
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({ auth: { signUp: mockAnonSignUp } })),
 }))
 
-jest.mock('@/lib/signup-password-crypto', () => ({
-  encryptPassword: (s: string) => `enc:${s}`,
+const mockStartProCheckout = jest.fn()
+jest.mock('@/actions/billing', () => ({
+  startProCheckout: (...args: unknown[]) => mockStartProCheckout(...args),
 }))
 
 import { login, signup, forgotPassword, resetPassword, logout } from '@/actions/auth'
 
 interface AdminMocks {
   doctorsCount: number
-  pendingCount: number
-  existingDoctorEmail: boolean
-  pendingInsertResult: { data: { id: string } | null; error: unknown }
-  pendingDeleteByEmail: jest.Mock
-  pendingDeleteById: jest.Mock
-  pendingUpdate: jest.Mock
+  doctorsUpdate: jest.Mock
 }
 
 function setupAdmin(overrides: Partial<AdminMocks> = {}): AdminMocks {
   const m: AdminMocks = {
     doctorsCount: 0,
-    pendingCount: 0,
-    existingDoctorEmail: false,
-    pendingInsertResult: { data: { id: 'pending-uuid' }, error: null },
-    pendingDeleteByEmail: jest.fn().mockResolvedValue({ error: null }),
-    pendingDeleteById: jest.fn().mockResolvedValue({ error: null }),
-    pendingUpdate: jest.fn().mockResolvedValue({ error: null }),
+    doctorsUpdate: jest.fn(() => ({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    })),
     ...overrides,
   }
 
   const adminFrom = jest.fn((table: string) => {
     if (table === 'doctors') {
       return {
-        select: jest.fn((cols: string, opts?: { count?: string; head?: boolean }) => {
-          if (opts?.head) {
-            return Promise.resolve({ count: m.doctorsCount })
-          }
-          return {
-            eq: jest.fn(() => ({
-              maybeSingle: jest.fn().mockResolvedValue({
-                data: m.existingDoctorEmail ? { id: 'existing' } : null,
-              }),
-            })),
-          }
-        }),
-      }
-    }
-    if (table === 'pending_signups') {
-      return {
-        select: jest.fn((cols: string, opts?: { count?: string; head?: boolean }) => {
-          if (opts?.head) {
-            return Promise.resolve({ count: m.pendingCount })
-          }
-          return {
-            single: jest.fn().mockResolvedValue(m.pendingInsertResult),
-          }
-        }),
-        insert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue(m.pendingInsertResult),
-          })),
-        })),
-        delete: jest.fn(() => ({
-          eq: jest.fn((col: string, val: string) =>
-            col === 'email'
-              ? m.pendingDeleteByEmail(val)
-              : m.pendingDeleteById(val),
-          ),
-        })),
-        update: jest.fn(() => ({
-          eq: jest.fn((col: string, val: string) => m.pendingUpdate(col, val)),
-        })),
+        select: jest.fn(() => Promise.resolve({ count: m.doctorsCount })),
+        update: m.doctorsUpdate,
       }
     }
     throw new Error(`unexpected table ${table}`)
@@ -169,8 +124,12 @@ describe('signup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHeadersGet.mockReturnValue('http://localhost:3001')
-    mockStartProCheckoutForPendingSignup.mockResolvedValue({
+    mockStartProCheckout.mockResolvedValue({
       initPoint: 'https://mp.example/checkout/xyz',
+    })
+    mockAnonSignUp.mockResolvedValue({
+      data: { user: { id: 'new-user-id' } },
+      error: null,
     })
   })
 
@@ -209,24 +168,27 @@ describe('signup', () => {
     expect(result).toEqual({ error: 'Las contraseñas no coinciden' })
   })
 
-  it('returns error when MVP doctor + pending limit is reached', async () => {
-    setupAdmin({ doctorsCount: 7, pendingCount: 3 })
-    const result = await signup(null, validForm())
-    expect(result).toEqual({ error: expect.stringContaining('límite') })
-    expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
-  })
-
-  it('rejects when an account already exists for the email', async () => {
-    setupAdmin({ existingDoctorEmail: true })
+  it('rejects with the friendly already-exists message when signUp says so', async () => {
+    setupAdmin()
+    mockAnonSignUp.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'User already registered' },
+    })
     const result = await signup(null, validForm())
     expect(result).toEqual({ error: 'Ya existe una cuenta con ese email.' })
-    expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
+    expect(mockStartProCheckout).not.toHaveBeenCalled()
   })
 
-  it('replaces an existing pending signup with same email', async () => {
-    const m = setupAdmin()
-    await signup(null, validForm())
-    expect(m.pendingDeleteByEmail).toHaveBeenCalledWith('doctor@hospital.com')
+  it('returns a generic error when signUp fails for an unknown reason', async () => {
+    setupAdmin()
+    mockAnonSignUp.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Network glitch' },
+    })
+    const result = await signup(null, validForm())
+    expect(result).toEqual({
+      error: 'No se pudo crear la cuenta. Intentá nuevamente.',
+    })
   })
 
   it('returns initPoint and defaults to pro_monthly', async () => {
@@ -236,10 +198,7 @@ describe('signup', () => {
       success: true,
       initPoint: 'https://mp.example/checkout/xyz',
     })
-    expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
-      'pending-uuid',
-      'pro_monthly',
-    )
+    expect(mockStartProCheckout).toHaveBeenCalledWith('pro_monthly', 'new-user-id')
   })
 
   it('passes pro_yearly when plan field is pro_yearly', async () => {
@@ -247,18 +206,36 @@ describe('signup', () => {
     const fd = validForm()
     fd.set('plan', 'pro_yearly')
     await signup(null, fd)
-    expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
-      'pending-uuid',
-      'pro_yearly',
-    )
+    expect(mockStartProCheckout).toHaveBeenCalledWith('pro_yearly', 'new-user-id')
   })
 
-  it('rolls back the pending row when MP checkout fails', async () => {
+  it('patches doctor extras (firma, avatar, tagline) onto the auto-created doctor row', async () => {
     const m = setupAdmin()
-    mockStartProCheckoutForPendingSignup.mockResolvedValue({ error: 'mp down' })
+    const fd = validForm()
+    fd.set('firmaDigital', 'data:image/png;base64,sig')
+    fd.set('avatar', 'data:image/jpeg;base64,av')
+    fd.set('tagline', 'For your heart')
+    await signup(null, fd)
+    expect(m.doctorsUpdate).toHaveBeenCalledWith({
+      firma_digital: 'data:image/png;base64,sig',
+      avatar: 'data:image/jpeg;base64,av',
+      tagline: 'For your heart',
+    })
+  })
+
+  it('skips the doctor patch when no optional extras are provided', async () => {
+    const m = setupAdmin()
+    await signup(null, validForm())
+    expect(m.doctorsUpdate).not.toHaveBeenCalled()
+  })
+
+  it('surfaces the checkout error when MP fails after the user is created', async () => {
+    setupAdmin()
+    mockStartProCheckout.mockResolvedValue({ error: 'mp down' })
     const result = await signup(null, validForm())
     expect(result).toEqual({ error: 'mp down' })
-    expect(m.pendingDeleteById).toHaveBeenCalledWith('pending-uuid')
+    // The user is already created — we don't roll anything back.
+    expect(mockAnonSignUp).toHaveBeenCalled()
   })
 })
 

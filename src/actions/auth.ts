@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
@@ -13,11 +14,7 @@ import {
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
-import {
-  startProCheckoutForPendingSignup,
-  type ProPlanTier,
-} from "@/actions/billing";
-import { encryptPassword } from "@/lib/signup-password-crypto";
+import { startProCheckout, type ProPlanTier } from "@/actions/billing";
 
 export async function login(
   _prevState: ActionResult | null,
@@ -43,6 +40,12 @@ export async function login(
   redirect("/?welcome=true");
 }
 
+// Signup creates the auth user up-front and then sends them to MercadoPago
+// for the Pro checkout. We deliberately do NOT block account creation on
+// payment success: a doctor who bails mid-checkout still has a verified
+// free-tier account, and the worst case is a dangling free user — strictly
+// preferable to the previous "pending signup never materializes" failure
+// mode where the user paid but no auth record was created.
 export async function signup(
   _prevState: ActionResult | null,
   formData: FormData
@@ -70,67 +73,73 @@ export async function signup(
 
   const admin = createAdminClient();
 
-  // Combined headcount: existing doctors + pending signups awaiting payment.
-  // Both eventually count against the MVP limit, so we gate signup on the sum.
-  const [{ count: doctorCount }, { count: pendingCount }] = await Promise.all([
-    admin.from("doctors").select("id", { count: "exact", head: true }),
-    admin.from("pending_signups").select("id", { count: "exact", head: true }),
-  ]);
-  /* v8 ignore next */
-  if ((doctorCount ?? 0) + (pendingCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
-    return { error: `Hemos alcanzado el límite de ${MVP_LIMITS.MAX_DOCTORS} médicos para la fase de prueba MVP.` };
-  }
-
-  // Reject signup if email already maps to a real account. Pending signups
-  // with the same email get replaced (user retried before paying).
-  const { data: existingDoctor } = await admin
+  /* v8 ignore start */
+  const { count: doctorCount } = await admin
     .from("doctors")
-    .select("id")
-    .eq("email", parsed.data.email)
-    .maybeSingle();
-  if (existingDoctor) {
-    return { error: "Ya existe una cuenta con ese email." };
+    .select("id", { count: "exact", head: true });
+  if ((doctorCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
+    return {
+      error: `Hemos alcanzado el límite de ${MVP_LIMITS.MAX_DOCTORS} médicos para la fase de prueba MVP.`,
+    };
   }
-  await admin
-    .from("pending_signups")
-    .delete()
-    .eq("email", parsed.data.email);
+  /* v8 ignore stop */
 
   const planRaw = g("plan");
   const plan: ProPlanTier =
     planRaw === "pro_yearly" ? "pro_yearly" : "pro_monthly";
 
-  const signupData = {
-    plan,
-    name: parsed.data.name ?? "",
-    dni: parsed.data.dni ?? null,
-    matricula: parsed.data.matricula,
-    phone: parsed.data.phone,
-    especialidad: parsed.data.especialidad,
-    tagline: parsed.data.tagline ?? null,
-    firmaDigital: parsed.data.firmaDigital ?? null,
-    avatar: parsed.data.avatar ?? null,
-  };
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const anon = createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+  );
+  const { data: signUp, error: signUpErr } = await anon.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      // Send the doctor through email confirmation; the dashboard route
+      // welcomes them on first arrival.
+      emailRedirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent("/?welcome=true")}`,
+      // The on_auth_user_created trigger reads these to populate the doctor
+      // row. Optional extras (firma, avatar, tagline) don't fit raw metadata,
+      // so we patch them in below.
+      data: {
+        name: parsed.data.name ?? "",
+        dni: parsed.data.dni ?? null,
+        matricula: parsed.data.matricula,
+        phone: parsed.data.phone,
+        especialidad: parsed.data.especialidad,
+      },
+    },
+  });
 
-  const { data: pending, error: pendingErr } = await admin
-    .from("pending_signups")
-    .insert({
-      email: parsed.data.email,
-      encrypted_password: encryptPassword(parsed.data.password),
-      signup_data: signupData,
-    })
-    .select("id")
-    .single();
-  if (pendingErr || !pending) {
-    console.error("[auth.signup] pending_signups insert failed", pendingErr);
-    return { error: "No se pudo iniciar el registro. Intentá nuevamente." };
+  if (signUpErr || !signUp.user) {
+    if (signUpErr?.message?.toLowerCase().includes("already")) {
+      return { error: "Ya existe una cuenta con ese email." };
+    }
+    console.error("[auth.signup] auth.signUp failed", signUpErr);
+    return { error: "No se pudo crear la cuenta. Intentá nuevamente." };
   }
 
-  const checkout = await startProCheckoutForPendingSignup(pending.id, plan);
+  const userId = signUp.user.id;
+
+  const docUpdates: Record<string, string> = {};
+  if (parsed.data.firmaDigital) docUpdates.firma_digital = parsed.data.firmaDigital;
+  if (parsed.data.avatar) docUpdates.avatar = parsed.data.avatar;
+  if (parsed.data.tagline) docUpdates.tagline = parsed.data.tagline;
+  if (Object.keys(docUpdates).length > 0) {
+    await admin.from("doctors").update(docUpdates).eq("id", userId);
+  }
+
+  const checkout = await startProCheckout(plan, userId);
   if (checkout.error || !checkout.initPoint) {
-    // Roll back the staged signup so the user can retry from scratch.
-    await admin.from("pending_signups").delete().eq("id", pending.id);
-    return { error: checkout.error ?? "No se pudo iniciar el pago." };
+    // The user account already exists. They can finish the upgrade later
+    // from /pricing, so surface the failure but don't try to clean up.
+    return {
+      error:
+        checkout.error ??
+        "Tu cuenta fue creada pero no pudimos iniciar el pago. Probá desde Precios después de verificar tu email.",
+    };
   }
 
   return { success: true, initPoint: checkout.initPoint };
