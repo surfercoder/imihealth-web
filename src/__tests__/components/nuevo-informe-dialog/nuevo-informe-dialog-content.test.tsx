@@ -43,13 +43,13 @@ describe('NuevoInformeDialogContent', () => {
     expect(screen.getByRole('button', { name: /Nuevo Informe/i })).toBeInTheDocument()
   })
 
-  it('renders LimitReachedButton when plan disallows creation', () => {
+  it('renders LimitReachedButton as an upgrade link when plan disallows creation', () => {
     render(
       <PlanProvider plan={limitedPlan}>
         <NuevoInformeDialogContent />
       </PlanProvider>
     )
-    expect(screen.getByRole('button')).toBeDisabled()
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/pricing')
   })
 
   it('respects variant prop', () => {

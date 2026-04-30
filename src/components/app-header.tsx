@@ -8,18 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { GoodbyeScreen } from "@/components/goodbye-screen";
+import { PlanBadge } from "@/components/plan-badge";
 import { logout } from "@/actions/auth";
 import { useTranslations } from "next-intl";
 import { useCurrentTab } from "@/hooks/use-current-tab";
 import { getDoctorInitials } from "@/lib/avatar";
+import type { PlanInfo } from "@/actions/plan";
 import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 interface AppHeaderProps {
   doctorName?: string | null;
   doctorAvatar?: string | null;
+  plan?: PlanInfo;
 }
 
-function AppHeaderContent({ doctorName, doctorAvatar }: AppHeaderProps) {
+function AppHeaderContent({ doctorName, doctorAvatar, plan }: AppHeaderProps) {
   const t = useTranslations();
   const tAvatar = useTranslations("avatarUpload");
   const currentTab = useCurrentTab();
@@ -56,20 +59,23 @@ function AppHeaderContent({ doctorName, doctorAvatar }: AppHeaderProps) {
           <LanguageSwitcher />
           <div className="flex items-center gap-2">
             {doctorName && (
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 text-sm text-foreground/60 hover:text-primary hover:underline underline-offset-4 transition-colors"
-              >
-                <Avatar className="size-8">
-                  {doctorAvatar ? (
-                    <AvatarImage src={doctorAvatar} alt={tAvatar("alt")} />
-                  ) : null}
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                </Avatar>
-                <span className="hidden sm:block">
-                  {t("nav.greeting", { name: doctorName })}
-                </span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 text-sm text-foreground/60 hover:text-primary hover:underline underline-offset-4 transition-colors"
+                >
+                  <Avatar className="size-8">
+                    {doctorAvatar ? (
+                      <AvatarImage src={doctorAvatar} alt={tAvatar("alt")} />
+                    ) : null}
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:block">
+                    {t("nav.greeting", { name: doctorName })}
+                  </span>
+                </Link>
+                {plan ? <PlanBadge plan={plan} /> : null}
+              </div>
             )}
             <form ref={logoutFormRef} action={logout}>
               <Button

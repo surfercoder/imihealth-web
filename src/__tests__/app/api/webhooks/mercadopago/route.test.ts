@@ -9,9 +9,12 @@ jest.mock('@/utils/supabase/server', () => ({
 
 const mockGetPreapproval = jest.fn()
 const mockGetAuthorizedPayment = jest.fn()
+const mockUpdatePreapprovalStatus = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
   getPreapproval: (...args: unknown[]) => mockGetPreapproval(...args),
   getAuthorizedPayment: (...args: unknown[]) => mockGetAuthorizedPayment(...args),
+  updatePreapprovalStatus: (...args: unknown[]) =>
+    mockUpdatePreapprovalStatus(...args),
 }))
 
 const mockVerify = jest.fn()
@@ -71,17 +74,27 @@ interface Handles {
 function setupAdminTables({
   pendingRow = null,
   subscriptionRow = null,
+  subByUser = null,
 }: {
   pendingRow?: unknown
+  // First subscriptions lookup, by mp_preapproval_id.
   subscriptionRow?: unknown
+  // Second lookup, by user_id (=external_reference). null by default; tests
+  // that exercise plan switching pass a row with a previous mp_preapproval_id.
+  // When null, the webhook still upserts using `ref` as user_id.
+  subByUser?: unknown
 } = {}): Handles {
   const subscriptionsUpsert = jest.fn().mockResolvedValue({ error: null })
   const subscriptionsUpdate = jest.fn(() => ({
     eq: jest.fn().mockResolvedValue({ error: null }),
   }))
-  const subscriptionsMaybeSingle = jest
-    .fn()
-    .mockResolvedValue({ data: subscriptionRow })
+  let subCallCount = 0
+  const subscriptionsMaybeSingle = jest.fn().mockImplementation(async () => {
+    subCallCount += 1
+    return subCallCount === 1
+      ? { data: subscriptionRow }
+      : { data: subByUser }
+  })
   const pendingMaybeSingle = jest
     .fn()
     .mockResolvedValue({ data: pendingRow })
@@ -305,6 +318,89 @@ describe('POST /api/webhooks/mercadopago', () => {
         expect.objectContaining({ user_id: 'replay-user' }),
         expect.any(Object),
       )
+    })
+
+    it('cancels the old preapproval at MP when the new one (switch) is authorized', async () => {
+      // User had a monthly preapproval bound; now a new yearly preapproval
+      // arrives authorized. The webhook should update the row to the new id
+      // and cancel the old one in MP.
+      const { subscriptionsUpsert } = setupAdminTables({
+        subByUser: { user_id: 'switcher', mp_preapproval_id: 'old-monthly' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'new-yearly',
+        external_reference: 'switcher',
+        status: 'authorized',
+        payer_id: 7,
+        next_payment_date: '2027-04-30T00:00:00Z',
+        auto_recurring: { frequency: 12, frequency_type: 'months' },
+      })
+      mockUpdatePreapprovalStatus.mockResolvedValue({})
+      await POST(
+        makeRequest({
+          query: '?data.id=new-yearly',
+          body: { type: 'subscription_preapproval', data: { id: 'new-yearly' } },
+        }),
+      )
+      expect(subscriptionsUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'switcher',
+          plan: 'pro_yearly',
+          mp_preapproval_id: 'new-yearly',
+        }),
+        expect.any(Object),
+      )
+      expect(mockUpdatePreapprovalStatus).toHaveBeenCalledWith(
+        'old-monthly',
+        'cancelled',
+      )
+    })
+
+    it('ignores the stale cancel webhook for an already-superseded preapproval', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        subByUser: { user_id: 'switcher', mp_preapproval_id: 'new-yearly' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'old-monthly',
+        external_reference: 'switcher',
+        status: 'cancelled',
+        payer_id: 7,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      const info = jest.spyOn(console, 'info').mockImplementation()
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=old-monthly',
+          body: { type: 'subscription_preapproval', data: { id: 'old-monthly' } },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).not.toHaveBeenCalled()
+      expect(mockUpdatePreapprovalStatus).not.toHaveBeenCalled()
+      info.mockRestore()
+    })
+
+    it('does not call MP cancel when no previous preapproval was bound', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        subByUser: { user_id: 'fresh-user', mp_preapproval_id: null },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'first-pre',
+        external_reference: 'fresh-user',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: '2026-06-01T00:00:00Z',
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      await POST(
+        makeRequest({
+          query: '?data.id=first-pre',
+          body: { type: 'subscription_preapproval', data: { id: 'first-pre' } },
+        }),
+      )
+      expect(subscriptionsUpsert).toHaveBeenCalled()
+      expect(mockUpdatePreapprovalStatus).not.toHaveBeenCalled()
     })
   })
 

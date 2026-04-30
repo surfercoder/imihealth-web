@@ -11,12 +11,10 @@ jest.mock('@/utils/supabase/server', () => ({
 
 const mockGetPreapprovalPlan = jest.fn()
 const mockUpdatePreapprovalStatus = jest.fn()
-const mockGetUsdToArsRate = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
   getPreapprovalPlan: (...args: unknown[]) => mockGetPreapprovalPlan(...args),
   updatePreapprovalStatus: (...args: unknown[]) =>
     mockUpdatePreapprovalStatus(...args),
-  getUsdToArsRate: (...args: unknown[]) => mockGetUsdToArsRate(...args),
 }))
 
 import {
@@ -26,7 +24,6 @@ import {
   startProCheckoutForPendingSignup,
   cancelSubscription,
   getCurrentArsPrice,
-  getUsdPrice,
 } from '@/actions/billing'
 
 const validInput = {
@@ -160,19 +157,39 @@ describe('createCheckout', () => {
     expect(result.error).toMatch(/no están configuradas/i)
   })
 
-  it('blocks re-checkout when user already has an active Pro subscription', async () => {
+  it('blocks re-checkout when user already has the SAME active Pro plan', async () => {
+    // Switching plans is allowed; only same-plan-already-active is blocked.
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'active' } })
-    const result = await createCheckout('pro_yearly')
+    const result = await createCheckout('pro_monthly')
     expect(result.error).toMatch(/ya tenés/i)
     expect(mockGetPreapprovalPlan).not.toHaveBeenCalled()
   })
 
-  it('blocks re-checkout when user has a pending Pro subscription', async () => {
+  it('blocks re-checkout when user has a pending subscription on the SAME plan', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'pending' } })
     const result = await createCheckout('pro_monthly')
     expect(result.error).toMatch(/ya tenés/i)
+  })
+
+  it('allows switching plans (active monthly → yearly checkout)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'active' } })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/y'))
+    const result = await createCheckout('pro_yearly')
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-yearly-id')
+    expect(result.initPoint).toBe(
+      'https://mp/subscribe/y?external_reference=user-1',
+    )
+  })
+
+  it('allows re-subscribing after cancellation', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'cancelled' } })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/m'))
+    const result = await createCheckout('pro_monthly')
+    expect(result.initPoint).toContain('external_reference=user-1')
   })
 
   it('returns the plan init_point with external_reference appended for monthly', async () => {
@@ -309,21 +326,12 @@ describe('startProCheckoutForPendingSignup', () => {
   })
 })
 
-describe('getUsdPrice / getCurrentArsPrice', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-    mockGetUsdToArsRate.mockResolvedValue(1417)
-  })
-
-  it('exposes the USD-anchor amounts', async () => {
-    expect(await getUsdPrice('pro_monthly')).toBe(1)
-    expect(await getUsdPrice('pro_yearly')).toBe(10)
-  })
-
-  it('multiplies USD by the current MP rate and rounds to whole ARS', async () => {
-    mockGetUsdToArsRate.mockResolvedValue(1417.5)
-    expect(await getCurrentArsPrice('pro_monthly')).toBe(Math.round(1 * 1417.5))
-    expect(await getCurrentArsPrice('pro_yearly')).toBe(Math.round(10 * 1417.5))
+describe('getCurrentArsPrice', () => {
+  // Production-smoke test pricing: fixed ARS amounts, no USD anchor.
+  // 15 is MercadoPago's minimum charge; yearly keeps the "5 months" savings.
+  it('returns the fixed ARS amounts for monthly and yearly', async () => {
+    expect(await getCurrentArsPrice('pro_monthly')).toBe(15)
+    expect(await getCurrentArsPrice('pro_yearly')).toBe(75)
   })
 })
 

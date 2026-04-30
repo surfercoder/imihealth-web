@@ -130,7 +130,8 @@ describe('getPlanInfo', () => {
     expect(result.isReadOnly).toBe(false)
   })
 
-  it('keeps Pro access for cancelled subscription still inside paid period', async () => {
+  it('drops Pro immediately on cancellation, even inside the paid period', async () => {
+    // Cancellation is intentional: we don't grant a grace period beyond it.
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     const futureDate = new Date(Date.now() + 5 * 86_400_000).toISOString()
     setupTables({
@@ -143,7 +144,25 @@ describe('getPlanInfo', () => {
     })
 
     const result = await getPlanInfo()
-    expect(result.isPro).toBe(true)
+    expect(result.isPro).toBe(false)
+    // Over the free cap → read-only.
+    expect(result.isReadOnly).toBe(true)
+    expect(result.canCreateInforme).toBe(false)
+  })
+
+  it('cancelled doctor still under the free cap can keep creating', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    setupTables({
+      informeCount: 3,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'cancelled',
+        current_period_end: null,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isPro).toBe(false)
     expect(result.isReadOnly).toBe(false)
     expect(result.canCreateInforme).toBe(true)
   })
@@ -166,11 +185,11 @@ describe('getPlanInfo', () => {
     expect(result.canCreateInforme).toBe(false)
   })
 
-  it('marks read-only when past_due subscription is past period end', async () => {
+  it('marks read-only when past_due subscription is past period end and over the free cap', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     const pastDate = new Date(Date.now() - 86_400_000).toISOString()
     setupTables({
-      informeCount: 0,
+      informeCount: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR + 5,
       subscription: {
         plan: 'pro_monthly',
         status: 'past_due',

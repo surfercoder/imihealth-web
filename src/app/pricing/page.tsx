@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentArsPrice } from "@/actions/billing";
+import { getPlanInfo } from "@/actions/plan";
 import { PublicHeader } from "@/components/public-header";
 import { PricingCards } from "@/components/pricing/pricing-cards";
+import { SubscriptionSection } from "@/components/subscription-section";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("pricing");
@@ -39,6 +41,8 @@ export default async function PricingPage() {
     arsPrices,
   ] = await Promise.all([supabase.auth.getUser(), getArsPrices()]);
 
+  const plan = user ? await getPlanInfo(user.id) : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
       <PublicHeader />
@@ -52,6 +56,11 @@ export default async function PricingPage() {
               {t("heroSubtitle")}
             </p>
           </div>
+          {plan ? (
+            <div className="mb-12 max-w-3xl mx-auto">
+              <SubscriptionSection plan={plan} />
+            </div>
+          ) : null}
           <PricingCards isSignedIn={!!user} arsPrices={arsPrices} />
         </section>
       </main>

@@ -23,18 +23,18 @@ function renderWithPlan(ui: React.ReactElement) {
 }
 
 describe('LimitReachedButton', () => {
-  it('renders disabled button with default size', () => {
+  it('renders an upgrade link to /pricing', () => {
     renderWithPlan(<LimitReachedButton />)
-    const btn = screen.getByRole('button')
-    expect(btn).toBeDisabled()
-    expect(btn).not.toHaveClass('w-full')
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/pricing')
   })
 
-  it('renders fullWidth disabled button with w-full class', () => {
+  it('renders fullWidth upgrade link with w-full class on the button', () => {
     renderWithPlan(<LimitReachedButton fullWidth />)
-    const btn = screen.getByRole('button')
-    expect(btn).toBeDisabled()
-    expect(btn).toHaveClass('w-full')
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/pricing')
+    // The Button asChild forwards classes to the anchor element.
+    expect(link).toHaveClass('w-full')
   })
 
   it('shows the limit message with max informes', () => {

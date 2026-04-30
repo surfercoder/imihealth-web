@@ -5,7 +5,6 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient, createServiceClient } from "@/utils/supabase/server";
 import {
   getPreapprovalPlan,
-  getUsdToArsRate,
   updatePreapprovalStatus,
 } from "@/lib/mercadopago/api";
 
@@ -46,42 +45,37 @@ export async function submitEnterpriseLead(
 export type ProPlanTier = "pro_monthly" | "pro_yearly";
 
 interface PlanConfig {
-  usdAmount: number;
+  /** Fixed ARS amount during testing. Production target: 30 USD/300 USD,
+   *  which the original code computed via daily MP exchange rate. */
+  arsAmount: number;
   frequency: number;
   frequencyType: "months";
   reason: string;
 }
 
-// TEMPORARY: prices lowered to $1/$10 for end-to-end production smoke test.
-// Revert to 30 / 300 after verification.
+// TEMPORARY: production smoke-test pricing in fixed ARS. Charges are real
+// money but tiny. MercadoPago rejects amounts below 15 ARS, so monthly
+// is set at the floor and yearly keeps the "5 months equivalent" savings.
+// Revert to USD 30 / 300 (with daily-rate ARS conversion) before public
+// launch — see the pre-testing version of this file in git history for
+// the USD-anchored shape.
 const PLAN_CONFIG: Record<ProPlanTier, PlanConfig> = {
   pro_monthly: {
-    usdAmount: 1,
+    arsAmount: 15,
     frequency: 1,
     frequencyType: "months",
     reason: "IMI Health Pro — mensual",
   },
   pro_yearly: {
-    usdAmount: 10,
+    arsAmount: 75,
     frequency: 12,
     frequencyType: "months",
     reason: "IMI Health Pro — anual",
   },
 };
 
-/** USD prices are anchored; the ARS amount is computed from MP's daily rate at checkout time. */
-export async function getUsdPrice(plan: ProPlanTier): Promise<number> {
-  return PLAN_CONFIG[plan].usdAmount;
-}
-
-/** Rounds to whole ARS — MP rejects fractional amounts. */
-function usdToArs(usd: number, rate: number): number {
-  return Math.round(usd * rate);
-}
-
 export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
-  const rate = await getUsdToArsRate();
-  return usdToArs(PLAN_CONFIG[plan].usdAmount, rate);
+  return PLAN_CONFIG[plan].arsAmount;
 }
 
 function planEnvIdFor(plan: ProPlanTier): string | undefined {
@@ -118,6 +112,9 @@ export async function startProCheckout(
 
   const admin = createServiceClient();
 
+  // Allow free→paid, paid→different-paid (switch monthly↔yearly), and
+  // cancelled/past_due→paid (re-subscribe). The only blocked case is the
+  // user trying to start the exact same plan they already have active.
   const { data: existing } = await admin
     .from("subscriptions")
     .select("plan, status")
@@ -125,10 +122,10 @@ export async function startProCheckout(
     .maybeSingle();
   if (
     existing &&
-    existing.plan !== "free" &&
+    existing.plan === plan &&
     (existing.status === "active" || existing.status === "pending")
   ) {
-    return { error: "Ya tenés una suscripción Pro activa." };
+    return { error: "Ya tenés esta suscripción activa." };
   }
 
   let mpPlan;

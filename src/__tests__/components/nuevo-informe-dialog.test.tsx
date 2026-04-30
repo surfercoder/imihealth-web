@@ -265,7 +265,7 @@ describe('NuevoInformeDialog', () => {
     })
   })
 
-  it('shows disabled button and limit message when canCreateInforme is false', () => {
+  it('shows the upgrade-to-Pro link and limit message when canCreateInforme is false', () => {
     const limitedPlan: PlanInfo = {
       ...defaultPlan,
       canCreateInforme: false,
@@ -273,8 +273,8 @@ describe('NuevoInformeDialog', () => {
       currentInformes: 7,
     }
     renderWithPlan(<NuevoInformeDialog />, limitedPlan)
-    const btn = screen.getByRole('button')
-    expect(btn).toBeDisabled()
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/pricing')
     expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
   })
 
@@ -294,7 +294,7 @@ describe('NuevoInformeDialog', () => {
     mockSearchParams.delete('tab')
   })
 
-  it('renders fullWidth disabled button when canCreateInforme is false and fullWidth is true', () => {
+  it('renders fullWidth upgrade link when canCreateInforme is false and fullWidth is true', () => {
     const limitedPlan: PlanInfo = {
       ...defaultPlan,
       canCreateInforme: false,
@@ -302,10 +302,10 @@ describe('NuevoInformeDialog', () => {
       currentInformes: 7,
     }
     renderWithPlan(<NuevoInformeDialog fullWidth />, limitedPlan)
-    const btn = screen.getByRole('button')
-    expect(btn).toBeDisabled()
-    // fullWidth uses size="default" and w-full class
-    expect(btn).toHaveClass('w-full')
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/pricing')
+    // fullWidth pushes the w-full class onto the upgrade button.
+    expect(link).toHaveClass('w-full')
   })
 
   it('renders fullWidth trigger button without Plus icon when fullWidth is true', async () => {

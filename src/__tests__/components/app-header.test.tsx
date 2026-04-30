@@ -21,6 +21,11 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/components/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }))
+jest.mock('@/components/plan-badge', () => ({
+  PlanBadge: ({ plan }: { plan: { isPro: boolean } }) => (
+    <div data-testid="plan-badge" data-is-pro={String(plan.isPro)} />
+  ),
+}))
 jest.mock('@/components/goodbye-screen', () => ({
   GoodbyeScreen: ({ userName, onDone }: { userName?: string; onDone: () => void }) => (
     <button type="button" data-testid="goodbye-screen" onClick={onDone}>
@@ -80,6 +85,33 @@ describe('AppHeader', () => {
   it('does not render greeting when doctorName is undefined', () => {
     render(<AppHeader />)
     expect(screen.queryByText(/Hola,/)).not.toBeInTheDocument()
+  })
+
+  it('renders the plan badge when a plan is provided alongside a doctor name', () => {
+    render(
+      <AppHeader
+        doctorName="Dr. García"
+        plan={{
+          plan: 'pro_monthly',
+          status: 'active',
+          isPro: true,
+          isReadOnly: false,
+          periodEnd: null,
+          maxInformes: 10,
+          currentInformes: 1,
+          canCreateInforme: true,
+          maxDoctors: 20,
+          currentDoctors: 1,
+          canSignUp: true,
+        }}
+      />
+    )
+    expect(screen.getByTestId('plan-badge')).toHaveAttribute('data-is-pro', 'true')
+  })
+
+  it('does not render the plan badge when no plan is provided', () => {
+    render(<AppHeader doctorName="Dr. García" />)
+    expect(screen.queryByTestId('plan-badge')).not.toBeInTheDocument()
   })
 
   it('renders without crashing when a doctorAvatar is provided', () => {

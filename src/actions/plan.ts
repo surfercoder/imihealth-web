@@ -34,7 +34,6 @@ interface AccessState {
   plan: PlanTier;
   status: SubscriptionStatus;
   isPro: boolean;
-  isReadOnly: boolean;
   periodEnd: string | null;
 }
 
@@ -43,25 +42,22 @@ function deriveAccess(sub: SubscriptionRow | null): AccessState {
   const status: SubscriptionStatus = sub?.status ?? "active";
   const periodEnd = sub?.current_period_end ?? null;
 
-  if (plan === "free") {
-    return { plan, status, isPro: false, isReadOnly: false, periodEnd };
+  if (plan === "free" || status === "active") {
+    return { plan, status, isPro: plan !== "free", periodEnd };
   }
 
-  const periodActive = periodEnd
-    ? new Date(periodEnd).getTime() > Date.now()
-    : false;
+  // past_due gets a brief grace until period_end while MP retries the charge,
+  // so a transient billing failure doesn't lock a paying doctor out.
+  if (status === "past_due") {
+    const periodActive = periodEnd
+      ? new Date(periodEnd).getTime() > Date.now()
+      : false;
+    return { plan, status, isPro: periodActive, periodEnd };
+  }
 
-  if (status === "active") {
-    return { plan, status, isPro: true, isReadOnly: false, periodEnd };
-  }
-  if ((status === "cancelled" || status === "past_due") && periodActive) {
-    return { plan, status, isPro: true, isReadOnly: false, periodEnd };
-  }
-  if (status === "cancelled" || status === "past_due") {
-    return { plan, status, isPro: false, isReadOnly: true, periodEnd };
-  }
-  // pending → treat as free until activated by webhook
-  return { plan, status, isPro: false, isReadOnly: false, periodEnd };
+  // cancelled and pending both lose Pro access immediately. Cancellation is
+  // intentional; pending hasn't been authorized yet.
+  return { plan, status, isPro: false, periodEnd };
 }
 
 export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
@@ -106,14 +102,17 @@ export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
   const access = deriveAccess(subscription);
   const freeLimit = MVP_LIMITS.MAX_INFORMES_PER_DOCTOR;
   const overFreeQuota = currentInformes >= freeLimit;
-  const canCreateInforme =
-    !access.isReadOnly && (access.isPro || !overFreeQuota);
+  // Read-only = effectively-free user who already used the quota. A doctor
+  // who downgrades from Pro after writing 50 informes lands here, keeping
+  // their data accessible but blocking further creation.
+  const isReadOnly = !access.isPro && overFreeQuota;
+  const canCreateInforme = access.isPro || !overFreeQuota;
 
   return {
     plan: access.plan,
     status: access.status,
     isPro: access.isPro,
-    isReadOnly: access.isReadOnly,
+    isReadOnly,
     periodEnd: access.periodEnd,
     maxInformes: freeLimit,
     currentInformes,

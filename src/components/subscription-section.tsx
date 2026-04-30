@@ -3,39 +3,44 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
-import type { PlanInfo, PlanTier, SubscriptionStatus } from "@/actions/plan";
+import type { PlanInfo } from "@/actions/plan";
 
 interface Props {
   plan: PlanInfo;
 }
 
-function planLabel(tier: PlanTier, t: (key: string) => string): string {
-  if (tier === "pro_monthly") return t("proMonthlyName");
-  if (tier === "pro_yearly") return t("proYearlyName");
+interface BadgeSpec {
+  label: string;
+  variant: "default" | "secondary" | "destructive";
+}
+
+function planLabel(plan: PlanInfo, t: (key: string) => string): string {
+  if (!plan.isPro) return t("freePlanName");
+  if (plan.plan === "pro_monthly") return t("proMonthlyName");
+  if (plan.plan === "pro_yearly") return t("proYearlyName");
   return t("freePlanName");
 }
 
-function statusVariant(
-  isReadOnly: boolean,
-  status: SubscriptionStatus,
-): "default" | "secondary" | "destructive" {
-  if (isReadOnly) return "destructive";
-  if (status === "active") return "default";
-  return "secondary";
-}
-
-function statusKey(plan: PlanInfo): string {
-  if (plan.isReadOnly) return "statusReadOnly";
-  switch (plan.status) {
-    case "active":
-      return "statusActive";
-    case "pending":
-      return "statusPending";
-    case "cancelled":
-      return "statusCancelled";
-    case "past_due":
-      return "statusPastDue";
+function statusBadge(
+  plan: PlanInfo,
+  t: (key: string) => string,
+): BadgeSpec | null {
+  if (plan.isReadOnly) {
+    return { label: t("statusReadOnly"), variant: "destructive" };
   }
+  if (plan.isPro) {
+    if (plan.status === "past_due") {
+      return { label: t("statusPastDue"), variant: "secondary" };
+    }
+    return { label: t("statusActive"), variant: "default" };
+  }
+  if (plan.status === "pending") {
+    return { label: t("statusPending"), variant: "secondary" };
+  }
+  if (plan.status === "cancelled") {
+    return { label: t("statusCancelled"), variant: "secondary" };
+  }
+  return null;
 }
 
 function formatPeriodEnd(periodEnd: string): string {
@@ -51,6 +56,7 @@ export async function SubscriptionSection({ plan }: Props) {
   const formattedPeriodEnd = plan.periodEnd
     ? formatPeriodEnd(plan.periodEnd)
     : null;
+  const badge = statusBadge(plan, t);
 
   return (
     <section
@@ -68,21 +74,17 @@ export async function SubscriptionSection({ plan }: Props) {
         <span className="text-sm text-muted-foreground">
           {t("currentPlanLabel")}:
         </span>
-        <span className="font-medium">{planLabel(plan.plan, t)}</span>
-        <Badge variant={statusVariant(plan.isReadOnly, plan.status)}>
-          {t(statusKey(plan) as Parameters<typeof t>[0])}
-        </Badge>
+        <span className="font-medium">{planLabel(plan, t)}</span>
+        {badge ? <Badge variant={badge.variant}>{badge.label}</Badge> : null}
       </div>
 
-      {formattedPeriodEnd && plan.isPro ? (
+      {plan.isPro && plan.status === "active" && formattedPeriodEnd ? (
         <p className="mt-2 text-sm text-muted-foreground">
-          {plan.status === "cancelled"
-            ? t("endsOn", { date: formattedPeriodEnd })
-            : t("renewsOn", { date: formattedPeriodEnd })}
+          {t("renewsOn", { date: formattedPeriodEnd })}
         </p>
       ) : null}
 
-      {plan.plan === "free" ? (
+      {!plan.isPro ? (
         <p className="mt-2 text-sm text-muted-foreground">
           {t("freeUsage", {
             used: plan.currentInformes,
@@ -92,14 +94,14 @@ export async function SubscriptionSection({ plan }: Props) {
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        {plan.plan === "free" || plan.isReadOnly ? (
+        {!plan.isPro ? (
           <Button asChild size="sm">
             <Link href="/pricing">
               {plan.isReadOnly ? t("reactivateCta") : t("upgradeCta")}
             </Link>
           </Button>
         ) : null}
-        {plan.isPro && plan.status !== "cancelled" ? (
+        {plan.isPro && plan.status === "active" ? (
           <CancelSubscriptionButton />
         ) : null}
       </div>

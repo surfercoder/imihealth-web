@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
+import { getPlanInfo } from "@/actions/plan";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { QuickInformeFlow } from "@/components/quick-informe-flow";
@@ -25,15 +26,16 @@ export default async function QuickInformePage() {
 
   if (!user) redirect("/login");
 
-  const [t, { data: doctor }] = await Promise.all([
+  const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
     getDoctor(user.id),
+    getPlanInfo(user.id),
   ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />
+      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
+        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
       </Suspense>
 
       <div className="border-b border-border/40">

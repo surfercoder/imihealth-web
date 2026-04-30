@@ -3,12 +3,19 @@
 // vars) any time you need to change pricing.
 //
 // Usage:
-//   node --env-file=.env scripts/setup-mp-plans.mjs                 # defaults: 30000 ARS / 300000 ARS
-//   node --env-file=.env scripts/setup-mp-plans.mjs 1417 14170      # ≈ $1 / $10 USD at 1417 ARS/USD
+//   npm run setup:mp-plans 15 75                  # production smoke-test pricing (15 ARS / 75 ARS)
+//   npm run setup:mp-plans 30000 300000           # ARS-anchored production pricing
+//
+// MercadoPago rejects amounts below 15 ARS, so 15 is the smoke-test floor.
+// Defaults (no args): 30000 ARS / 300000 ARS.
 //
 // Prints plan IDs at the end. Copy those into .env (and into Vercel envs):
 //   MERCADOPAGO_PRO_MONTHLY_PLAN_ID=...
 //   MERCADOPAGO_PRO_YEARLY_PLAN_ID=...
+//
+// Keep the displayed prices in src/actions/billing.ts (PLAN_CONFIG.arsAmount)
+// and the i18n strings (proPriceMonthly/Yearly, save60, yearlyHint) in sync
+// with whatever amount you create here.
 
 const MP_API = "https://api.mercadopago.com";
 

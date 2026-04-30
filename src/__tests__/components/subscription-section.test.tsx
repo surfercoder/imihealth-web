@@ -73,19 +73,21 @@ describe('SubscriptionSection', () => {
     expect(screen.getByText(/Pro — anual/)).toBeInTheDocument()
   })
 
-  it('renders cancelled in-grace Pro with end date and no cancel button', async () => {
+  it('renders cancelled-but-under-cap as Free with no cancel button', async () => {
+    // After cancel-immediate: status=cancelled drops isPro to false. If the
+    // user is still under the free cap, they're back to plain Free.
     const plan: PlanInfo = {
       ...basePlan,
       plan: 'pro_monthly',
       status: 'cancelled',
-      isPro: true,
+      isPro: false,
       isReadOnly: false,
       periodEnd: '2026-05-28T00:00:00Z',
     }
     render(await SubscriptionSection({ plan }))
-    expect(screen.getByText(/Cancelada/)).toBeInTheDocument()
-    expect(screen.getByText(/Acceso hasta/)).toBeInTheDocument()
+    expect(screen.getByText('Gratis')).toBeInTheDocument()
     expect(screen.queryByTestId('cancel-subscription-stub')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Pasar a Pro/i })).toBeInTheDocument()
   })
 
   it('renders read-only state with reactivate CTA', async () => {
@@ -116,7 +118,7 @@ describe('SubscriptionSection', () => {
     expect(screen.queryByText(/Próxima renovación/)).not.toBeInTheDocument()
   })
 
-  it('renders past_due status badge', async () => {
+  it('renders past_due status badge for Pro user still in grace', async () => {
     const plan: PlanInfo = {
       ...basePlan,
       plan: 'pro_monthly',

@@ -17,6 +17,7 @@ DELETE FROM public.inform_generation_log;
 DELETE FROM public.patients;
 DELETE FROM public.subscriptions;
 DELETE FROM public.enterprise_leads;
+DELETE FROM public.pending_signups;
 DELETE FROM public.doctors;
 
 -- 3. Delete auth sessions, flow state, and related tokens
@@ -29,6 +30,11 @@ DELETE FROM auth.one_time_tokens;
 DELETE FROM auth.flow_state;
 DELETE FROM auth.audit_log_entries;
 DELETE FROM auth.identities;
+DELETE FROM auth.oauth_authorizations;
+DELETE FROM auth.oauth_consents;
+DELETE FROM auth.oauth_client_states;
+DELETE FROM auth.webauthn_challenges;
+DELETE FROM auth.webauthn_credentials;
 
 -- 4. Delete auth users (doctors)
 DELETE FROM auth.users;
@@ -48,10 +54,14 @@ SELECT 'public.subscriptions',               COUNT(*) FROM public.subscriptions
 UNION ALL
 SELECT 'public.enterprise_leads',            COUNT(*) FROM public.enterprise_leads
 UNION ALL
+SELECT 'public.pending_signups',             COUNT(*) FROM public.pending_signups
+UNION ALL
 SELECT 'public.doctors',                     COUNT(*) FROM public.doctors
 UNION ALL
 SELECT 'auth.flow_state',                    COUNT(*) FROM auth.flow_state
 UNION ALL
 SELECT 'auth.audit_log_entries',             COUNT(*) FROM auth.audit_log_entries
+UNION ALL
+SELECT 'auth.identities',                    COUNT(*) FROM auth.identities
 UNION ALL
 SELECT 'auth.users',                         COUNT(*) FROM auth.users;

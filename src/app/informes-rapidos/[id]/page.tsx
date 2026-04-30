@@ -8,6 +8,7 @@ import { AlertCircle, ArrowLeft, Loader2, Mic } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
+import { getPlanInfo } from "@/actions/plan";
 import { Button } from "@/components/ui/button";
 import { QuickInformeResult } from "@/components/quick-informe-result";
 
@@ -32,9 +33,10 @@ export default async function InformeRapidoPage({ params }: Props) {
   if (!user) redirect("/login");
 
   const supabase = await createClient();
-  const [t, { data: doctor }] = await Promise.all([
+  const [t, { data: doctor }, plan] = await Promise.all([
     getTranslations(),
     getDoctor(user.id),
+    getPlanInfo(user.id),
   ]);
 
   const { data: informe, error } = await supabase
@@ -48,8 +50,8 @@ export default async function InformeRapidoPage({ params }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />
+      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
+        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
       </Suspense>
 
       <div className="border-b border-border/40">

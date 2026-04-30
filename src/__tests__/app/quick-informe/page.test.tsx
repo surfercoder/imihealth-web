@@ -28,6 +28,22 @@ jest.mock('@/components/app-header', () => ({
   ),
 }))
 
+jest.mock('@/actions/plan', () => ({
+  getPlanInfo: jest.fn().mockResolvedValue({
+    plan: 'free',
+    status: 'active',
+    isPro: false,
+    isReadOnly: false,
+    periodEnd: null,
+    maxInformes: 10,
+    currentInformes: 0,
+    canCreateInforme: true,
+    maxDoctors: 20,
+    currentDoctors: 1,
+    canSignUp: true,
+  }),
+}))
+
 jest.mock('@/components/app-footer', () => ({
   AppFooter: ({ doctorName }: { doctorName?: string }) => (
     <div data-testid="app-footer">{doctorName}</div>

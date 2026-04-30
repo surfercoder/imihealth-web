@@ -2,209 +2,27 @@
 //
 // MP delivers notifications for subscription_preapproval (subscription
 // lifecycle: authorized → cancelled, etc.) and subscription_authorized_payment
-// (each recurring charge). For every event we re-fetch the resource from the
-// MP API and reconcile the `subscriptions` row.
-//
-// The handler is idempotent: MP retries on non-2xx, and replays may arrive
-// out of order. Every update is derived from the current MP state, not from
-// the notification payload, so retries are safe.
+// (each recurring charge). The actual reconciliation logic lives in
+// src/lib/billing/reconcile.ts so /billing/return can call it server-side
+// without depending on this webhook firing — that's the primary path for
+// the signup happy flow; this webhook is a backup for async events
+// (delayed delivery, cancellations from MP's portal, recurring payments).
 
 import { NextResponse } from "next/server";
-import { createClient as createAnonClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
 import { createServiceClient } from "@/utils/supabase/server";
-import {
-  getPreapproval,
-  getAuthorizedPayment,
-  type Preapproval,
-  type PreapprovalStatus,
-} from "@/lib/mercadopago/api";
+import { getAuthorizedPayment, getPreapproval } from "@/lib/mercadopago/api";
 import { verifyWebhookSignature } from "@/lib/mercadopago/webhook";
-import { decryptPassword } from "@/lib/signup-password-crypto";
-import type {
-  PlanTier,
-  SubscriptionStatus,
-} from "@/actions/plan";
-
-interface PendingSignupData {
-  plan: PlanTier;
-  name: string;
-  dni: string | null;
-  matricula: string;
-  phone: string;
-  especialidad: string;
-  tagline: string | null;
-  firmaDigital: string | null;
-  avatar: string | null;
-}
-
-interface PendingSignupRow {
-  id: string;
-  email: string;
-  encrypted_password: string;
-  signup_data: PendingSignupData;
-}
+import {
+  mapPreapprovalStatus,
+  reconcilePreapproval,
+} from "@/lib/billing/reconcile";
+import type { SubscriptionStatus } from "@/actions/plan";
 
 interface NotificationBody {
   type?: string;
   action?: string;
   data?: { id?: string | number };
-}
-
-function mapPreapprovalStatus(
-  status: PreapprovalStatus,
-): SubscriptionStatus {
-  switch (status) {
-    case "authorized":
-      return "active";
-    case "cancelled":
-      return "cancelled";
-    case "paused":
-      return "past_due";
-    case "pending":
-    default:
-      return "pending";
-  }
-}
-
-function planTierFromAmount(p: Preapproval): PlanTier {
-  // Yearly plans bill once every 12 months. Anything else we treat as monthly.
-  if (
-    p.auto_recurring.frequency_type === "months" &&
-    p.auto_recurring.frequency >= 12
-  ) {
-    return "pro_yearly";
-  }
-  return "pro_monthly";
-}
-
-async function materializePendingSignup(
-  pending: PendingSignupRow,
-  preapproval: Preapproval,
-): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const password = decryptPassword(pending.encrypted_password);
-  const data = pending.signup_data;
-
-  // Use the anon client so signUp() triggers Supabase's confirmation email —
-  // admin.createUser would create the user silently. Sign-up emails are only
-  // sent now, after payment is authorized, so abandoned signups never get one.
-  const anon = createAnonClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-  );
-  const { data: signUp, error } = await anon.auth.signUp({
-    email: pending.email,
-    password,
-    options: {
-      emailRedirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent("/?welcome=true")}`,
-      data: {
-        name: data.name,
-        dni: data.dni,
-        matricula: data.matricula,
-        phone: data.phone,
-        especialidad: data.especialidad,
-      },
-    },
-  });
-  if (error || !signUp.user) {
-    throw new Error(
-      `[mp-webhook] auth signUp failed for pending ${pending.id}: ${error?.message ?? "no user"}`,
-    );
-  }
-
-  const userId = signUp.user.id;
-  const admin = createServiceClient();
-
-  // Doctor row is auto-created by the on_auth_user_created trigger from
-  // raw_user_meta_data. Apply the optional extras that don't fit there.
-  const docUpdates: Record<string, string> = {};
-  if (data.firmaDigital) docUpdates.firma_digital = data.firmaDigital;
-  if (data.avatar) docUpdates.avatar = data.avatar;
-  if (data.tagline) docUpdates.tagline = data.tagline;
-  if (Object.keys(docUpdates).length > 0) {
-    await admin.from("doctors").update(docUpdates).eq("id", userId);
-  }
-
-  // Free subscription row was auto-created by handle_new_user_subscription.
-  // Promote it to the paid plan with the MP linkage.
-  await admin
-    .from("subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        plan: planTierFromAmount(preapproval),
-        status: mapPreapprovalStatus(preapproval.status),
-        mp_preapproval_id: preapproval.id,
-        mp_payer_id: preapproval.payer_id ? String(preapproval.payer_id) : null,
-        current_period_end: preapproval.next_payment_date,
-        cancelled_at: null,
-      },
-      { onConflict: "user_id" },
-    );
-
-  // Consume the staging row last — only after the materialization commits.
-  await admin.from("pending_signups").delete().eq("id", pending.id);
-}
-
-async function handlePreapproval(dataId: string) {
-  const preapproval = await getPreapproval(dataId);
-  const admin = createServiceClient();
-
-  const ref = preapproval.external_reference;
-  if (!ref) {
-    console.warn(
-      `[mp-webhook] preapproval ${dataId} has no external_reference; skipping`,
-    );
-    return;
-  }
-
-  // Path A: external_reference points at a staged signup awaiting payment.
-  const { data: pending } = await admin
-    .from("pending_signups")
-    .select("id, email, encrypted_password, signup_data")
-    .eq("id", ref)
-    .maybeSingle<PendingSignupRow>();
-
-  if (pending) {
-    if (preapproval.status === "authorized") {
-      await materializePendingSignup(pending, preapproval);
-    } else if (preapproval.status === "cancelled") {
-      // User cancelled before paying — drop the staged row.
-      await admin.from("pending_signups").delete().eq("id", pending.id);
-    }
-    // Other statuses (pending, paused) → leave the staging row in place; a
-    // later authorized event will materialize it.
-    return;
-  }
-
-  // Path B: webhook replay after materialization, OR existing-user upgrade.
-  // The subscription row carries the mp_preapproval_id linkage in both cases.
-  const { data: subByPreapproval } = await admin
-    .from("subscriptions")
-    .select("user_id")
-    .eq("mp_preapproval_id", preapproval.id)
-    .maybeSingle();
-
-  const userId = subByPreapproval?.user_id ?? ref;
-
-  await admin
-    .from("subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        plan: planTierFromAmount(preapproval),
-        status: mapPreapprovalStatus(preapproval.status),
-        mp_preapproval_id: preapproval.id,
-        mp_payer_id: preapproval.payer_id ? String(preapproval.payer_id) : null,
-        current_period_end: preapproval.next_payment_date,
-        cancelled_at:
-          preapproval.status === "cancelled"
-            ? new Date().toISOString()
-            : null,
-      },
-      { onConflict: "user_id" },
-    );
 }
 
 async function handleAuthorizedPayment(dataId: string) {
@@ -282,7 +100,7 @@ export async function POST(request: Request) {
 
   try {
     if (type === "subscription_preapproval") {
-      await handlePreapproval(dataId!);
+      await reconcilePreapproval(dataId!);
     } else if (type === "subscription_authorized_payment") {
       await handleAuthorizedPayment(dataId!);
     } else {

@@ -9,6 +9,7 @@ import { Clock, Home } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
+import { getPlanInfo } from "@/actions/plan";
 import { InformeEditor } from "@/components/informe-editor";
 import { PatientCard } from "@/components/informe-page/patient-card";
 import { InformeBreadcrumb } from "@/components/informe-page/informe-breadcrumb";
@@ -45,11 +46,12 @@ export default async function InformePage({ params, searchParams }: Props) {
 
   if (!user) redirect("/login");
 
-  const [supabase, t, { data: doctor }, locale] = await Promise.all([
+  const [supabase, t, { data: doctor }, locale, plan] = await Promise.all([
     createClient(),
     getTranslations(),
     getDoctor(user.id),
     getLocale(),
+    getPlanInfo(user.id),
   ]);
   /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
@@ -93,8 +95,8 @@ export default async function InformePage({ params, searchParams }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} />
+      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
+        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
       </Suspense>
 
       <InformeBreadcrumb

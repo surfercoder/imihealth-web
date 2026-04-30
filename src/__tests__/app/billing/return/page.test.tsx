@@ -9,6 +9,11 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
+const reconcileMock = jest.fn()
+jest.mock('@/lib/billing/reconcile', () => ({
+  reconcilePreapproval: (...args: unknown[]) => reconcileMock(...args),
+}))
+
 const getPreapprovalMock = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
   getPreapproval: (...args: unknown[]) => getPreapprovalMock(...args),
@@ -17,6 +22,7 @@ jest.mock('@/lib/mercadopago/api', () => ({
 import BillingReturnPage, { generateMetadata } from '@/app/billing/return/page'
 
 beforeEach(() => {
+  reconcileMock.mockReset()
   getPreapprovalMock.mockReset()
 })
 
@@ -41,39 +47,90 @@ describe('BillingReturnPage', () => {
         searchParams: Promise.resolve({ ref: 'abc-123' }),
       }),
     )
-    // Initial poller state shows the processing copy too, but no "Volver al panel" link.
     expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
   })
 
-  it('treats MP-provided external_reference as the ref', async () => {
+  it('treats MP-provided external_reference as the ref when no preapproval_id is set', async () => {
     render(
       await BillingReturnPage({
         searchParams: Promise.resolve({ external_reference: 'pending-signup-id' }),
       }),
     )
+    expect(reconcileMock).not.toHaveBeenCalled()
     expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
   })
 
-  it('resolves preapproval_id to external_reference via MP API', async () => {
-    getPreapprovalMock.mockResolvedValue({
-      external_reference: 'pending-signup-from-mp',
+  it('renders the ready state when reconcile materializes a pending signup', async () => {
+    reconcileMock.mockResolvedValue({
+      kind: 'materialized',
+      userId: 'user-1',
+      pendingSignupId: 'pending-1',
     })
     render(
       await BillingReturnPage({
-        searchParams: Promise.resolve({ preapproval_id: 'mp-preapproval-id' }),
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
       }),
     )
-    expect(getPreapprovalMock).toHaveBeenCalledWith('mp-preapproval-id')
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1')
+    expect(screen.getByText(/cuenta fue creada/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Ir al login/i })).toHaveAttribute(
+      'href',
+      '/login',
+    )
+  })
+
+  it('renders the ready state when reconcile updates an existing-user subscription', async () => {
+    reconcileMock.mockResolvedValue({
+      kind: 'subscription-updated',
+      userId: 'user-1',
+    })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByText(/cuenta fue creada/i)).toBeInTheDocument()
+  })
+
+  it('falls back to the poller when the staged signup is not yet authorized', async () => {
+    reconcileMock.mockResolvedValue({
+      kind: 'pending-signup-waiting',
+      pendingSignupId: 'pending-1',
+    })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    // Poller renders the processing copy without the static "Volver al panel" link.
     expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
   })
 
-  it('falls back to the static page when preapproval lookup fails', async () => {
-    getPreapprovalMock.mockRejectedValue(new Error('boom'))
+  it('falls back to fetching the preapproval if reconcile throws', async () => {
+    reconcileMock.mockRejectedValue(new Error('boom'))
+    getPreapprovalMock.mockResolvedValue({
+      external_reference: 'pending-from-fallback',
+    })
     render(
       await BillingReturnPage({
-        searchParams: Promise.resolve({ preapproval_id: 'broken-id' }),
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
       }),
     )
-    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute('href', '/')
+    expect(getPreapprovalMock).toHaveBeenCalledWith('mp-1')
+    expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the static page when both reconcile and the fallback fail', async () => {
+    reconcileMock.mockRejectedValue(new Error('boom'))
+    getPreapprovalMock.mockRejectedValue(new Error('boom2'))
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute(
+      'href',
+      '/',
+    )
   })
 })
