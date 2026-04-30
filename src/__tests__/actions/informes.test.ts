@@ -713,8 +713,18 @@ describe('regenerateReportFromEdits', () => {
     expect(result).toEqual({ error: 'No autenticado' })
   })
 
+  it('returns error when subscription is read-only', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue({ ...activePlan, isReadOnly: true })
+    const result = await regenerateReportFromEdits('i-1', 'doc', 'pac')
+    expect(result).toEqual({
+      error: 'Tu suscripción Pro fue cancelada. Reactivala para regenerar informes.',
+    })
+  })
+
   it('returns error when informe is not found', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
     const chain = makeChain()
     chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } })
     mockFrom.mockReturnValue(chain)
@@ -724,6 +734,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('returns error when transcript is missing', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
     const chain = makeChain()
     chain.single.mockResolvedValue({
       data: { id: 'i-1', transcript: null },
@@ -736,6 +747,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('regenerates reports using AI and updates', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
 
     // Promise.all: fetch informe + fetch doctor
     const fetchChain = makeChain()
@@ -766,6 +778,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('falls back to edited versions when AI returns invalid JSON', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
@@ -794,6 +807,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('returns error when anthropic throws', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
@@ -816,6 +830,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('returns generic error when non-Error is thrown', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({
@@ -838,6 +853,7 @@ describe('regenerateReportFromEdits', () => {
 
   it('handles non-text anthropic response', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    mockGetPlanInfo.mockResolvedValue(activePlan)
 
     const fetchChain = makeChain()
     fetchChain.single.mockResolvedValue({

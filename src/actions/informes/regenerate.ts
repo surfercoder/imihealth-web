@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { ANTHROPIC_MODEL } from "@/lib/ai-model";
+import { getPlanInfo } from "@/actions/plan";
 import { anthropic } from "./anthropic-client";
 import { updateInformeReports } from "./updates";
 
@@ -16,6 +17,11 @@ export async function regenerateReportFromEdits(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+
+  const plan = await getPlanInfo(user.id);
+  if (plan.isReadOnly) {
+    return { error: "Tu suscripción Pro fue cancelada. Reactivala para regenerar informes." };
+  }
 
   const [informeResult, doctorResult] = await Promise.all([
     supabase
