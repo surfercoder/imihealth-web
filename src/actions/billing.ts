@@ -81,17 +81,21 @@ export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
   return usdToArs(PLAN_CONFIG[plan].usdAmount, rate);
 }
 
-export async function createCheckout(
-  plan: ProPlanTier,
-): Promise<{ initPoint?: string; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || !user.email) {
-    return { error: "No autenticado" };
-  }
+async function arsAmountFor(plan: ProPlanTier): Promise<number> {
+  const rate = await getUsdToArsRate();
+  return usdToArs(PLAN_CONFIG[plan].usdAmount, rate);
+}
 
+/**
+ * Creates the MercadoPago preapproval for an already-existing user (upgrade flow).
+ * The `external_reference` is the user id, and a pending subscription row is
+ * persisted immediately so the webhook can flip it to active on payment.
+ */
+export async function startProCheckout(
+  plan: ProPlanTier,
+  userId: string,
+  email: string,
+): Promise<{ initPoint?: string; error?: string }> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
     return { error: "Suscripciones no están configuradas todavía." };
@@ -99,12 +103,10 @@ export async function createCheckout(
 
   const admin = createServiceClient();
 
-  // Block re-checkout for users who already have an active or in-grace Pro
-  // subscription — they should manage it instead.
   const { data: existing } = await admin
     .from("subscriptions")
     .select("plan, status")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
   if (
     existing &&
@@ -118,22 +120,18 @@ export async function createCheckout(
 
   let arsAmount: number;
   try {
-    const rate = await getUsdToArsRate();
-    arsAmount = usdToArs(config.usdAmount, rate);
+    arsAmount = await arsAmountFor(plan);
   } catch (err) {
     console.error("[billing] getUsdToArsRate failed", err);
     return { error: "No se pudo obtener el tipo de cambio. Intentá nuevamente." };
   }
 
-  // Standalone preapproval (no plan_id) — gives us a per-user ARS amount that
-  // reflects the FX rate at signup time. Subscribers stay locked to that
-  // amount; new signups always get the latest rate.
   let preapproval;
   try {
     preapproval = await createPreapproval({
       reason: config.reason,
-      external_reference: user.id,
-      payer_email: user.email,
+      external_reference: userId,
+      payer_email: email,
       back_url: `${appUrl}/billing/return`,
       status: "pending",
       auto_recurring: {
@@ -152,7 +150,7 @@ export async function createCheckout(
     .from("subscriptions")
     .upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         plan,
         status: "pending",
         mp_preapproval_id: preapproval.id,
@@ -161,6 +159,67 @@ export async function createCheckout(
     );
 
   return { initPoint: preapproval.init_point };
+}
+
+/**
+ * Creates the MercadoPago preapproval for a brand-new signup whose user/doctor/
+ * subscription rows don't exist yet. The `external_reference` is the
+ * pending_signups id; the webhook will look it up and materialize the
+ * auth.users + doctor + subscription rows on payment authorization.
+ */
+export async function startProCheckoutForPendingSignup(
+  pendingSignupId: string,
+  plan: ProPlanTier,
+  email: string,
+): Promise<{ initPoint?: string; preapprovalId?: string; error?: string }> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return { error: "Suscripciones no están configuradas todavía." };
+  }
+
+  const config = PLAN_CONFIG[plan];
+
+  let arsAmount: number;
+  try {
+    arsAmount = await arsAmountFor(plan);
+  } catch (err) {
+    console.error("[billing] getUsdToArsRate failed", err);
+    return { error: "No se pudo obtener el tipo de cambio. Intentá nuevamente." };
+  }
+
+  try {
+    const preapproval = await createPreapproval({
+      reason: config.reason,
+      external_reference: pendingSignupId,
+      payer_email: email,
+      back_url: `${appUrl}/billing/return?ref=${pendingSignupId}`,
+      status: "pending",
+      auto_recurring: {
+        frequency: config.frequency,
+        frequency_type: config.frequencyType,
+        transaction_amount: arsAmount,
+        currency_id: "ARS",
+      },
+    });
+    return { initPoint: preapproval.init_point, preapprovalId: preapproval.id };
+  } catch (err) {
+    console.error("[billing] createPreapproval failed", err);
+    return { error: "No se pudo iniciar el pago. Intentá nuevamente." };
+  }
+}
+
+export async function createCheckout(
+  plan: ProPlanTier,
+): Promise<{ initPoint?: string; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !user.email) {
+    return { error: "No autenticado" };
+  }
+
+  return startProCheckout(plan, user.id, user.email);
 }
 
 export async function cancelSubscription(): Promise<{

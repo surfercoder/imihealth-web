@@ -13,6 +13,11 @@ import {
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
+import {
+  startProCheckoutForPendingSignup,
+  type ProPlanTier,
+} from "@/actions/billing";
+import { encryptPassword } from "@/lib/signup-password-crypto";
 
 export async function login(
   _prevState: ActionResult | null,
@@ -63,60 +68,81 @@ export async function signup(
     return { error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  // MVP doctor limit check
-  const { count: doctorCount } = await supabase
-    .from("doctors")
-    .select("id", { count: "exact", head: true });
+  // Combined headcount: existing doctors + pending signups awaiting payment.
+  // Both eventually count against the MVP limit, so we gate signup on the sum.
+  const [{ count: doctorCount }, { count: pendingCount }] = await Promise.all([
+    admin.from("doctors").select("id", { count: "exact", head: true }),
+    admin.from("pending_signups").select("id", { count: "exact", head: true }),
+  ]);
   /* v8 ignore next */
-  if ((doctorCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
+  if ((doctorCount ?? 0) + (pendingCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
     return { error: `Hemos alcanzado el límite de ${MVP_LIMITS.MAX_DOCTORS} médicos para la fase de prueba MVP.` };
   }
-  const headersList = await headers();
-  const origin = headersList.get("origin") ?? "";
 
-  const { data: signUpData, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/?welcome=true")}`,
-      data: {
-        name: parsed.data.name ?? "",
-        dni: parsed.data.dni,
-        matricula: parsed.data.matricula,
-        phone: parsed.data.phone,
-        especialidad: parsed.data.especialidad,
-      },
-    },
-  });
+  // Reject signup if email already maps to a real account. Pending signups
+  // with the same email get replaced (user retried before paying).
+  const { data: existingDoctor } = await admin
+    .from("doctors")
+    .select("id")
+    .eq("email", parsed.data.email)
+    .maybeSingle();
+  if (existingDoctor) {
+    return { error: "Ya existe una cuenta con ese email." };
+  }
+  await admin
+    .from("pending_signups")
+    .delete()
+    .eq("email", parsed.data.email);
 
-  if (error) {
-    return { error: error.message };
+  const planRaw = g("plan");
+  const plan: ProPlanTier =
+    planRaw === "pro_yearly" ? "pro_yearly" : "pro_monthly";
+
+  const signupData = {
+    plan,
+    name: parsed.data.name ?? "",
+    dni: parsed.data.dni ?? null,
+    matricula: parsed.data.matricula,
+    phone: parsed.data.phone,
+    especialidad: parsed.data.especialidad,
+    tagline: parsed.data.tagline ?? null,
+    firmaDigital: parsed.data.firmaDigital ?? null,
+    avatar: parsed.data.avatar ?? null,
+  };
+
+  const { data: pending, error: pendingErr } = await admin
+    .from("pending_signups")
+    .insert({
+      email: parsed.data.email,
+      encrypted_password: encryptPassword(parsed.data.password),
+      signup_data: signupData,
+    })
+    .select("id")
+    .single();
+  if (pendingErr || !pending) {
+    console.error("[auth.signup] pending_signups insert failed", pendingErr);
+    return { error: "No se pudo iniciar el registro. Intentá nuevamente." };
   }
 
-  if (
-    signUpData?.user &&
-    (parsed.data.firmaDigital || parsed.data.avatar || parsed.data.tagline)
-  ) {
-    const admin = createAdminClient();
-    const updates: Record<string, string> = {};
-    if (parsed.data.firmaDigital) {
-      updates.firma_digital = parsed.data.firmaDigital;
-    }
-    if (parsed.data.avatar) {
-      updates.avatar = parsed.data.avatar;
-    }
-    if (parsed.data.tagline) {
-      updates.tagline = parsed.data.tagline;
-    }
-    await admin
-      .from("doctors")
-      .update(updates)
-      .eq("id", signUpData.user.id);
+  const checkout = await startProCheckoutForPendingSignup(
+    pending.id,
+    plan,
+    parsed.data.email,
+  );
+  if (checkout.error || !checkout.initPoint || !checkout.preapprovalId) {
+    // Roll back the staged signup so the user can retry from scratch.
+    await admin.from("pending_signups").delete().eq("id", pending.id);
+    return { error: checkout.error ?? "No se pudo iniciar el pago." };
   }
 
-  return { success: true };
+  await admin
+    .from("pending_signups")
+    .update({ mp_preapproval_id: checkout.preapprovalId })
+    .eq("id", pending.id);
+
+  return { success: true, initPoint: checkout.initPoint };
 }
 
 export async function forgotPassword(

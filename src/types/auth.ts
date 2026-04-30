@@ -10,5 +10,5 @@ export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export type ActionResult =
-  | { error: string; success?: never }
-  | { success: true; error?: never };
+  | { error: string; success?: never; initPoint?: never }
+  | { success: true; error?: never; initPoint?: string };

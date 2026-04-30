@@ -22,6 +22,8 @@ jest.mock('@/lib/mercadopago/api', () => ({
 import {
   submitEnterpriseLead,
   createCheckout,
+  startProCheckout,
+  startProCheckoutForPendingSignup,
   cancelSubscription,
   getCurrentArsPrice,
   getUsdPrice,
@@ -239,6 +241,126 @@ describe('createCheckout', () => {
     })
     const result = await createCheckout('pro_monthly')
     expect(result.initPoint).toBe('https://mp/checkout/ghi')
+  })
+})
+
+describe('startProCheckout (session-less)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setBillingEnv()
+    mockGetUsdToArsRate.mockResolvedValue(1417)
+  })
+
+  it('creates a preapproval and persists subscription using passed-in user id and email', async () => {
+    const { upsert } = adminMaybeSingle({ data: null })
+    mockCreatePreapproval.mockResolvedValue({
+      id: 'pre-signup',
+      init_point: 'https://mp/checkout/signup',
+    })
+    const result = await startProCheckout(
+      'pro_monthly',
+      'new-user-id',
+      'newdoc@example.com',
+    )
+    expect(result.initPoint).toBe('https://mp/checkout/signup')
+    const call = mockCreatePreapproval.mock.calls[0][0]
+    expect(call.external_reference).toBe('new-user-id')
+    expect(call.payer_email).toBe('newdoc@example.com')
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'new-user-id',
+        plan: 'pro_monthly',
+        status: 'pending',
+        mp_preapproval_id: 'pre-signup',
+      }),
+      expect.any(Object),
+    )
+    // No session-aware lookup — getUser must not be invoked.
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+})
+
+describe('startProCheckoutForPendingSignup', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setBillingEnv()
+    mockGetUsdToArsRate.mockResolvedValue(1417)
+  })
+
+  it('returns config error when app URL env var is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL
+    const result = await startProCheckoutForPendingSignup(
+      'pending-1',
+      'pro_monthly',
+      'doc@example.com',
+    )
+    expect(result.error).toMatch(/no están configuradas/i)
+  })
+
+  it('creates a preapproval whose external_reference is the pending id and embeds it in back_url', async () => {
+    mockCreatePreapproval.mockResolvedValue({
+      id: 'pre-pending-1',
+      init_point: 'https://mp/checkout/pending',
+    })
+    const result = await startProCheckoutForPendingSignup(
+      'pending-1',
+      'pro_monthly',
+      'doc@example.com',
+    )
+    expect(result).toEqual({
+      initPoint: 'https://mp/checkout/pending',
+      preapprovalId: 'pre-pending-1',
+    })
+    const call = mockCreatePreapproval.mock.calls[0][0]
+    expect(call.external_reference).toBe('pending-1')
+    expect(call.payer_email).toBe('doc@example.com')
+    expect(call.back_url).toBe('https://example.com/billing/return?ref=pending-1')
+    expect(call.auto_recurring).toEqual(
+      expect.objectContaining({
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: 30 * 1417,
+        currency_id: 'ARS',
+      }),
+    )
+  })
+
+  it('does not touch the subscriptions table — that happens only after payment', async () => {
+    mockCreatePreapproval.mockResolvedValue({
+      id: 'pre-pending-2',
+      init_point: 'https://mp/checkout/pending2',
+    })
+    await startProCheckoutForPendingSignup(
+      'pending-2',
+      'pro_yearly',
+      'doc@example.com',
+    )
+    expect(mockAdminFrom).not.toHaveBeenCalled()
+  })
+
+  it('returns user-facing error when MP rate fetch fails', async () => {
+    mockGetUsdToArsRate.mockRejectedValue(new Error('mp down'))
+    const errSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await startProCheckoutForPendingSignup(
+      'pending-3',
+      'pro_monthly',
+      'doc@example.com',
+    )
+    expect(result.error).toMatch(/tipo de cambio/i)
+    expect(mockCreatePreapproval).not.toHaveBeenCalled()
+    errSpy.mockRestore()
+  })
+
+  it('returns user-facing error when MP createPreapproval fails', async () => {
+    mockCreatePreapproval.mockRejectedValue(new Error('boom'))
+    const errSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await startProCheckoutForPendingSignup(
+      'pending-4',
+      'pro_monthly',
+      'doc@example.com',
+    )
+    expect(result.error).toMatch(/no se pudo iniciar/i)
+    errSpy.mockRestore()
   })
 })
 

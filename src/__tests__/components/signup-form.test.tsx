@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockFormAction = jest.fn()
-let mockState: { error?: string; success?: boolean } | null = null
+let mockState: { error?: string; success?: boolean; initPoint?: string } | null = null
 let mockIsPending = false
 const mockStartTransition = jest.fn((cb: () => void) => cb())
 
@@ -13,7 +13,19 @@ jest.mock('react', () => ({
   useTransition: () => [mockIsPending, mockStartTransition],
 }))
 
+let mockSearchParamsMap: Record<string, string> = {}
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => ({
+    get: (key: string) => mockSearchParamsMap[key] ?? null,
+  }),
+}))
+
 jest.mock('@/actions/auth', () => ({ signup: jest.fn() }))
+
+const mockRedirectBrowser = jest.fn()
+jest.mock('@/lib/redirect-browser', () => ({
+  redirectBrowser: (...args: unknown[]) => mockRedirectBrowser(...args),
+}))
 
 const mockVerifyCaptchaToken = jest.fn()
 jest.mock('@/actions/verify-captcha', () => ({
@@ -129,12 +141,75 @@ describe('SignupForm — default state', () => {
 })
 
 describe('SignupForm — success state', () => {
+  beforeEach(() => {
+    mockSearchParamsMap = {}
+  })
+
   it('renders the email confirmation message when state.success is true', () => {
     mockState = { success: true }
     render(<SignupForm />)
     expect(screen.getByText('Revisá tu correo')).toBeInTheDocument()
     const link = screen.getByRole('link', { name: 'Volver al inicio de sesión' })
     expect(link).toHaveAttribute('href', '/login')
+  })
+
+  it('redirects to MercadoPago init_point when state has initPoint', () => {
+    mockState = { success: true, initPoint: 'https://mp.example/checkout/abc' }
+    mockRedirectBrowser.mockClear()
+    render(<SignupForm />)
+    expect(mockRedirectBrowser).toHaveBeenCalledWith('https://mp.example/checkout/abc')
+    expect(screen.getByText('Te estamos llevando al pago')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Ir al pago' }),
+    ).toHaveAttribute('href', 'https://mp.example/checkout/abc')
+  })
+})
+
+describe('SignupForm — plan param', () => {
+  beforeEach(() => {
+    mockState = null
+    mockSearchParamsMap = { plan: 'pro_yearly' }
+    jest.clearAllMocks()
+  })
+  afterEach(() => {
+    mockSearchParamsMap = {}
+  })
+
+  it('forwards the plan param into the submitted form data', async () => {
+    const user = userEvent.setup()
+    render(<SignupForm />)
+    await user.type(screen.getByLabelText('Nombre completo'), 'Dr. Juan Pérez')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'doctor@hospital.com')
+    await user.type(screen.getByLabelText('Matrícula'), '123456')
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '5551234567' } })
+    await user.click(screen.getByRole('combobox', { name: /especialidad/i }))
+    await user.click(screen.getByRole('option', { name: 'Cardiología' }))
+    await user.type(screen.getByLabelText('Contraseña'), 'P@ssw0rd1!')
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'P@ssw0rd1!')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(screen.getByText('Términos y Condiciones')).toBeInTheDocument())
+    // The plan field is set on the FormData when step 1 is submitted.
+    // We verify it indirectly by triggering the action and inspecting formAction args.
+    // Scroll, consent, and captcha through to fire formAction.
+    const scrollEl = screen.getAllByText(/Términos y Condiciones de Uso/)[0].closest('.overflow-y-auto')
+    if (scrollEl) {
+      Object.defineProperty(scrollEl, 'scrollTop', { value: 1000, configurable: true })
+      Object.defineProperty(scrollEl, 'clientHeight', { value: 288, configurable: true })
+      Object.defineProperty(scrollEl, 'scrollHeight', { value: 1200, configurable: true })
+      fireEvent.scroll(scrollEl)
+    }
+    await waitFor(() => expect(screen.getByRole('checkbox')).not.toBeDisabled())
+    await user.click(screen.getByRole('checkbox'))
+    await waitFor(() => expect(screen.getByTestId('recaptcha')).toBeInTheDocument())
+    await act(async () => {
+      if (mockCaptchaCallbacks.onChange) mockCaptchaCallbacks.onChange('test-token')
+    })
+    await waitFor(() => expect(screen.getByText(/Todo listo/)).toBeInTheDocument())
+    mockVerifyCaptchaToken.mockResolvedValue({ success: true })
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(mockFormAction).toHaveBeenCalled())
+    const fd = mockFormAction.mock.calls[0][0] as FormData
+    expect(fd.get('plan')).toBe('pro_yearly')
   })
 })
 

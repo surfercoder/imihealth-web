@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useEffect, useState, useActionState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Card,
@@ -16,13 +17,23 @@ import {
   RegistrationStep,
   type ClientSignupFormValues,
 } from "@/components/signup/registration-step";
+import { redirectBrowser } from "@/lib/redirect-browser";
 
 export function SignupForm() {
   const tTerms = useTranslations("signupTerms");
+  const searchParams = useSearchParams();
+  const planParam = searchParams?.get("plan");
+  const plan = planParam === "pro_yearly" ? "pro_yearly" : "pro_monthly";
   const [state, formAction] = useActionState(signup, null);
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState<1 | 2>(1);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+
+  useEffect(() => {
+    if (state?.success && state.initPoint) {
+      redirectBrowser(state.initPoint);
+    }
+  }, [state]);
 
   function onStep1Submit(values: ClientSignupFormValues) {
     const formData = new FormData();
@@ -42,6 +53,7 @@ export function SignupForm() {
     formData.set("firmaDigital", values.firmaDigital ?? "");
     /* v8 ignore next */
     formData.set("avatar", values.avatar ?? "");
+    formData.set("plan", plan);
     setPendingFormData(formData);
     setStep(2);
   }
@@ -53,7 +65,11 @@ export function SignupForm() {
   }
 
   if (state?.success) {
-    return <SignupSuccess />;
+    return state.initPoint ? (
+      <SignupSuccess paymentUrl={state.initPoint} />
+    ) : (
+      <SignupSuccess />
+    );
   }
 
   if (step === 2) {

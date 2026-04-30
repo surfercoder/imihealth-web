@@ -20,9 +20,19 @@ describe('generateMetadata', () => {
 })
 
 describe('BillingReturnPage', () => {
-  it('renders confirmation copy and a back-to-dashboard link', async () => {
-    render(await BillingReturnPage())
+  it('renders confirmation copy and a back-to-dashboard link when no ref is present', async () => {
+    render(await BillingReturnPage({ searchParams: Promise.resolve({}) }))
     expect(screen.getByText(/procesando tu suscripción/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute('href', '/')
+  })
+
+  it('renders the signup status poller when a ref is present', async () => {
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ ref: 'abc-123' }),
+      }),
+    )
+    // Initial poller state shows the processing copy too, but no "Volver al panel" link.
+    expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
   })
 })

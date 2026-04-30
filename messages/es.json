@@ -718,6 +718,9 @@
     "login": "Iniciar sesión",
     "successTitle": "Revisá tu correo",
     "successMessage": "Te enviamos un enlace de confirmación. Hacé clic en él para activar tu cuenta.",
+    "redirectingTitle": "Te estamos llevando al pago",
+    "redirectingMessage": "Te redirigimos a MercadoPago para completar tu suscripción. Si no sucede en unos segundos, hacé clic abajo.",
+    "continueToPayment": "Ir al pago",
     "backToLogin": "Volver al inicio de sesión"
   },
   "signupTerms": {
@@ -1035,6 +1038,12 @@
     "returnTitle": "Estamos procesando tu suscripción",
     "returnDescription": "Apenas MercadoPago confirme el pago, vas a tener acceso completo. Esto suele tardar unos segundos.",
     "returnCta": "Volver al panel",
+    "returnReadyTitle": "¡Listo! Tu cuenta fue creada",
+    "returnReadyDescription": "Te enviamos un email para verificar tu cuenta. Revisá tu bandeja de entrada para terminar el alta.",
+    "returnReadyCta": "Ir al login",
+    "returnTimeoutTitle": "Esto está tardando más de lo normal",
+    "returnTimeoutDescription": "Si pagaste, vas a recibir un email de verificación apenas se confirme el pago. Si no llega en 10 minutos, escribinos.",
+    "returnTimeoutCta": "Ir al login",
     "yearlyHint": "Equivale a pagar 10 meses — 2 meses gratis.",
     "enterpriseTitle": "Organización",
     "enterpriseSubtitle": "Para clínicas, hospitales y redes de salud.",

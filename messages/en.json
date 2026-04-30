@@ -718,6 +718,9 @@
     "login": "Sign in",
     "successTitle": "Check your email",
     "successMessage": "We sent you a confirmation link. Click on it to activate your account.",
+    "redirectingTitle": "Taking you to payment",
+    "redirectingMessage": "Redirecting you to MercadoPago to complete your subscription. If nothing happens in a few seconds, click below.",
+    "continueToPayment": "Go to payment",
     "backToLogin": "Back to sign in"
   },
   "signupTerms": {
@@ -1035,6 +1038,12 @@
     "returnTitle": "We're processing your subscription",
     "returnDescription": "As soon as MercadoPago confirms the payment, you'll have full access. This usually takes a few seconds.",
     "returnCta": "Back to dashboard",
+    "returnReadyTitle": "All set! Your account is ready",
+    "returnReadyDescription": "We sent a verification email to finish setting up your account. Check your inbox to complete the signup.",
+    "returnReadyCta": "Go to login",
+    "returnTimeoutTitle": "This is taking longer than usual",
+    "returnTimeoutDescription": "If your payment went through, you'll receive a verification email as soon as it's confirmed. If it doesn't arrive within 10 minutes, please contact us.",
+    "returnTimeoutCta": "Go to login",
     "yearlyHint": "Equivalent to paying for 10 months — 2 months free.",
     "enterpriseTitle": "Organization",
     "enterpriseSubtitle": "For clinics, hospitals and health networks.",
