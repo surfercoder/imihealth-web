@@ -171,7 +171,6 @@ describe('signup', () => {
     mockHeadersGet.mockReturnValue('http://localhost:3001')
     mockStartProCheckoutForPendingSignup.mockResolvedValue({
       initPoint: 'https://mp.example/checkout/xyz',
-      preapprovalId: 'pa-1',
     })
   })
 
@@ -240,7 +239,6 @@ describe('signup', () => {
     expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
       'pending-uuid',
       'pro_monthly',
-      'doctor@hospital.com',
     )
   })
 
@@ -252,7 +250,6 @@ describe('signup', () => {
     expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
       'pending-uuid',
       'pro_yearly',
-      'doctor@hospital.com',
     )
   })
 
@@ -262,12 +259,6 @@ describe('signup', () => {
     const result = await signup(null, validForm())
     expect(result).toEqual({ error: 'mp down' })
     expect(m.pendingDeleteById).toHaveBeenCalledWith('pending-uuid')
-  })
-
-  it('persists the preapproval id back onto the pending row', async () => {
-    const m = setupAdmin()
-    await signup(null, validForm())
-    expect(m.pendingUpdate).toHaveBeenCalledWith('id', 'pending-uuid')
   })
 })
 

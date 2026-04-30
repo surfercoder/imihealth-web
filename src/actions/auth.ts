@@ -126,21 +126,12 @@ export async function signup(
     return { error: "No se pudo iniciar el registro. Intentá nuevamente." };
   }
 
-  const checkout = await startProCheckoutForPendingSignup(
-    pending.id,
-    plan,
-    parsed.data.email,
-  );
-  if (checkout.error || !checkout.initPoint || !checkout.preapprovalId) {
+  const checkout = await startProCheckoutForPendingSignup(pending.id, plan);
+  if (checkout.error || !checkout.initPoint) {
     // Roll back the staged signup so the user can retry from scratch.
     await admin.from("pending_signups").delete().eq("id", pending.id);
     return { error: checkout.error ?? "No se pudo iniciar el pago." };
   }
-
-  await admin
-    .from("pending_signups")
-    .update({ mp_preapproval_id: checkout.preapprovalId })
-    .eq("id", pending.id);
 
   return { success: true, initPoint: checkout.initPoint };
 }

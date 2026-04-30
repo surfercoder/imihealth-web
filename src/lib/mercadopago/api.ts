@@ -89,6 +89,13 @@ export async function createPreapprovalPlan(
   );
 }
 
+export async function getPreapprovalPlan(id: string): Promise<PreapprovalPlan> {
+  return call<PreapprovalPlan>(
+    "GET",
+    `/preapproval_plan/${encodeURIComponent(id)}`,
+  );
+}
+
 export interface PreapprovalInput {
   /** Optional: when omitted MP creates a "standalone" preapproval with the per-user amount. */
   preapproval_plan_id?: string;

@@ -9,11 +9,11 @@ jest.mock('@/utils/supabase/server', () => ({
   createServiceClient: jest.fn(() => ({ from: mockAdminFrom })),
 }))
 
-const mockCreatePreapproval = jest.fn()
+const mockGetPreapprovalPlan = jest.fn()
 const mockUpdatePreapprovalStatus = jest.fn()
 const mockGetUsdToArsRate = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
-  createPreapproval: (...args: unknown[]) => mockCreatePreapproval(...args),
+  getPreapprovalPlan: (...args: unknown[]) => mockGetPreapprovalPlan(...args),
   updatePreapprovalStatus: (...args: unknown[]) =>
     mockUpdatePreapprovalStatus(...args),
   getUsdToArsRate: (...args: unknown[]) => mockGetUsdToArsRate(...args),
@@ -94,15 +94,38 @@ describe('submitEnterpriseLead', () => {
   })
 })
 
-const ENV_BACKUP = { appUrl: process.env.NEXT_PUBLIC_APP_URL }
+const ENV_BACKUP = {
+  appUrl: process.env.NEXT_PUBLIC_APP_URL,
+  monthlyPlan: process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID,
+  yearlyPlan: process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID,
+}
 
 function setBillingEnv() {
   process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
+  process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID = 'plan-monthly-id'
+  process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID = 'plan-yearly-id'
 }
 
 afterAll(() => {
   process.env.NEXT_PUBLIC_APP_URL = ENV_BACKUP.appUrl
+  process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID = ENV_BACKUP.monthlyPlan
+  process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID = ENV_BACKUP.yearlyPlan
 })
+
+function activeMpPlan(initPoint = 'https://mp/subscribe/plan-x') {
+  return {
+    id: 'plan-monthly-id',
+    reason: 'IMI Health Pro',
+    status: 'active' as const,
+    init_point: initPoint,
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: 1417,
+      currency_id: 'ARS',
+    },
+  }
+}
 
 const mockUser = { id: 'user-1', email: 'doc@example.com' }
 
@@ -122,7 +145,6 @@ describe('createCheckout', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setBillingEnv()
-    mockGetUsdToArsRate.mockResolvedValue(1417)
   })
 
   it('returns error when not authenticated', async () => {
@@ -131,8 +153,8 @@ describe('createCheckout', () => {
     expect(result.error).toBe('No autenticado')
   })
 
-  it('returns config error when app URL env var is missing', async () => {
-    delete process.env.NEXT_PUBLIC_APP_URL
+  it('returns config error when plan id env var is missing', async () => {
+    delete process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const result = await createCheckout('pro_monthly')
     expect(result.error).toMatch(/no están configuradas/i)
@@ -143,7 +165,7 @@ describe('createCheckout', () => {
     adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'active' } })
     const result = await createCheckout('pro_yearly')
     expect(result.error).toMatch(/ya tenés/i)
-    expect(mockCreatePreapproval).not.toHaveBeenCalled()
+    expect(mockGetPreapprovalPlan).not.toHaveBeenCalled()
   })
 
   it('blocks re-checkout when user has a pending Pro subscription', async () => {
@@ -153,88 +175,62 @@ describe('createCheckout', () => {
     expect(result.error).toMatch(/ya tenés/i)
   })
 
-  it('converts USD 1 to ARS at the live rate and creates a standalone monthly preapproval', async () => {
+  it('returns the plan init_point with external_reference appended for monthly', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    const { upsert } = adminMaybeSingle({ data: null })
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-1',
-      init_point: 'https://mp/checkout/abc',
-    })
+    adminMaybeSingle({ data: null })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/m'))
     const result = await createCheckout('pro_monthly')
-    expect(result.initPoint).toBe('https://mp/checkout/abc')
-    expect(mockGetUsdToArsRate).toHaveBeenCalled()
-    const call = mockCreatePreapproval.mock.calls[0][0]
-    expect(call.preapproval_plan_id).toBeUndefined()
-    expect(call.external_reference).toBe('user-1')
-    expect(call.payer_email).toBeUndefined()
-    expect(call.status).toBe('pending')
-    expect(call.auto_recurring).toEqual(
-      expect.objectContaining({
-        frequency: 1,
-        frequency_type: 'months',
-        transaction_amount: 1 * 1417,
-        currency_id: 'ARS',
-      }),
-    )
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: 'user-1',
-        plan: 'pro_monthly',
-        status: 'pending',
-        mp_preapproval_id: 'pre-1',
-      }),
-      expect.any(Object),
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly-id')
+    expect(result.initPoint).toBe(
+      'https://mp/subscribe/m?external_reference=user-1',
     )
   })
 
-  it('converts USD 10 to ARS for the yearly plan with frequency 12', async () => {
+  it('uses the yearly plan id env var for pro_yearly', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: null })
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-2',
-      init_point: 'https://mp/checkout/def',
-    })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/y'))
     await createCheckout('pro_yearly')
-    expect(mockCreatePreapproval).toHaveBeenCalledWith(
-      expect.objectContaining({
-        auto_recurring: expect.objectContaining({
-          frequency: 12,
-          transaction_amount: 10 * 1417,
-        }),
-      }),
-    )
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-yearly-id')
   })
 
-  it('returns user-facing error when MP rate fetch fails', async () => {
+  it('returns user-facing error when the plan fetch fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: null })
-    mockGetUsdToArsRate.mockRejectedValue(new Error('mp down'))
-    const errSpy = jest.spyOn(console, 'error').mockImplementation()
-    const result = await createCheckout('pro_monthly')
-    expect(result.error).toMatch(/tipo de cambio/i)
-    expect(mockCreatePreapproval).not.toHaveBeenCalled()
-    errSpy.mockRestore()
-  })
-
-  it('returns error when MP createPreapproval fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    adminMaybeSingle({ data: null })
-    mockCreatePreapproval.mockRejectedValue(new Error('boom'))
+    mockGetPreapprovalPlan.mockRejectedValue(new Error('boom'))
     const errSpy = jest.spyOn(console, 'error').mockImplementation()
     const result = await createCheckout('pro_monthly')
     expect(result.error).toMatch(/no se pudo iniciar/i)
     errSpy.mockRestore()
   })
 
+  it('returns user-facing error when the plan is not active', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    adminMaybeSingle({ data: null })
+    mockGetPreapprovalPlan.mockResolvedValue({
+      ...activeMpPlan(),
+      status: 'cancelled',
+    })
+    const result = await createCheckout('pro_monthly')
+    expect(result.error).toMatch(/no está disponible/i)
+  })
+
+  it('does not write to the subscriptions table — webhook handles that on payment', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const { upsert } = adminMaybeSingle({ data: null })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan())
+    await createCheckout('pro_monthly')
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
   it('allows checkout when existing row is free plan', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: { plan: 'free', status: 'active' } })
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-3',
-      init_point: 'https://mp/checkout/ghi',
-    })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/free-up'))
     const result = await createCheckout('pro_monthly')
-    expect(result.initPoint).toBe('https://mp/checkout/ghi')
+    expect(result.initPoint).toBe(
+      'https://mp/subscribe/free-up?external_reference=user-1',
+    )
   })
 })
 
@@ -242,34 +238,23 @@ describe('startProCheckout (session-less)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setBillingEnv()
-    mockGetUsdToArsRate.mockResolvedValue(1417)
   })
 
-  it('creates a preapproval and persists subscription using passed-in user id and email', async () => {
-    const { upsert } = adminMaybeSingle({ data: null })
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-signup',
-      init_point: 'https://mp/checkout/signup',
-    })
-    const result = await startProCheckout(
-      'pro_monthly',
-      'new-user-id',
+  it('returns the plan init_point with external_reference appended', async () => {
+    adminMaybeSingle({ data: null })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/abc'))
+    const result = await startProCheckout('pro_monthly', 'new-user-id')
+    expect(result.initPoint).toBe(
+      'https://mp/subscribe/abc?external_reference=new-user-id',
     )
-    expect(result.initPoint).toBe('https://mp/checkout/signup')
-    const call = mockCreatePreapproval.mock.calls[0][0]
-    expect(call.external_reference).toBe('new-user-id')
-    expect(call.payer_email).toBeUndefined()
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: 'new-user-id',
-        plan: 'pro_monthly',
-        status: 'pending',
-        mp_preapproval_id: 'pre-signup',
-      }),
-      expect.any(Object),
-    )
-    // No session-aware lookup — getUser must not be invoked.
     expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('does not pre-stage a subscription row — webhook owns that write', async () => {
+    const { upsert } = adminMaybeSingle({ data: null })
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan())
+    await startProCheckout('pro_monthly', 'new-user-id')
+    expect(upsert).not.toHaveBeenCalled()
   })
 })
 
@@ -277,83 +262,50 @@ describe('startProCheckoutForPendingSignup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setBillingEnv()
-    mockGetUsdToArsRate.mockResolvedValue(1417)
   })
 
-  it('returns config error when app URL env var is missing', async () => {
-    delete process.env.NEXT_PUBLIC_APP_URL
-    const result = await startProCheckoutForPendingSignup(
-      'pending-1',
-      'pro_monthly',
-      'doc@example.com',
-    )
+  it('returns config error when plan id env var is missing', async () => {
+    delete process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
+    const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
     expect(result.error).toMatch(/no están configuradas/i)
   })
 
-  it('creates a preapproval whose external_reference is the pending id and embeds it in back_url', async () => {
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-pending-1',
-      init_point: 'https://mp/checkout/pending',
-    })
-    const result = await startProCheckoutForPendingSignup(
-      'pending-1',
-      'pro_monthly',
-      'doc@example.com',
-    )
+  it('returns the plan init_point with the pending signup id as external_reference', async () => {
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/pending'))
+    const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
     expect(result).toEqual({
-      initPoint: 'https://mp/checkout/pending',
-      preapprovalId: 'pre-pending-1',
+      initPoint: 'https://mp/subscribe/pending?external_reference=pending-1',
     })
-    const call = mockCreatePreapproval.mock.calls[0][0]
-    expect(call.external_reference).toBe('pending-1')
-    expect(call.payer_email).toBeUndefined()
-    expect(call.back_url).toBe('https://example.com/billing/return?ref=pending-1')
-    expect(call.auto_recurring).toEqual(
-      expect.objectContaining({
-        frequency: 1,
-        frequency_type: 'months',
-        transaction_amount: 1 * 1417,
-        currency_id: 'ARS',
-      }),
-    )
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly-id')
   })
 
-  it('does not touch the subscriptions table — that happens only after payment', async () => {
-    mockCreatePreapproval.mockResolvedValue({
-      id: 'pre-pending-2',
-      init_point: 'https://mp/checkout/pending2',
-    })
-    await startProCheckoutForPendingSignup(
-      'pending-2',
-      'pro_yearly',
-      'doc@example.com',
-    )
+  it('uses the yearly plan id env var for pro_yearly', async () => {
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan('https://mp/subscribe/yearly'))
+    await startProCheckoutForPendingSignup('pending-2', 'pro_yearly')
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-yearly-id')
+  })
+
+  it('does not touch the subscriptions table', async () => {
+    mockGetPreapprovalPlan.mockResolvedValue(activeMpPlan())
+    await startProCheckoutForPendingSignup('pending-3', 'pro_monthly')
     expect(mockAdminFrom).not.toHaveBeenCalled()
   })
 
-  it('returns user-facing error when MP rate fetch fails', async () => {
-    mockGetUsdToArsRate.mockRejectedValue(new Error('mp down'))
+  it('returns user-facing error when the plan fetch fails', async () => {
+    mockGetPreapprovalPlan.mockRejectedValue(new Error('boom'))
     const errSpy = jest.spyOn(console, 'error').mockImplementation()
-    const result = await startProCheckoutForPendingSignup(
-      'pending-3',
-      'pro_monthly',
-      'doc@example.com',
-    )
-    expect(result.error).toMatch(/tipo de cambio/i)
-    expect(mockCreatePreapproval).not.toHaveBeenCalled()
+    const result = await startProCheckoutForPendingSignup('pending-4', 'pro_monthly')
+    expect(result.error).toMatch(/no se pudo iniciar/i)
     errSpy.mockRestore()
   })
 
-  it('returns user-facing error when MP createPreapproval fails', async () => {
-    mockCreatePreapproval.mockRejectedValue(new Error('boom'))
-    const errSpy = jest.spyOn(console, 'error').mockImplementation()
-    const result = await startProCheckoutForPendingSignup(
-      'pending-4',
-      'pro_monthly',
-      'doc@example.com',
-    )
-    expect(result.error).toMatch(/no se pudo iniciar/i)
-    errSpy.mockRestore()
+  it('returns user-facing error when the plan is not active', async () => {
+    mockGetPreapprovalPlan.mockResolvedValue({
+      ...activeMpPlan(),
+      status: 'inactive',
+    })
+    const result = await startProCheckoutForPendingSignup('pending-5', 'pro_monthly')
+    expect(result.error).toMatch(/no está disponible/i)
   })
 })
 
