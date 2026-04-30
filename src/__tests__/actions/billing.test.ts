@@ -131,12 +131,6 @@ describe('createCheckout', () => {
     expect(result.error).toBe('No autenticado')
   })
 
-  it('returns error when user has no email', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'u1', email: null } } })
-    const result = await createCheckout('pro_monthly')
-    expect(result.error).toBe('No autenticado')
-  })
-
   it('returns config error when app URL env var is missing', async () => {
     delete process.env.NEXT_PUBLIC_APP_URL
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
@@ -172,7 +166,7 @@ describe('createCheckout', () => {
     const call = mockCreatePreapproval.mock.calls[0][0]
     expect(call.preapproval_plan_id).toBeUndefined()
     expect(call.external_reference).toBe('user-1')
-    expect(call.payer_email).toBe('doc@example.com')
+    expect(call.payer_email).toBeUndefined()
     expect(call.status).toBe('pending')
     expect(call.auto_recurring).toEqual(
       expect.objectContaining({
@@ -260,12 +254,11 @@ describe('startProCheckout (session-less)', () => {
     const result = await startProCheckout(
       'pro_monthly',
       'new-user-id',
-      'newdoc@example.com',
     )
     expect(result.initPoint).toBe('https://mp/checkout/signup')
     const call = mockCreatePreapproval.mock.calls[0][0]
     expect(call.external_reference).toBe('new-user-id')
-    expect(call.payer_email).toBe('newdoc@example.com')
+    expect(call.payer_email).toBeUndefined()
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: 'new-user-id',
@@ -313,7 +306,7 @@ describe('startProCheckoutForPendingSignup', () => {
     })
     const call = mockCreatePreapproval.mock.calls[0][0]
     expect(call.external_reference).toBe('pending-1')
-    expect(call.payer_email).toBe('doc@example.com')
+    expect(call.payer_email).toBeUndefined()
     expect(call.back_url).toBe('https://example.com/billing/return?ref=pending-1')
     expect(call.auto_recurring).toEqual(
       expect.objectContaining({

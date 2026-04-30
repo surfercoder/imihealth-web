@@ -94,7 +94,13 @@ export interface PreapprovalInput {
   preapproval_plan_id?: string;
   reason: string;
   external_reference: string;
-  payer_email: string;
+  /**
+   * Optional. When set, MP locks the checkout payer to that exact MP account email,
+   * which breaks any flow where the buyer's MP account email differs from the
+   * email captured at signup. Leaving it unset lets the buyer log in with any MP
+   * account and become the payer.
+   */
+  payer_email?: string;
   back_url: string;
   /** "pending" → user picks a card on MP checkout. "authorized" requires card_token_id. */
   status: "pending" | "authorized";

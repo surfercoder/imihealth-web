@@ -97,7 +97,6 @@ async function arsAmountFor(plan: ProPlanTier): Promise<number> {
 export async function startProCheckout(
   plan: ProPlanTier,
   userId: string,
-  email: string,
 ): Promise<{ initPoint?: string; error?: string }> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
@@ -134,7 +133,6 @@ export async function startProCheckout(
     preapproval = await createPreapproval({
       reason: config.reason,
       external_reference: userId,
-      payer_email: email,
       back_url: `${appUrl}/billing/return`,
       status: "pending",
       auto_recurring: {
@@ -195,7 +193,6 @@ export async function startProCheckoutForPendingSignup(
     const preapproval = await createPreapproval({
       reason: config.reason,
       external_reference: pendingSignupId,
-      payer_email: email,
       back_url: `${appUrl}/billing/return?ref=${pendingSignupId}`,
       status: "pending",
       auto_recurring: {
@@ -223,11 +220,11 @@ export async function createCheckout(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || !user.email) {
+  if (!user) {
     return { error: "No autenticado" };
   }
 
-  return startProCheckout(plan, user.id, user.email);
+  return startProCheckout(plan, user.id);
 }
 
 export async function cancelSubscription(): Promise<{
