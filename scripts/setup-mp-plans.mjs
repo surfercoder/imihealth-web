@@ -1,10 +1,12 @@
-// One-shot setup script: creates the two MercadoPago preapproval plans
-// (Pro monthly $30 USD, Pro yearly $300 USD).
+// One-shot setup script: creates the two MercadoPago preapproval plans.
+// Plan amounts are immutable in MP, so re-run this script (and update env
+// vars) any time you need to change pricing.
 //
 // Usage:
-//   node --env-file=.env scripts/setup-mp-plans.mjs
+//   node --env-file=.env scripts/setup-mp-plans.mjs                 # defaults: 30000 ARS / 300000 ARS
+//   node --env-file=.env scripts/setup-mp-plans.mjs 1417 14170      # ≈ $1 / $10 USD at 1417 ARS/USD
 //
-// Prints plan IDs at the end. Copy those into .env:
+// Prints plan IDs at the end. Copy those into .env (and into Vercel envs):
 //   MERCADOPAGO_PRO_MONTHLY_PLAN_ID=...
 //   MERCADOPAGO_PRO_YEARLY_PLAN_ID=...
 
@@ -51,23 +53,36 @@ async function createPlan({ reason, frequency, frequencyType, amount, currency }
   return JSON.parse(text);
 }
 
+function parseAmount(raw, fallback, label) {
+  if (raw === undefined) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    console.error(`Invalid ${label} amount: ${raw}`);
+    process.exit(1);
+  }
+  return n;
+}
+
 async function main() {
-  console.log("Creating Pro monthly plan (30 000 ARS / month)…");
+  const monthlyArs = parseAmount(process.argv[2], 30000, "monthly");
+  const yearlyArs = parseAmount(process.argv[3], 300000, "yearly");
+
+  console.log(`Creating Pro monthly plan (${monthlyArs} ARS / month)…`);
   const monthly = await createPlan({
     reason: "IMI Health Pro — mensual",
     frequency: 1,
     frequencyType: "months",
-    amount: 30000,
+    amount: monthlyArs,
     currency: "ARS",
   });
   console.log(`  ✓ id=${monthly.id}`);
 
-  console.log("Creating Pro yearly plan (300 000 ARS / year)…");
+  console.log(`Creating Pro yearly plan (${yearlyArs} ARS / year)…`);
   const yearly = await createPlan({
     reason: "IMI Health Pro — anual",
     frequency: 12,
     frequencyType: "months",
-    amount: 300000,
+    amount: yearlyArs,
     currency: "ARS",
   });
   console.log(`  ✓ id=${yearly.id}`);
