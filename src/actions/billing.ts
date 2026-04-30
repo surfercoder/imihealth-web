@@ -52,15 +52,17 @@ interface PlanConfig {
   reason: string;
 }
 
+// TEMPORARY: prices lowered to $1/$10 for end-to-end production smoke test.
+// Revert to 30 / 300 after verification.
 const PLAN_CONFIG: Record<ProPlanTier, PlanConfig> = {
   pro_monthly: {
-    usdAmount: 30,
+    usdAmount: 1,
     frequency: 1,
     frequencyType: "months",
     reason: "IMI Health Pro — mensual",
   },
   pro_yearly: {
-    usdAmount: 300,
+    usdAmount: 10,
     frequency: 12,
     frequencyType: "months",
     reason: "IMI Health Pro — anual",

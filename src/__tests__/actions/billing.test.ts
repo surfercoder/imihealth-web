@@ -159,7 +159,7 @@ describe('createCheckout', () => {
     expect(result.error).toMatch(/ya tenés/i)
   })
 
-  it('converts USD 30 to ARS at the live rate and creates a standalone monthly preapproval', async () => {
+  it('converts USD 1 to ARS at the live rate and creates a standalone monthly preapproval', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const { upsert } = adminMaybeSingle({ data: null })
     mockCreatePreapproval.mockResolvedValue({
@@ -178,7 +178,7 @@ describe('createCheckout', () => {
       expect.objectContaining({
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: 30 * 1417,
+        transaction_amount: 1 * 1417,
         currency_id: 'ARS',
       }),
     )
@@ -193,7 +193,7 @@ describe('createCheckout', () => {
     )
   })
 
-  it('converts USD 300 to ARS for the yearly plan with frequency 12', async () => {
+  it('converts USD 10 to ARS for the yearly plan with frequency 12', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: null })
     mockCreatePreapproval.mockResolvedValue({
@@ -205,7 +205,7 @@ describe('createCheckout', () => {
       expect.objectContaining({
         auto_recurring: expect.objectContaining({
           frequency: 12,
-          transaction_amount: 300 * 1417,
+          transaction_amount: 10 * 1417,
         }),
       }),
     )
@@ -319,7 +319,7 @@ describe('startProCheckoutForPendingSignup', () => {
       expect.objectContaining({
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: 30 * 1417,
+        transaction_amount: 1 * 1417,
         currency_id: 'ARS',
       }),
     )
@@ -371,14 +371,14 @@ describe('getUsdPrice / getCurrentArsPrice', () => {
   })
 
   it('exposes the USD-anchor amounts', async () => {
-    expect(await getUsdPrice('pro_monthly')).toBe(30)
-    expect(await getUsdPrice('pro_yearly')).toBe(300)
+    expect(await getUsdPrice('pro_monthly')).toBe(1)
+    expect(await getUsdPrice('pro_yearly')).toBe(10)
   })
 
   it('multiplies USD by the current MP rate and rounds to whole ARS', async () => {
     mockGetUsdToArsRate.mockResolvedValue(1417.5)
-    expect(await getCurrentArsPrice('pro_monthly')).toBe(Math.round(30 * 1417.5))
-    expect(await getCurrentArsPrice('pro_yearly')).toBe(Math.round(300 * 1417.5))
+    expect(await getCurrentArsPrice('pro_monthly')).toBe(Math.round(1 * 1417.5))
+    expect(await getCurrentArsPrice('pro_yearly')).toBe(Math.round(10 * 1417.5))
   })
 })
 
