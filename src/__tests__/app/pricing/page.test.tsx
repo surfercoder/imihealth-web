@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 
-const mockGetUser = jest.fn()
-jest.mock('@/utils/supabase/server', () => ({
-  createClient: jest.fn(() => Promise.resolve({ auth: { getUser: mockGetUser } })),
+const mockGetAuthUser = jest.fn()
+const mockGetDoctor = jest.fn()
+jest.mock('@/lib/cached-queries', () => ({
+  getAuthUser: (...args: unknown[]) => mockGetAuthUser(...args),
+  getDoctor: (...args: unknown[]) => mockGetDoctor(...args),
 }))
 
 const mockGetCurrentArsPrice = jest.fn()
@@ -22,6 +24,22 @@ jest.mock('@/components/subscription-section', () => ({
 
 jest.mock('@/components/public-header', () => ({
   PublicHeader: () => <div data-testid="public-header" />,
+}))
+
+jest.mock('@/components/app-header', () => ({
+  AppHeader: ({
+    doctorName,
+    doctorAvatar,
+  }: {
+    doctorName?: string | null
+    doctorAvatar?: string | null
+  }) => (
+    <div
+      data-testid="app-header"
+      data-doctor-name={doctorName ?? ''}
+      data-doctor-avatar={doctorAvatar ?? ''}
+    />
+  ),
 }))
 
 jest.mock('@/components/pricing/pricing-cards', () => ({
@@ -70,12 +88,16 @@ describe('PricingPage', () => {
       currentDoctors: 1,
       canSignUp: true,
     })
+    mockGetDoctor.mockResolvedValue({
+      data: { name: 'Dr. Juan Pérez', avatar: null },
+    })
   })
 
   it('renders the public header, hero copy and pricing cards (unauthenticated)', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetAuthUser.mockResolvedValue({ data: { user: null } })
     render(await PricingPage())
     expect(screen.getByTestId('public-header')).toBeInTheDocument()
+    expect(screen.queryByTestId('app-header')).not.toBeInTheDocument()
     const cards = screen.getByTestId('pricing-cards')
     expect(cards).toHaveAttribute('data-signed-in', 'false')
     expect(cards).toHaveAttribute('data-ars-monthly', '15')
@@ -87,15 +109,19 @@ describe('PricingPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('passes isSignedIn=true and shows the subscription section for authenticated users', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+  it('renders the app header with doctor info for authenticated users', async () => {
+    mockGetAuthUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     render(await PricingPage())
+    const appHeader = screen.getByTestId('app-header')
+    expect(appHeader).toBeInTheDocument()
+    expect(appHeader).toHaveAttribute('data-doctor-name', 'Dr. Juan Pérez')
+    expect(screen.queryByTestId('public-header')).not.toBeInTheDocument()
     expect(screen.getByTestId('pricing-cards')).toHaveAttribute('data-signed-in', 'true')
     expect(screen.getByTestId('subscription-section')).toBeInTheDocument()
   })
 
   it('still renders without ARS subtitle when MP rate fetch fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetAuthUser.mockResolvedValue({ data: { user: null } })
     mockGetCurrentArsPrice.mockRejectedValue(new Error('mp down'))
     render(await PricingPage())
     const cards = screen.getByTestId('pricing-cards')

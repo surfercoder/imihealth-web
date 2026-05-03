@@ -23,7 +23,14 @@ export function SignupForm() {
   const tTerms = useTranslations("signupTerms");
   const searchParams = useSearchParams();
   const planParam = searchParams?.get("plan");
-  const plan = planParam === "pro_yearly" ? "pro_yearly" : "pro_monthly";
+  // Default to "free" so /signup without a plan param doesn't trigger a
+  // MercadoPago checkout. Only the explicit Pro CTAs include ?plan=pro_*.
+  const plan: "free" | "pro_monthly" | "pro_yearly" =
+    planParam === "pro_yearly"
+      ? "pro_yearly"
+      : planParam === "pro_monthly"
+        ? "pro_monthly"
+        : "free";
   const [state, formAction] = useActionState(signup, null);
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState<1 | 2>(1);

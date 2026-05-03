@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { getCurrentArsPrice } from "@/actions/billing";
 import { getPlanInfo } from "@/actions/plan";
+import { AppHeader } from "@/components/app-header";
 import { PublicHeader } from "@/components/public-header";
 import { PricingCards } from "@/components/pricing/pricing-cards";
 import { SubscriptionSection } from "@/components/subscription-section";
@@ -33,19 +34,29 @@ async function getArsPrices(): Promise<
 
 export default async function PricingPage() {
   const t = await getTranslations("pricing");
-  const supabase = await createClient();
   const [
     {
       data: { user },
     },
     arsPrices,
-  ] = await Promise.all([supabase.auth.getUser(), getArsPrices()]);
+  ] = await Promise.all([getAuthUser(), getArsPrices()]);
 
-  const plan = user ? await getPlanInfo(user.id) : null;
+  const [plan, doctorRes] = user
+    ? await Promise.all([getPlanInfo(user.id), getDoctor(user.id)])
+    : [null, null];
+  const doctor = doctorRes?.data ?? null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background pt-14">
-      <PublicHeader />
+      {user ? (
+        <AppHeader
+          doctorName={doctor?.name}
+          doctorAvatar={doctor?.avatar}
+          plan={plan ?? undefined}
+        />
+      ) : (
+        <PublicHeader />
+      )}
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-6 py-16">
           <div className="text-center mb-12">
@@ -58,7 +69,7 @@ export default async function PricingPage() {
           </div>
           {plan ? (
             <div className="mb-12 max-w-3xl mx-auto">
-              <SubscriptionSection plan={plan} />
+              <SubscriptionSection plan={plan} hideUpgradeCta />
             </div>
           ) : null}
           <PricingCards isSignedIn={!!user} arsPrices={arsPrices} />

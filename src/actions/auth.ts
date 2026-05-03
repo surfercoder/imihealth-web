@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
@@ -40,12 +39,14 @@ export async function login(
   redirect("/?welcome=true");
 }
 
-// Signup creates the auth user up-front and then sends them to MercadoPago
-// for the Pro checkout. We deliberately do NOT block account creation on
-// payment success: a doctor who bails mid-checkout still has a verified
-// free-tier account, and the worst case is a dangling free user — strictly
-// preferable to the previous "pending signup never materializes" failure
-// mode where the user paid but no auth record was created.
+// Signup creates the auth user up-front and, for paid plans, sends them to
+// MercadoPago for the Pro checkout. Free-plan signups stop after auth user
+// creation — the on_auth_user_created_subscription trigger seeds a free
+// subscription row automatically. We deliberately do NOT block account
+// creation on payment success: a doctor who bails mid-checkout still has a
+// verified free-tier account, and the worst case is a dangling free user —
+// strictly preferable to the previous "pending signup never materializes"
+// failure mode where the user paid but no auth record was created.
 export async function signup(
   _prevState: ActionResult | null,
   formData: FormData
@@ -85,15 +86,22 @@ export async function signup(
   /* v8 ignore stop */
 
   const planRaw = g("plan");
-  const plan: ProPlanTier =
-    planRaw === "pro_yearly" ? "pro_yearly" : "pro_monthly";
+  const plan: "free" | ProPlanTier =
+    planRaw === "pro_yearly"
+      ? "pro_yearly"
+      : planRaw === "pro_monthly"
+        ? "pro_monthly"
+        : "free";
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const anon = createAnonClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-  );
-  const { data: signUp, error: signUpErr } = await anon.auth.signUp({
+  // Use the cookie-aware SSR client so signup runs in the PKCE flow. PKCE
+  // is what makes Supabase send `?code=…` in the confirmation email link
+  // (handled by /auth/confirm). With the plain @supabase/supabase-js client
+  // we'd get the implicit flow instead, where tokens come back as URL hash
+  // fragments — those never reach our server route, so the user lands on
+  // /auth/auth-error even though Supabase has confirmed the account.
+  const supabase = await createClient();
+  const { data: signUp, error: signUpErr } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
@@ -129,6 +137,13 @@ export async function signup(
   if (parsed.data.tagline) docUpdates.tagline = parsed.data.tagline;
   if (Object.keys(docUpdates).length > 0) {
     await admin.from("doctors").update(docUpdates).eq("id", userId);
+  }
+
+  // Free signups skip checkout entirely — the on_auth_user_created_subscription
+  // trigger has already inserted a free subscription row, so the doctor is
+  // good to go once they confirm their email.
+  if (plan === "free") {
+    return { success: true };
   }
 
   const checkout = await startProCheckout(plan, userId);

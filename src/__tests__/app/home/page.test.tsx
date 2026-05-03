@@ -61,7 +61,7 @@ jest.mock('@/components/public-landing-page', () => {
         <main className="flex-1">
           <section className="mx-auto max-w-5xl px-6 py-20 text-center">
             <div className="mt-8 flex items-center justify-center gap-3">
-              <MockLink href="/signup">Comenzar gratis</MockLink>
+              <MockLink href="/pricing">Comenzar gratis</MockLink>
               <MockLink href="/login">Iniciar sesión</MockLink>
             </div>
           </section>
@@ -91,7 +91,7 @@ jest.mock('@/components/public-landing-page', () => {
               <div data-testid="feedback-dialog" />
               <MockLink href="/manifest">Manifiesto</MockLink>
               <MockLink href="/login">Iniciar sesión</MockLink>
-              <MockLink href="/signup">Registrarse</MockLink>
+              <MockLink href="/pricing">Registrarse</MockLink>
             </div>
           </div>
         </footer>
@@ -136,12 +136,12 @@ describe('HomePage (landing)', () => {
     expect(loginLinks.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders signup and login links', async () => {
+  it('renders pricing and login links', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     render(await HomePage())
     const allLinks = screen.getAllByRole('link')
     const hrefs = allLinks.map((l) => l.getAttribute('href'))
-    expect(hrefs).toContain('/signup')
+    expect(hrefs).toContain('/pricing')
     expect(hrefs).toContain('/login')
   })
 

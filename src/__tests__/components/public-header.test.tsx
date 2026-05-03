@@ -55,7 +55,7 @@ describe('PublicHeader', () => {
     const Component = await PublicHeader()
     render(Component)
     const signUpLink = screen.getByRole('link', { name: /registrarse/i })
-    expect(signUpLink).toHaveAttribute('href', '/signup')
+    expect(signUpLink).toHaveAttribute('href', '/pricing')
   })
 
   it('renders a header element', async () => {

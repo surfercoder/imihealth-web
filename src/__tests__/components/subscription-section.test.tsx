@@ -130,4 +130,22 @@ describe('SubscriptionSection', () => {
     expect(screen.getByText(/Pago pendiente/)).toBeInTheDocument()
   })
 
+  it('hides the upgrade CTA when hideUpgradeCta is set', async () => {
+    render(await SubscriptionSection({ plan: basePlan, hideUpgradeCta: true }))
+    expect(screen.queryByRole('link', { name: /Pasar a Pro/i })).not.toBeInTheDocument()
+  })
+
+  it('still hides the reactivate CTA when hideUpgradeCta is set on a read-only plan', async () => {
+    const plan: PlanInfo = {
+      ...basePlan,
+      plan: 'pro_monthly',
+      status: 'cancelled',
+      isPro: false,
+      isReadOnly: true,
+      periodEnd: '2026-04-01T00:00:00Z',
+    }
+    render(await SubscriptionSection({ plan, hideUpgradeCta: true }))
+    expect(screen.queryByRole('link', { name: /Reactivar suscripción/i })).not.toBeInTheDocument()
+  })
+
 })

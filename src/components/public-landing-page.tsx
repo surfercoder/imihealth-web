@@ -47,7 +47,7 @@ export async function PublicLandingPage() {
             <p className="mt-4 text-lg text-foreground/60">{t("heroSubtitle")}</p>
             <div className="mt-8 flex items-center justify-center gap-3">
               <Button size="lg" asChild>
-                <Link href="/signup">{t("getStarted")}</Link>
+                <Link href="/pricing">{t("getStarted")}</Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href="/login">{t("signIn")}</Link>
@@ -124,7 +124,7 @@ export async function PublicLandingPage() {
           <p className="mt-2 text-foreground/60">{t("ctaSubtitle")}</p>
           <div className="mt-6">
             <Button size="lg" asChild>
-              <Link href="/signup">{t("signUp")}</Link>
+              <Link href="/pricing">{t("signUp")}</Link>
             </Button>
           </div>
         </section>
@@ -148,7 +148,7 @@ export async function PublicLandingPage() {
             <Link href="/login" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               {t("signIn")}
             </Link>
-            <Link href="/signup" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
+            <Link href="/pricing" className="text-sm text-foreground/60 hover:text-foreground transition-colors">
               {t("signUp")}
             </Link>
           </div>

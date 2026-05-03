@@ -3,6 +3,7 @@ const mockResetPasswordForEmail = jest.fn()
 const mockUpdateUser = jest.fn()
 const mockSignOut = jest.fn()
 const mockGetUser = jest.fn()
+const mockSignUp = jest.fn()
 
 const mockSupabase = {
   auth: {
@@ -11,6 +12,7 @@ const mockSupabase = {
     updateUser: mockUpdateUser,
     signOut: mockSignOut,
     getUser: mockGetUser,
+    signUp: mockSignUp,
   },
   from: jest.fn(),
 }
@@ -32,11 +34,6 @@ jest.mock('next/headers', () => ({
 const mockCreateAdminClient = jest.fn()
 jest.mock('@/utils/supabase/admin', () => ({
   createAdminClient: (...args: unknown[]) => mockCreateAdminClient(...args),
-}))
-
-const mockAnonSignUp = jest.fn()
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ auth: { signUp: mockAnonSignUp } })),
 }))
 
 const mockStartProCheckout = jest.fn()
@@ -127,7 +124,7 @@ describe('signup', () => {
     mockStartProCheckout.mockResolvedValue({
       initPoint: 'https://mp.example/checkout/xyz',
     })
-    mockAnonSignUp.mockResolvedValue({
+    mockSignUp.mockResolvedValue({
       data: { user: { id: 'new-user-id' } },
       error: null,
     })
@@ -170,7 +167,7 @@ describe('signup', () => {
 
   it('rejects with the friendly already-exists message when signUp says so', async () => {
     setupAdmin()
-    mockAnonSignUp.mockResolvedValue({
+    mockSignUp.mockResolvedValue({
       data: { user: null },
       error: { message: 'User already registered' },
     })
@@ -181,7 +178,7 @@ describe('signup', () => {
 
   it('returns a generic error when signUp fails for an unknown reason', async () => {
     setupAdmin()
-    mockAnonSignUp.mockResolvedValue({
+    mockSignUp.mockResolvedValue({
       data: { user: null },
       error: { message: 'Network glitch' },
     })
@@ -191,9 +188,27 @@ describe('signup', () => {
     })
   })
 
-  it('returns initPoint and defaults to pro_monthly', async () => {
+  it('defaults to the free plan and skips MercadoPago when no plan is provided', async () => {
     setupAdmin()
     const result = await signup(null, validForm())
+    expect(result).toEqual({ success: true })
+    expect(mockStartProCheckout).not.toHaveBeenCalled()
+  })
+
+  it('skips MercadoPago when plan is explicitly free', async () => {
+    setupAdmin()
+    const fd = validForm()
+    fd.set('plan', 'free')
+    const result = await signup(null, fd)
+    expect(result).toEqual({ success: true })
+    expect(mockStartProCheckout).not.toHaveBeenCalled()
+  })
+
+  it('returns initPoint when plan is pro_monthly', async () => {
+    setupAdmin()
+    const fd = validForm()
+    fd.set('plan', 'pro_monthly')
+    const result = await signup(null, fd)
     expect(result).toEqual({
       success: true,
       initPoint: 'https://mp.example/checkout/xyz',
@@ -232,10 +247,12 @@ describe('signup', () => {
   it('surfaces the checkout error when MP fails after the user is created', async () => {
     setupAdmin()
     mockStartProCheckout.mockResolvedValue({ error: 'mp down' })
-    const result = await signup(null, validForm())
+    const fd = validForm()
+    fd.set('plan', 'pro_monthly')
+    const result = await signup(null, fd)
     expect(result).toEqual({ error: 'mp down' })
     // The user is already created — we don't roll anything back.
-    expect(mockAnonSignUp).toHaveBeenCalled()
+    expect(mockSignUp).toHaveBeenCalled()
   })
 })
 

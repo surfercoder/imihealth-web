@@ -52,7 +52,7 @@ export async function PublicHeader({ useBotIcon = false }: PublicHeaderProps = {
             <Link href="/login">{t("signIn")}</Link>
           </Button>
           <Button size="sm" className="px-2.5 sm:px-3" asChild>
-            <Link href="/signup">{t("signUp")}</Link>
+            <Link href="/pricing">{t("signUp")}</Link>
           </Button>
         </div>
       </div>

@@ -7,6 +7,9 @@ import type { PlanInfo } from "@/actions/plan";
 
 interface Props {
   plan: PlanInfo;
+  /** Hide the upgrade/reactivate CTA when the surrounding page already
+   *  exposes the plan picker (e.g. /pricing). Default: false. */
+  hideUpgradeCta?: boolean;
 }
 
 interface BadgeSpec {
@@ -51,7 +54,7 @@ function formatPeriodEnd(periodEnd: string): string {
   });
 }
 
-export async function SubscriptionSection({ plan }: Props) {
+export async function SubscriptionSection({ plan, hideUpgradeCta = false }: Props) {
   const t = await getTranslations("subscription");
   const formattedPeriodEnd = plan.periodEnd
     ? formatPeriodEnd(plan.periodEnd)
@@ -94,7 +97,7 @@ export async function SubscriptionSection({ plan }: Props) {
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        {!plan.isPro ? (
+        {!plan.isPro && !hideUpgradeCta ? (
           <Button asChild size="sm">
             <Link href="/pricing">
               {plan.isReadOnly ? t("reactivateCta") : t("upgradeCta")}
