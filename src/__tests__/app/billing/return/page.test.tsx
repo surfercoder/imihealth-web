@@ -19,11 +19,34 @@ jest.mock('@/lib/mercadopago/api', () => ({
   getPreapproval: (...args: unknown[]) => getPreapprovalMock(...args),
 }))
 
+const cookieGetMock = jest.fn()
+const cookieDeleteMock = jest.fn()
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(async () => ({
+    get: cookieGetMock,
+    delete: cookieDeleteMock,
+  })),
+}))
+
+const readCheckoutRefCookieMock = jest.fn()
+const clearCheckoutRefCookieMock = jest.fn()
+jest.mock('@/lib/billing/checkout-ref-cookie', () => ({
+  readCheckoutRefCookie: (...args: unknown[]) =>
+    readCheckoutRefCookieMock(...args),
+  clearCheckoutRefCookie: (...args: unknown[]) =>
+    clearCheckoutRefCookieMock(...args),
+}))
+
 import BillingReturnPage, { generateMetadata } from '@/app/billing/return/page'
 
 beforeEach(() => {
   reconcileMock.mockReset()
   getPreapprovalMock.mockReset()
+  cookieGetMock.mockReset()
+  cookieDeleteMock.mockReset()
+  readCheckoutRefCookieMock.mockReset()
+  readCheckoutRefCookieMock.mockReturnValue(null)
+  clearCheckoutRefCookieMock.mockReset()
 })
 
 describe('generateMetadata', () => {
@@ -71,12 +94,66 @@ describe('BillingReturnPage', () => {
         searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
       }),
     )
-    expect(reconcileMock).toHaveBeenCalledWith('mp-1')
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1', { refOverride: null })
+    expect(clearCheckoutRefCookieMock).toHaveBeenCalled()
     expect(screen.getByText(/cuenta fue creada/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Ir al login/i })).toHaveAttribute(
       'href',
       '/login',
     )
+  })
+
+  it('passes the cookie ref to reconcile when MP did not propagate external_reference', async () => {
+    readCheckoutRefCookieMock.mockReturnValue('user-from-cookie')
+    reconcileMock.mockResolvedValue({
+      kind: 'subscription-updated',
+      userId: 'user-from-cookie',
+    })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1', {
+      refOverride: 'user-from-cookie',
+    })
+    expect(clearCheckoutRefCookieMock).toHaveBeenCalled()
+  })
+
+  it('falls back to the URL ref when no cookie is present', async () => {
+    reconcileMock.mockResolvedValue({
+      kind: 'subscription-updated',
+      userId: 'user-from-url',
+    })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({
+          preapproval_id: 'mp-1',
+          ref: 'user-from-url',
+        }),
+      }),
+    )
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1', {
+      refOverride: 'user-from-url',
+    })
+  })
+
+  it('falls back to external_reference query param when neither cookie nor ref is present', async () => {
+    reconcileMock.mockResolvedValue({
+      kind: 'subscription-updated',
+      userId: 'user-from-extref',
+    })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({
+          preapproval_id: 'mp-1',
+          external_reference: 'user-from-extref',
+        }),
+      }),
+    )
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1', {
+      refOverride: 'user-from-extref',
+    })
   })
 
   it('renders the ready state when reconcile updates an existing-user subscription', async () => {
@@ -89,6 +166,7 @@ describe('BillingReturnPage', () => {
         searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
       }),
     )
+    expect(reconcileMock).toHaveBeenCalledWith('mp-1', { refOverride: null })
     expect(screen.getByText(/cuenta fue creada/i)).toBeInTheDocument()
   })
 

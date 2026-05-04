@@ -17,6 +17,23 @@ jest.mock('@/lib/mercadopago/api', () => ({
     mockUpdatePreapprovalStatus(...args),
 }))
 
+const mockCookiesGet = jest.fn()
+const mockCookiesSet = jest.fn()
+const mockCookiesDelete = jest.fn()
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(async () => ({
+    get: mockCookiesGet,
+    set: mockCookiesSet,
+    delete: mockCookiesDelete,
+  })),
+}))
+
+const mockSetCheckoutRefCookie = jest.fn()
+jest.mock('@/lib/billing/checkout-ref-cookie', () => ({
+  setCheckoutRefCookie: (...args: unknown[]) =>
+    mockSetCheckoutRefCookie(...args),
+}))
+
 import { submitEnterpriseLead } from '@/actions/enterprise-leads'
 import {
   createCheckout,
@@ -174,25 +191,23 @@ describe('startProCheckout', () => {
     adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'active' } })
     const result = await startProCheckout('pro_yearly', 'user-1')
     expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-yearly')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/abc?external_reference=user-1',
-    )
+    expect(result.initPoint).toBe('https://mp.example/checkout/abc')
   })
 
   it('allows re-subscribing after cancellation', async () => {
     adminMaybeSingle({ data: { plan: 'pro_monthly', status: 'cancelled' } })
     const result = await startProCheckout('pro_monthly', 'user-1')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/abc?external_reference=user-1',
-    )
+    expect(result.initPoint).toBe('https://mp.example/checkout/abc')
   })
 
-  it('looks up the monthly plan and appends external_reference to the init point', async () => {
+  it('looks up the monthly plan, returns its init point unchanged, and stashes the user id in the checkout-ref cookie', async () => {
     adminMaybeSingle({ data: null })
     const result = await startProCheckout('pro_monthly', 'user-1')
     expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/abc?external_reference=user-1',
+    expect(result.initPoint).toBe('https://mp.example/checkout/abc')
+    expect(mockSetCheckoutRefCookie).toHaveBeenCalledWith(
+      expect.any(Object),
+      'user-1',
     )
   })
 
@@ -232,9 +247,7 @@ describe('startProCheckout', () => {
   it('allows checkout when existing row is the free plan', async () => {
     adminMaybeSingle({ data: { plan: 'free', status: 'active' } })
     const result = await startProCheckout('pro_monthly', 'user-1')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/abc?external_reference=user-1',
-    )
+    expect(result.initPoint).toBe('https://mp.example/checkout/abc')
   })
 })
 
@@ -256,12 +269,14 @@ describe('startProCheckoutForPendingSignup', () => {
     errSpy.mockRestore()
   })
 
-  it('appends the pending-signup id as external_reference to the init point', async () => {
+  it('returns the plan init point and stashes the pending-signup id in the checkout-ref cookie', async () => {
     const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/pending?external_reference=pending-1',
-    )
+    expect(result.initPoint).toBe('https://mp.example/checkout/pending')
     expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly')
+    expect(mockSetCheckoutRefCookie).toHaveBeenCalledWith(
+      expect.any(Object),
+      'pending-1',
+    )
   })
 
   it('does NOT touch the subscriptions table — there is no user yet', async () => {
@@ -302,10 +317,12 @@ describe('createCheckout', () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     adminMaybeSingle({ data: null })
     const result = await createCheckout('pro_monthly')
-    expect(result.initPoint).toBe(
-      'https://mp.example/checkout/abc?external_reference=user-1',
-    )
+    expect(result.initPoint).toBe('https://mp.example/checkout/abc')
     expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly')
+    expect(mockSetCheckoutRefCookie).toHaveBeenCalledWith(
+      expect.any(Object),
+      'user-1',
+    )
   })
 })
 

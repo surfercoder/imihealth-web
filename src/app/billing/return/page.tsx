@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { CheckCircle2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { SignupStatusPoller } from "@/components/billing/signup-status-poller";
 import { reconcilePreapproval } from "@/lib/billing/reconcile";
+import {
+  clearCheckoutRefCookie,
+  readCheckoutRefCookie,
+} from "@/lib/billing/checkout-ref-cookie";
 import { getPreapproval } from "@/lib/mercadopago/api";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -43,12 +48,19 @@ async function resolveReturn(params: {
   preapproval_id?: string;
 }): Promise<ResolvedReturn> {
   if (params.preapproval_id) {
+    const cookieStore = await cookies();
+    const cookieRef = readCheckoutRefCookie(cookieStore);
+    const refOverride =
+      cookieRef ?? params.ref ?? params.external_reference ?? null;
     try {
-      const result = await reconcilePreapproval(params.preapproval_id);
+      const result = await reconcilePreapproval(params.preapproval_id, {
+        refOverride,
+      });
       if (
         result.kind === "materialized" ||
         result.kind === "subscription-updated"
       ) {
+        clearCheckoutRefCookie(cookieStore);
         return { ready: true, refId: null };
       }
       if (result.kind === "pending-signup-waiting") {

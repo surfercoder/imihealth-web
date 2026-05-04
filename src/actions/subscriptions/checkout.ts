@@ -1,8 +1,10 @@
 "use server";
 
 import * as Sentry from "@sentry/nextjs";
+import { cookies } from "next/headers";
 import { createClient, createServiceClient } from "@/utils/supabase/server";
 import { getPreapprovalPlan } from "@/lib/mercadopago/api";
+import { setCheckoutRefCookie } from "@/lib/billing/checkout-ref-cookie";
 import type { ProPlanTier } from "@/types/subscription";
 
 interface PlanConfig {
@@ -27,10 +29,13 @@ function planEnvIdFor(plan: ProPlanTier): string | undefined {
 // Plan-based redirect: we never POST /preapproval ourselves (which would
 // require payer_email and lock the buyer to a specific MP account). MP
 // creates the preapproval at confirm time, bound to whichever MP account
-// the buyer logs in with; the webhook reconciles via external_reference.
+// the buyer logs in with. MP also strips any external_reference we try to
+// pass via the init_point URL, so we stash the ref in a signed cookie
+// (`mp_checkout_ref`) and /billing/return reads it back to link the new
+// preapproval to the right user / pending signup.
 async function resolvePlanInitPoint(
   plan: ProPlanTier,
-  externalReference: string,
+  ref: string,
 ): Promise<{ initPoint: string }> {
   const planId = planEnvIdFor(plan);
   if (!planId) {
@@ -40,9 +45,9 @@ async function resolvePlanInitPoint(
   if (mpPlan.status !== "active") {
     throw new Error(`MercadoPago plan ${planId} is not active (${mpPlan.status})`);
   }
-  const url = new URL(mpPlan.init_point);
-  url.searchParams.set("external_reference", externalReference);
-  return { initPoint: url.toString() };
+  const store = await cookies();
+  setCheckoutRefCookie(store, ref);
+  return { initPoint: mpPlan.init_point };
 }
 
 export async function startProCheckout(

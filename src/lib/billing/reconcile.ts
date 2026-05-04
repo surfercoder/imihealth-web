@@ -155,14 +155,21 @@ async function materializePendingSignup(
 
 export async function reconcilePreapproval(
   preapprovalId: string,
+  options: { refOverride?: string | null } = {},
 ): Promise<ReconcileResult> {
   const preapproval = await getPreapproval(preapprovalId);
   const admin = createServiceClient();
 
-  const ref = preapproval.external_reference;
+  // MP's plan-based subscription checkout drops external_reference, so
+  // /billing/return passes a refOverride read from our signed cookie. The
+  // webhook has no cookie context, but on a brand-new preapproval it doesn't
+  // need one: /billing/return runs first in the happy path and links the row
+  // by mp_preapproval_id, after which subsequent webhook events resolve via
+  // the subByPreapproval branch below.
+  const ref = preapproval.external_reference || options.refOverride || null;
   if (!ref) {
     console.warn(
-      `[reconcile] preapproval ${preapprovalId} has no external_reference; skipping`,
+      `[reconcile] preapproval ${preapprovalId} has no external_reference and no refOverride; skipping`,
     );
     return { kind: "no-ref" };
   }
