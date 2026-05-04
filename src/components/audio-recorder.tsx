@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useTranslations } from "next-intl";
 import { useAudioRecording } from "@/components/audio-recorder/use-audio-recording";
@@ -46,10 +46,22 @@ function AudioRecorderContent({
   });
 
   const [showConfirmStop, setShowConfirmStop] = useState(false);
+  const wasRecordingBeforeConfirm = useRef(false);
 
   const handleStopRequest = useCallback(() => {
+    wasRecordingBeforeConfirm.current = state.phase === "recording";
+    if (wasRecordingBeforeConfirm.current) {
+      pauseRecording();
+    }
     setShowConfirmStop(true);
-  }, []);
+  }, [state.phase, pauseRecording]);
+
+  const handleCancelStop = useCallback(() => {
+    setShowConfirmStop(false);
+    if (wasRecordingBeforeConfirm.current) {
+      resumeRecording();
+    }
+  }, [resumeRecording]);
 
   const handleConfirmStop = useCallback(() => {
     setShowConfirmStop(false);
@@ -107,14 +119,19 @@ function AudioRecorderContent({
         onRetry={handleRetry}
       />
 
-      <Dialog open={showConfirmStop} onOpenChange={setShowConfirmStop}>
+      <Dialog
+        open={showConfirmStop}
+        onOpenChange={(open) => {
+          if (!open) handleCancelStop();
+        }}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{t("confirmStopTitle")}</DialogTitle>
             <DialogDescription>{t("confirmStopDescription")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmStop(false)}>
+            <Button variant="outline" onClick={handleCancelStop}>
               {t("confirmStopNo")}
             </Button>
             <Button variant="destructive" onClick={handleConfirmStop}>

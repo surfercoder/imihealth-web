@@ -193,6 +193,71 @@ describe('AudioRecorder — recording state', () => {
     // Should still be in recording state
     expect(screen.getByText('Grabando...')).toBeInTheDocument()
   })
+
+  it('pauses recording when stop is requested and resumes when cancelled', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    // Mic must pause as soon as the confirm modal opens, so the dialog audio is not captured.
+    await waitFor(() => expect(mockMediaRecorderPause).toHaveBeenCalledTimes(1))
+    expect(screen.getByText(/¿Terminaste de grabar\?/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /No, seguir grabando/i }))
+    await waitFor(() => expect(mockMediaRecorderResume).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Grabando...')).toBeInTheDocument()
+  })
+
+  it('resumes recording when confirm dialog is dismissed via Escape key', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(mockMediaRecorderPause).toHaveBeenCalledTimes(1))
+    expect(screen.getByText(/¿Terminaste de grabar\?/)).toBeInTheDocument()
+
+    // Dismiss via Escape — exercises the Dialog's onOpenChange(false) path
+    await user.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(screen.queryByText(/¿Terminaste de grabar\?/)).not.toBeInTheDocument()
+    })
+    expect(mockMediaRecorderResume).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Grabando...')).toBeInTheDocument()
+  })
+
+  it('does not resume recording when cancelling from an already-paused state', async () => {
+    const mockStream = { getTracks: mockGetTracks } as unknown as MediaStream
+    mockGetUserMedia.mockResolvedValue(mockStream)
+    const user = userEvent.setup()
+    render(<AudioRecorder {...defaultProps} />)
+    await user.click(screen.getByRole('button', { name: /Iniciar grabación/i }))
+    await waitFor(() => expect(screen.getByText('Grabando...')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Pausar/i }))
+    await waitFor(() => expect(screen.getByText('En pausa')).toBeInTheDocument())
+
+    mockMediaRecorderPause.mockClear()
+    mockMediaRecorderResume.mockClear()
+
+    await user.click(screen.getByRole('button', { name: /Finalizar grabación/i }))
+    await waitFor(() => expect(screen.getByText(/¿Terminaste de grabar\?/)).toBeInTheDocument())
+    // Already paused → no extra pause/resume churn on cancel
+    expect(mockMediaRecorderPause).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /No, seguir grabando/i }))
+    await waitFor(() => {
+      expect(screen.queryByText(/¿Terminaste de grabar\?/)).not.toBeInTheDocument()
+    })
+    expect(mockMediaRecorderResume).not.toHaveBeenCalled()
+    expect(screen.getByText('En pausa')).toBeInTheDocument()
+  })
 })
 
 describe('AudioRecorder — stop and process', () => {
