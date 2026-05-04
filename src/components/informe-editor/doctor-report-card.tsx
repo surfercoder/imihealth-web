@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Stethoscope, Pencil, X, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { CopyToClipboardButtonDoctor } from "@/components/copy-to-clipboard-button-doctor";
 import { updateInformeDoctorOnly } from "@/actions/informes";
 import { toast } from "sonner";
@@ -118,12 +118,11 @@ export function DoctorReportCard({
       </div>
       <div className="p-5 max-h-[600px] overflow-y-auto">
         {isEditing ? (
-          <Textarea
+          <MarkdownEditor
             value={doctorText}
-            onChange={(e) => setEdited(e.target.value)}
+            onChange={(md) => setEdited(md)}
             disabled={isSaving}
-            className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-primary/50 font-mono"
-            placeholder={t("medicalReportPlaceholder")}
+            ariaLabel={t("medicalReportPlaceholder")}
           />
         ) : (
           <div className="max-w-none text-card-foreground">

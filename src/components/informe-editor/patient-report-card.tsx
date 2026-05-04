@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { MessageCircle, Pencil, X, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { CopyToClipboardButton } from "@/components/copy-to-clipboard-button";
 import { updateInformePacienteWithPdf } from "@/actions/informes";
 import { toast } from "sonner";
@@ -147,12 +147,12 @@ export function PatientReportCard({
       </div>
       <div className="p-5 max-h-[600px] overflow-y-auto">
         {isEditing ? (
-          <Textarea
+          <MarkdownEditor
             value={pacienteText}
-            onChange={(e) => setEdited(e.target.value)}
+            onChange={(md) => setEdited(md)}
             disabled={isSaving}
-            className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-emerald-500/50 font-mono"
-            placeholder={t("patientReportPlaceholder")}
+            ariaLabel={t("patientReportPlaceholder")}
+            className="focus-within:ring-emerald-500/50"
           />
         ) : (
           <div className="min-h-[40px]">

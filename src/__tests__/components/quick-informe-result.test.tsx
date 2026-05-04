@@ -20,6 +20,27 @@ jest.mock('@/actions/informes-rapidos', () => ({
   updateQuickInformeDoctorOnly: jest.fn().mockResolvedValue({ success: true }),
 }))
 
+jest.mock('@/components/markdown-editor', () => ({
+  MarkdownEditor: ({
+    value,
+    onChange,
+    disabled,
+    ariaLabel,
+  }: {
+    value: string
+    onChange: (md: string) => void
+    disabled?: boolean
+    ariaLabel?: string
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    />
+  ),
+}))
+
 import { QuickInformeResult } from '@/components/quick-informe-result'
 
 const sampleInforme = 'Este es el informe médico del paciente.'

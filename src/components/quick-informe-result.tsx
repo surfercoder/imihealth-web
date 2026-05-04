@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { Copy, Check, ArrowLeft, Pencil, X, Save, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -116,12 +116,11 @@ export function QuickInformeResult({ informeId, informe }: QuickInformeResultPro
 
         <div className="rounded-md border bg-background/50 p-4 max-h-[500px] overflow-y-auto">
           {isEditing ? (
-            <Textarea
+            <MarkdownEditor
               value={doctorText}
-              onChange={(e) => setEdited(e.target.value)}
+              onChange={(md) => setEdited(md)}
               disabled={isSaving}
-              className="min-h-[320px] resize-y text-sm leading-relaxed bg-background/50 border-border/60 focus-visible:ring-primary/50 font-mono"
-              placeholder={tEditor("medicalReportPlaceholder")}
+              ariaLabel={tEditor("medicalReportPlaceholder")}
             />
           ) : (
             <MarkdownDisplay text={doctorText} />

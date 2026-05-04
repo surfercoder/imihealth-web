@@ -34,6 +34,27 @@ jest.mock('@/components/certificado-button', () => ({
   CertificadoButton: () => <button>Certificado</button>,
 }))
 
+jest.mock('@/components/markdown-editor', () => ({
+  MarkdownEditor: ({
+    value,
+    onChange,
+    disabled,
+    ariaLabel,
+  }: {
+    value: string
+    onChange: (md: string) => void
+    disabled?: boolean
+    ariaLabel?: string
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    />
+  ),
+}))
+
 import { InformeEditor } from '@/components/informe-editor'
 
 const defaultProps = {

@@ -30,6 +30,27 @@ jest.mock('@/components/informe-editor/doctor-whatsapp-icon-button', () => ({
   DoctorWhatsAppIconButton: () => <button data-testid="dwa-btn">DWA</button>,
 }))
 
+jest.mock('@/components/markdown-editor', () => ({
+  MarkdownEditor: ({
+    value,
+    onChange,
+    disabled,
+    ariaLabel,
+  }: {
+    value: string
+    onChange: (md: string) => void
+    disabled?: boolean
+    ariaLabel?: string
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    />
+  ),
+}))
+
 import { DoctorReportCard } from '@/components/informe-editor/doctor-report-card'
 
 const baseProps = {
