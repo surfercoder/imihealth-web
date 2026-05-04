@@ -15,7 +15,7 @@ jest.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }))
 
-import { updateProfile, getDoctorProfile } from '@/actions/profile'
+import { updateProfile, getDoctorProfile } from '@/actions/doctors'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 

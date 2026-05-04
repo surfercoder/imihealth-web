@@ -16,6 +16,7 @@ export function SignupStatusPoller({ refId }: { refId: string }) {
   const [state, setState] = useState<State>("processing");
   const [timedOut, setTimedOut] = useState(false);
 
+  // eslint-disable-next-line react-doctor/no-fetch-in-effect, react-doctor/no-cascading-set-state -- the poller intentionally polls server status until it changes
   useEffect(() => {
     let cancelled = false;
     const startedAt = Date.now();
@@ -47,40 +48,30 @@ export function SignupStatusPoller({ refId }: { refId: string }) {
     };
   }, [refId]);
 
-  if (state === "ready") {
-    return (
-      <div className="max-w-md text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-          <CheckCircle2 className="size-6" />
-        </div>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-          {t("returnReadyTitle")}
-        </h1>
-        <p className="mt-3 text-foreground/60">{t("returnReadyDescription")}</p>
-        <Button asChild className="mt-8">
-          <Link href="/login">{t("returnReadyCta")}</Link>
-        </Button>
+  return state === "ready" ? (
+    <div className="max-w-md text-center">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+        <CheckCircle2 className="size-6" />
       </div>
-    );
-  }
-
-  if (timedOut || state === "unknown") {
-    return (
-      <div className="max-w-md text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("returnTimeoutTitle")}
-        </h1>
-        <p className="mt-3 text-foreground/60">
-          {t("returnTimeoutDescription")}
-        </p>
-        <Button asChild className="mt-8">
-          <Link href="/login">{t("returnTimeoutCta")}</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  return (
+      <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+        {t("returnReadyTitle")}
+      </h1>
+      <p className="mt-3 text-foreground/60">{t("returnReadyDescription")}</p>
+      <Button asChild className="mt-8">
+        <Link href="/login">{t("returnReadyCta")}</Link>
+      </Button>
+    </div>
+  ) : timedOut || state === "unknown" ? (
+    <div className="max-w-md text-center">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {t("returnTimeoutTitle")}
+      </h1>
+      <p className="mt-3 text-foreground/60">{t("returnTimeoutDescription")}</p>
+      <Button asChild className="mt-8">
+        <Link href="/login">{t("returnTimeoutCta")}</Link>
+      </Button>
+    </div>
+  ) : (
     <div className="max-w-md text-center">
       <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Loader2 className="size-6 animate-spin" />

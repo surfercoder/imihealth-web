@@ -12,12 +12,10 @@ export function WelcomeOverlay({ userName, showWelcome: initialShowWelcome }: { 
     return show;
   });
 
-  if (!showWelcome) return null;
-
-  return (
+  return showWelcome ? (
     <WelcomeScreen
       userName={userName}
       onDone={() => setShowWelcome(false)}
     />
-  );
+  ) : null;
 }

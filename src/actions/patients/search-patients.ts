@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import type { PatientSearchResult } from "./types";
+import type { PatientSearchResult } from "@/types/patient";
 
 export async function searchPatients(query: string): Promise<{
   data?: PatientSearchResult[];
@@ -82,9 +82,9 @@ export async function searchPatients(query: string): Promise<{
       const patient = informe.patients as unknown as {
         id: string;
         name: string;
-        dni: string;
+        dni: string | null;
         email: string | null;
-        phone: string;
+        phone: string | null;
       };
       if (!patient || seenIds.has(patient.id)) continue;
       seenIds.add(patient.id);

@@ -31,7 +31,7 @@ jest.mock('@/lib/transcribe', () => ({
 }))
 
 const mockGetPlanInfo = jest.fn()
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
 
@@ -50,7 +50,6 @@ const activePlan = {
 }
 
 import {
-  createPatient,
   createInforme,
   processInformeFromTranscript,
   getInformes,
@@ -64,6 +63,7 @@ import {
   generateAndSaveCertificado,
   generatePedidos,
 } from '@/actions/informes'
+import { createPatient } from '@/actions/patients'
 
  
 const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }

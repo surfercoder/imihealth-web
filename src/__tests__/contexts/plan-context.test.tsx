@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'
 import { PlanProvider, usePlan } from '@/contexts/plan-context'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const mockPlan: PlanInfo = {
   plan: 'free',

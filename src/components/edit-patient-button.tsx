@@ -1,7 +1,7 @@
 "use client";
 "use no memo";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ function parseE164ToPhoneValue(e164: string | null) {
   if (!e164) return undefined;
 
   // Sort countries by dial code length (longest first) to match most specific
-  const sorted = [...COUNTRIES].sort(
+  const sorted = COUNTRIES.toSorted(
     (a, b) => b.dialCode.length - a.dialCode.length
   );
 
@@ -63,7 +63,7 @@ export function EditPatientButton({ patient }: EditPatientButtonProps) {
   const t = useTranslations("editPatientButton");
   const tForm = useTranslations("nuevoInformeDialog");
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, startSubmitTransition] = useTransition();
 
   const defaultCountry = detectCountryFromLocale();
   const patientSchema = buildPatientSchema(tForm);
@@ -72,7 +72,7 @@ export function EditPatientButton({ patient }: EditPatientButtonProps) {
     resolver: zodResolver(patientSchema),
     defaultValues: {
       name: patient.name,
-      dni: patient.dni,
+      dni: patient.dni ?? "",
       dob: patient.dob || "",
       phone: parseE164ToPhoneValue(patient.phone) ?? {
         countryCode: defaultCountry.code,
@@ -88,30 +88,29 @@ export function EditPatientButton({ patient }: EditPatientButtonProps) {
 
   const { handleSubmit, reset } = form;
 
-  async function onSubmit(values: PatientFormValues) {
-    setIsLoading(true);
+  function onSubmit(values: PatientFormValues) {
+    startSubmitTransition(async () => {
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("dni", values.dni);
+      if (values.dob) formData.append("dob", values.dob);
+      if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
+      if (values.email) formData.append("email", values.email);
+      if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
+      if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
+      if (values.plan) formData.append("plan", values.plan);
 
-    const formData = new FormData();
-    formData.append("name", values.name);
-    formData.append("dni", values.dni);
-    if (values.dob) formData.append("dob", values.dob);
-    if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
-    if (values.email) formData.append("email", values.email);
-    if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
-    if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
-    if (values.plan) formData.append("plan", values.plan);
+      const result = await updatePatient(patient.id, formData);
 
-    const result = await updatePatient(patient.id, formData);
-    setIsLoading(false);
+      if (result.error) {
+        toast.error(t("errorTitle"), { description: result.error });
+        return;
+      }
 
-    if (result.error) {
-      toast.error(t("errorTitle"), { description: result.error });
-      return;
-    }
-
-    setOpen(false);
-    toast.success(t("successTitle"), {
-      description: t("successMessage", { name: values.name }),
+      setOpen(false);
+      toast.success(t("successTitle"), {
+        description: t("successMessage", { name: values.name }),
+      });
     });
   }
 

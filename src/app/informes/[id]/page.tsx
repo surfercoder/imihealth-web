@@ -9,7 +9,7 @@ import { Clock, Home } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { InformeEditor } from "@/components/informe-editor";
 import { PatientCard } from "@/components/informe-page/patient-card";
 import { InformeBreadcrumb } from "@/components/informe-page/informe-breadcrumb";

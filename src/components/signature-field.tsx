@@ -57,6 +57,7 @@ export function SignatureField({ onChange, error }: SignatureFieldProps) {
     onChange(pad.toDataURL("image/png"));
   }, [onChange]);
 
+  // eslint-disable-next-line react-doctor/advanced-event-handler-refs -- SignaturePad's addEventListener requires a stable reference; handleEnd is wrapped in useCallback for that purpose
   useEffect(() => {
     const pad = padRef.current;
     /* v8 ignore next -- pad is always set after mount */

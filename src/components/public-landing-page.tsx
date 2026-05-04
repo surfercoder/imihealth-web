@@ -134,7 +134,7 @@ export async function PublicLandingPage() {
 
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-4 sm:h-14 sm:flex-row sm:justify-between sm:gap-3 sm:py-0">
-          <p className="text-center text-sm text-foreground/60 sm:text-left">
+          <p className="text-center text-sm text-foreground/60 sm:text-left" suppressHydrationWarning>
             {t("copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-3">

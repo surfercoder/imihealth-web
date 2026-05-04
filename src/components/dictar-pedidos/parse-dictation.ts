@@ -28,6 +28,7 @@ export function parseDictation(text: string): ParsedDictation {
 
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i];
+    /* v8 ignore next -- match.index is always defined for matchAll results */
     const start = (match.index ?? 0) + match[0].length;
 
     if (isDiagnosticoMarker(match[0])) {

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 
 export async function createInforme(patientId: string) {
   const supabase = await createClient();

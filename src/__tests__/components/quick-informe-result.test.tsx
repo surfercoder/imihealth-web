@@ -16,7 +16,7 @@ jest.mock('sonner', () => ({
   },
 }))
 
-jest.mock('@/actions/informes', () => ({
+jest.mock('@/actions/informes-rapidos', () => ({
   updateQuickInformeDoctorOnly: jest.fn().mockResolvedValue({ success: true }),
 }))
 
@@ -176,7 +176,7 @@ describe('QuickInformeResult', () => {
 
   it('saves edited text successfully', async () => {
     jest.useRealTimers()
-    const { updateQuickInformeDoctorOnly } = require('@/actions/informes')
+    const { updateQuickInformeDoctorOnly } = require('@/actions/informes-rapidos')
     updateQuickInformeDoctorOnly.mockResolvedValue({ success: true })
 
     render(<QuickInformeResult informeId="test-id" informe={sampleInforme} />)
@@ -195,7 +195,7 @@ describe('QuickInformeResult', () => {
 
   it('shows error toast when save fails', async () => {
     jest.useRealTimers()
-    const { updateQuickInformeDoctorOnly } = require('@/actions/informes')
+    const { updateQuickInformeDoctorOnly } = require('@/actions/informes-rapidos')
     updateQuickInformeDoctorOnly.mockResolvedValue({ error: 'Server error' })
 
     render(<QuickInformeResult informeId="test-id" informe={sampleInforme} />)

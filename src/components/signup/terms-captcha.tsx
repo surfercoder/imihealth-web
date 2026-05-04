@@ -1,11 +1,11 @@
 "use client";
 
-import { forwardRef } from "react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 interface TermsCaptchaProps {
+  ref?: React.Ref<ReCAPTCHA>;
   status: "idle" | "success" | "error" | "expired";
   displayError: string | null;
   onSuccess: (token: string) => void;
@@ -13,10 +13,14 @@ interface TermsCaptchaProps {
   onExpired: () => void;
 }
 
-export const TermsCaptcha = forwardRef<ReCAPTCHA, TermsCaptchaProps>(function TermsCaptcha(
-  { status, displayError, onSuccess, onErrored, onExpired },
-  ref
-) {
+export function TermsCaptcha({
+  ref,
+  status,
+  displayError,
+  onSuccess,
+  onErrored,
+  onExpired,
+}: TermsCaptchaProps) {
   const t = useTranslations("signupTerms");
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
@@ -49,4 +53,4 @@ export const TermsCaptcha = forwardRef<ReCAPTCHA, TermsCaptchaProps>(function Te
       )}
     </div>
   );
-});
+}

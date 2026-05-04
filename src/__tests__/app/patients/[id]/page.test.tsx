@@ -33,7 +33,7 @@ jest.mock('@/components/app-footer', () => ({
   AppFooter: () => <div data-testid="app-footer" />,
 }))
 
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: jest.fn(() => Promise.resolve({
     plan: 'free',
     status: 'active',

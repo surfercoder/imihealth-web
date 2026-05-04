@@ -17,7 +17,7 @@ import {
   mapPreapprovalStatus,
   reconcilePreapproval,
 } from "@/lib/billing/reconcile";
-import type { SubscriptionStatus } from "@/actions/plan";
+import type { SubscriptionStatus } from "@/actions/subscriptions";
 
 interface NotificationBody {
   type?: string;

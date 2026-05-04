@@ -80,7 +80,7 @@ jest.mock('@/components/public-landing-page', () => {
         </main>
         <footer className="border-t border-border/60">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-            <p className="text-sm text-foreground/60">
+            <p className="text-sm text-foreground/60" suppressHydrationWarning>
               ©
               {' '}
               {new Date().getFullYear()}

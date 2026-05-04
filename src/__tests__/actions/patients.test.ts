@@ -15,7 +15,7 @@ jest.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }))
 
-import { searchPatients, getPatients, getPatient, updatePatient, deletePatient } from '@/actions/patients'
+import { searchPatients, getPatients, getPatient, createPatient, updatePatient, deletePatient } from '@/actions/patients'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 
@@ -436,6 +436,66 @@ describe('getPatient', () => {
   })
 })
 
+describe('createPatient', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('returns error when user is not authenticated', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const fd = new FormData()
+    fd.set('name', 'Juan')
+    const result = await createPatient(fd)
+    expect(result).toEqual({ error: 'No autenticado' })
+  })
+
+  it('returns validation error when name is empty', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const fd = new FormData()
+    fd.set('name', '')
+    const result = await createPatient(fd)
+    expect(result.error).toBe('El nombre es requerido')
+  })
+
+  it('treats missing name field as empty (validation error)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const fd = new FormData()
+    const result = await createPatient(fd)
+    expect(result.error).toBe('El nombre es requerido')
+  })
+
+  it('returns error when supabase insert fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({ data: null, error: { message: 'Insert failed' } })
+    mockFrom.mockReturnValue(chain)
+    const fd = new FormData()
+    fd.set('name', 'Juan')
+    const result = await createPatient(fd)
+    expect(result).toEqual({ error: 'Insert failed' })
+  })
+
+  it('returns the inserted patient on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const chain = makeChain()
+    chain.single.mockResolvedValue({
+      data: {
+        id: 'p-1',
+        name: 'Juan',
+        doctor_id: mockUser.id,
+      },
+      error: null,
+    })
+    mockFrom.mockReturnValue(chain)
+    const fd = new FormData()
+    fd.set('name', 'Juan')
+    fd.set('dni', '12345678')
+    fd.set('email', 'juan@email.com')
+    const result = await createPatient(fd)
+    expect(result.data).toEqual(
+      expect.objectContaining({ id: 'p-1', name: 'Juan' }),
+    )
+  })
+})
+
 describe('updatePatient', () => {
   beforeEach(() => jest.clearAllMocks())
 
@@ -448,6 +508,21 @@ describe('updatePatient', () => {
     fd.set('email', '')
     const result = await updatePatient('p-1', fd)
     expect(result).toEqual({ error: 'No autenticado' })
+  })
+
+  it('returns validation error when name is empty', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const fd = new FormData()
+    fd.set('name', '')
+    const result = await updatePatient('p-1', fd)
+    expect(result.error).toBe('El nombre es requerido')
+  })
+
+  it('treats missing name field as empty (validation error)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
+    const fd = new FormData()
+    const result = await updatePatient('p-1', fd)
+    expect(result.error).toBe('El nombre es requerido')
   })
 
   it('returns error when supabase update fails', async () => {

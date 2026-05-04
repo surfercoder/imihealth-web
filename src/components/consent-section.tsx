@@ -28,6 +28,7 @@ export function ConsentSection({
 }: ConsentSectionProps) {
   const t = useTranslations("consentSection");
   const [checked, setChecked] = useState(false);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read transitively via `consented`
   const [localConsent, setLocalConsent] = useState<{ consented: boolean; consentAt: string | null } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isPending, startTransition] = useTransition();

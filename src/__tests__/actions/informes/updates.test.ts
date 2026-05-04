@@ -18,9 +18,9 @@ jest.mock('next/cache', () => ({
 import {
   updateInformeDoctorOnly,
   updateInformePacienteWithPdf,
-  updateQuickInformeDoctorOnly,
   updateInformeReports,
 } from '@/actions/informes/updates'
+import { updateQuickInformeDoctorOnly } from '@/actions/informes-rapidos/update-informe-rapido'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 

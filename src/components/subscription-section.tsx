@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
-import type { PlanInfo } from "@/actions/plan";
+import type { PlanInfo } from "@/actions/subscriptions";
 
 interface Props {
   plan: PlanInfo;
@@ -20,8 +20,7 @@ interface BadgeSpec {
 function planLabel(plan: PlanInfo, t: (key: string) => string): string {
   if (!plan.isPro) return t("freePlanName");
   if (plan.plan === "pro_monthly") return t("proMonthlyName");
-  if (plan.plan === "pro_yearly") return t("proYearlyName");
-  return t("freePlanName");
+  return t("proYearlyName");
 }
 
 function statusBadge(

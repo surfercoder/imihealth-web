@@ -9,12 +9,9 @@ jest.mock('@/lib/cached-queries', () => ({
 }))
 
 const mockGetCurrentArsPrice = jest.fn()
-jest.mock('@/actions/billing', () => ({
-  getCurrentArsPrice: (...args: unknown[]) => mockGetCurrentArsPrice(...args),
-}))
-
 const mockGetPlanInfo = jest.fn()
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
+  getCurrentArsPrice: (...args: unknown[]) => mockGetCurrentArsPrice(...args),
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
 

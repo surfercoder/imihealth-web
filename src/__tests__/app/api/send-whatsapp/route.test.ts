@@ -58,6 +58,12 @@ jest.mock('@/lib/report-image', () => ({
   generateCertificadoImage: (...args: unknown[]) => mockGenerateCertificadoImage(...args),
 }))
 
+// ─── Pedido mocks ──────────────────────────────────────────────────────────────
+const mockGeneratePedidoPDF = jest.fn()
+jest.mock('@/lib/pdf/pedido', () => ({
+  generatePedidoPDF: (...args: unknown[]) => mockGeneratePedidoPDF(...args),
+}))
+
 import { POST } from '@/app/api/send-whatsapp/route'
 import { NextRequest } from 'next/server'
 
@@ -779,5 +785,229 @@ describe('POST /api/send-whatsapp', () => {
     expect(res.status).toBe(429)
     expect(json).toEqual({ success: false, error: 'Too many requests' })
     expect(res.headers.get('Retry-After')).toBe('5')
+  })
+
+  // ── Pedidos-patient ────────────────────────────────────────────────────────
+
+  describe('type=pedidos-patient', () => {
+    const PATIENT_ROW = {
+      name: 'Pepe',
+      obra_social: 'OSDE',
+      nro_afiliado: '1',
+      plan: '210',
+    }
+    const mockPatientSingle = jest.fn()
+
+    beforeEach(() => {
+      mockCheckRateLimit.mockReturnValue({ allowed: true, retryAfter: 0 })
+      mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+      mockGeneratePedidoPDF.mockResolvedValue(MOCK_PDF_BYTES)
+      mockUploadMediaToWhatsApp.mockReset()
+      mockUploadMediaToWhatsApp.mockResolvedValue({
+        success: true,
+        mediaId: 'media-pp-1',
+      })
+      mockSendWhatsAppTemplateWithDocument.mockResolvedValue({
+        success: true,
+        messageId: 'msg-pp-1',
+      })
+      mockPatientSingle.mockResolvedValue({ data: PATIENT_ROW, error: null })
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'patients') {
+          return { select: jest.fn().mockReturnValue(makeEqChain(mockPatientSingle)) }
+        }
+        if (table === 'doctors') {
+          return { select: jest.fn().mockReturnValue(makeEqChain(mockDoctorSingle)) }
+        }
+        return { select: jest.fn().mockReturnValue(makeEqChain(jest.fn())) }
+      })
+    })
+
+    it('returns 400 when patientId is missing', async () => {
+      const res = await POST(
+        makeRequest({ to: '123', type: 'pedidos-patient', pedidoItems: ['x'] }),
+      )
+      expect(res.status).toBe(400)
+      const json = await res.json()
+      expect(json.error).toContain('Missing patientId')
+    })
+
+    it('returns 400 when pedidoItems is empty', async () => {
+      const res = await POST(
+        makeRequest({
+          to: '123',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: [],
+        }),
+      )
+      expect(res.status).toBe(400)
+      const json = await res.json()
+      expect(json.error).toContain('No pedido items')
+    })
+
+    it('returns 400 when pedidoItems is missing entirely', async () => {
+      const res = await POST(
+        makeRequest({
+          to: '123',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+        }),
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 404 when patient is not found', async () => {
+      mockPatientSingle.mockResolvedValue({ data: null, error: null })
+      const res = await POST(
+        makeRequest({
+          to: '123',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['x'],
+        }),
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it('sends a pedido per item with diagnostico and returns sentCount', async () => {
+      const res = await POST(
+        makeRequest({
+          to: '+5491155555555',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['Hemograma', 'Radiografía'],
+          diagnostico: '  lumbalgia  ',
+          locale: 'es',
+        }),
+      )
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(json.sentCount).toBe(2)
+      expect(json.totalItems).toBe(2)
+      expect(mockGeneratePedidoPDF).toHaveBeenCalledTimes(2)
+      expect(mockGeneratePedidoPDF.mock.calls[0][0]).toMatchObject({
+        diagnostico: 'lumbalgia',
+      })
+    })
+
+    it('omits diagnostico when blank', async () => {
+      await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['x'],
+          diagnostico: '   ',
+        }),
+      )
+      expect(mockGeneratePedidoPDF.mock.calls[0][0]).toMatchObject({
+        diagnostico: null,
+      })
+    })
+
+    it('falls back to body patientName when patient.name is null', async () => {
+      mockPatientSingle.mockResolvedValue({
+        data: { ...PATIENT_ROW, name: null },
+        error: null,
+      })
+      await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['x'],
+          patientName: 'Fallback',
+        }),
+      )
+      expect(mockGeneratePedidoPDF.mock.calls[0][0]).toMatchObject({
+        patientName: 'Fallback',
+      })
+    })
+
+    it('falls back to empty string when name and patientName are both missing', async () => {
+      mockPatientSingle.mockResolvedValue({
+        data: { ...PATIENT_ROW, name: null },
+        error: null,
+      })
+      await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['x'],
+        }),
+      )
+      expect(mockGeneratePedidoPDF.mock.calls[0][0]).toMatchObject({
+        patientName: '',
+      })
+    })
+
+    it('continues to next item when upload fails', async () => {
+      mockUploadMediaToWhatsApp
+        .mockReset()
+        .mockResolvedValueOnce({ success: false, error: 'upload boom' })
+        .mockResolvedValueOnce({ success: true, mediaId: 'm-2' })
+      const errSpy = jest.spyOn(console, 'error').mockImplementation()
+      const res = await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['a', 'b'],
+        }),
+      )
+      const json = await res.json()
+      expect(res.status).toBe(200)
+      expect(json.sentCount).toBe(1)
+      errSpy.mockRestore()
+    })
+
+    it('logs and continues when template send fails', async () => {
+      mockSendWhatsAppTemplateWithDocument.mockResolvedValue({
+        success: false,
+        error: 'template down',
+      })
+      const errSpy = jest.spyOn(console, 'error').mockImplementation()
+      const res = await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['a'],
+        }),
+      )
+      expect(res.status).toBe(502)
+      const json = await res.json()
+      expect(json.error).toContain('Failed to send any pedidos')
+      errSpy.mockRestore()
+    })
+
+    it('passes null patient fields when they are missing', async () => {
+      mockPatientSingle.mockResolvedValue({
+        data: {
+          name: 'Pepe',
+          obra_social: null,
+          nro_afiliado: null,
+          plan: null,
+        },
+        error: null,
+      })
+      await POST(
+        makeRequest({
+          to: '+54',
+          type: 'pedidos-patient',
+          patientId: 'p-1',
+          pedidoItems: ['a'],
+        }),
+      )
+      expect(mockGeneratePedidoPDF.mock.calls[0][0]).toMatchObject({
+        obraSocial: null,
+        nroAfiliado: null,
+        plan: null,
+      })
+    })
   })
 })

@@ -2,6 +2,7 @@ import {
   createPreapprovalPlan,
   createPreapproval,
   getPreapproval,
+  getPreapprovalPlan,
   updatePreapprovalStatus,
   getAuthorizedPayment,
   getUsdToArsRate,
@@ -120,6 +121,15 @@ describe('mercadopago api wrapper', () => {
     await getPreapproval('has space')
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0]
     expect(url).toBe('https://api.mercadopago.com/preapproval/has%20space')
+    expect(init.method).toBe('GET')
+    expect(init.body).toBeUndefined()
+  })
+
+  it('getPreapprovalPlan performs GET with id encoded', async () => {
+    mockOk({ id: 'plan-1', reason: 'r' })
+    await getPreapprovalPlan('plan space')
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0]
+    expect(url).toBe('https://api.mercadopago.com/preapproval_plan/plan%20space')
     expect(init.method).toBe('GET')
     expect(init.body).toBeUndefined()
   })

@@ -2,10 +2,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { patientUpdateSchema } from "@/schemas/patient";
 
 export async function updatePatient(
   patientId: string,
-  formData: FormData
+  formData: FormData,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {
@@ -13,26 +14,31 @@ export async function updatePatient(
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const name = formData.get("name") as string;
-  const dni = formData.get("dni") as string;
-  const dob = (formData.get("dob") as string) || null;
-  const phone = (formData.get("phone") as string) || null;
-  const email = (formData.get("email") as string) || null;
-  const obraSocial = (formData.get("obraSocial") as string) || null;
-  const nroAfiliado = (formData.get("nroAfiliado") as string) || null;
-  const plan = (formData.get("plan") as string) || null;
+  const parsed = patientUpdateSchema.safeParse({
+    name: formData.get("name") ?? "",
+    dni: formData.get("dni"),
+    dob: formData.get("dob"),
+    phone: formData.get("phone"),
+    email: formData.get("email"),
+    obra_social: formData.get("obraSocial"),
+    nro_afiliado: formData.get("nroAfiliado"),
+    plan: formData.get("plan"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
 
   const { error } = await supabase
     .from("patients")
     .update({
-      name: name.trim(),
-      dni: dni.trim(),
-      dob: dob?.trim() || null,
-      phone: phone?.trim() || null,
-      email: email?.trim() || null,
-      obra_social: obraSocial?.trim() || null,
-      nro_afiliado: nroAfiliado?.trim() || null,
-      plan: plan?.trim() || null,
+      name: parsed.data.name,
+      dni: parsed.data.dni,
+      dob: parsed.data.dob,
+      phone: parsed.data.phone,
+      email: parsed.data.email,
+      obra_social: parsed.data.obra_social,
+      nro_afiliado: parsed.data.nro_afiliado,
+      plan: parsed.data.plan,
       updated_at: new Date().toISOString(),
     })
     .eq("id", patientId)

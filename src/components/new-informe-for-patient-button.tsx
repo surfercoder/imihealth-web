@@ -17,12 +17,12 @@ function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientBu
   const t = useTranslations("newInformeButton");
   const tMvp = useTranslations("mvpLimits");
   const plan = usePlan();
-  const router = useRouter();
+  const { push } = useRouter();
   const currentTab = useCurrentTab();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  function handleClick() {
+  function handleCreateInforme() {
     setError(null);
     startTransition(async () => {
       const result = await createInforme(patientId);
@@ -31,7 +31,7 @@ function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientBu
         return;
       }
       const url = currentTab ? `/informes/${result.data.id}/grabar?tab=${currentTab}` : `/informes/${result.data.id}/grabar`;
-      router.push(url);
+      push(url);
     });
   }
 
@@ -51,7 +51,7 @@ function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientBu
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button size="sm" onClick={handleClick} disabled={isPending}>
+      <Button size="sm" onClick={handleCreateInforme} disabled={isPending}>
         {isPending ? (
           <>
             <Loader2 className="size-4 mr-1.5 animate-spin" />

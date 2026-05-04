@@ -14,12 +14,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { cancelSubscription } from "@/actions/billing";
+import { cancelSubscription } from "@/actions/subscriptions";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
 
 export function CancelSubscriptionButton() {
   const t = useTranslations("subscription");
-  const router = useRouter();
+  const { refresh } = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,7 +35,7 @@ export function CancelSubscriptionButton() {
       description: t("cancelSuccessMessage"),
     });
     setOpen(false);
-    router.refresh();
+    refresh();
   }
 
   return (

@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { PlanProvider } from "@/contexts/plan-context";
 import { PatientInfoCard } from "@/components/patient-page/patient-info-card";
 import {
@@ -47,31 +47,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PatientPage({ params, searchParams }: Props) {
-  const { id } = await params;
-  const searchParamsResolved = await searchParams;
+  const [{ id }, searchParamsResolved, authResult, supabase, t] = await Promise.all([
+    params,
+    searchParams,
+    getAuthUser(),
+    createClient(),
+    getTranslations(),
+  ]);
   const tab = searchParamsResolved.tab;
   const {
     data: { user },
-  } = await getAuthUser();
+  } = authResult;
 
   if (!user) redirect("/login");
 
-  const supabase = await createClient();
-  const [t, { data: doctor }, plan] = await Promise.all([
-    getTranslations(),
+  const [{ data: doctor }, plan, { data: patient, error }] = await Promise.all([
     getDoctor(user.id),
     getPlanInfo(user.id),
-  ]);
-
-  const { data: patient, error } = await supabase
-    .from("patients")
-    .select(
-      `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at,
+    supabase
+      .from("patients")
+      .select(
+        `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at,
        informes(id, status, created_at, informe_doctor, informe_paciente)`
-    )
-    .eq("id", id)
-    .eq("doctor_id", user.id)
-    .single();
+      )
+      .eq("id", id)
+      .eq("doctor_id", user.id)
+      .single(),
+  ]);
 
   if (error || !patient) notFound();
 

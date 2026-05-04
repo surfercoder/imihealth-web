@@ -21,13 +21,13 @@ const locales = [
 export function LanguageSwitcher() {
   const t = useTranslations("language");
   const locale = useLocale();
-  const router = useRouter();
+  const { refresh } = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleSelect(value: string) {
     startTransition(async () => {
       await setLocale(value);
-      router.refresh();
+      refresh();
     });
   }
 

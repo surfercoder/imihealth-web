@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { QuickInformeFlow } from "@/components/quick-informe-flow";

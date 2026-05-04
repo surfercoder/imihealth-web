@@ -25,7 +25,7 @@ import {
   type PreapprovalStatus,
 } from "@/lib/mercadopago/api";
 import { decryptPassword } from "@/lib/signup-password-crypto";
-import type { PlanTier, SubscriptionStatus } from "@/actions/plan";
+import type { PlanTier, SubscriptionStatus } from "@/actions/subscriptions";
 
 interface PendingSignupData {
   plan: PlanTier;

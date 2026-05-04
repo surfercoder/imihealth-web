@@ -8,7 +8,7 @@ import { AlertCircle, ArrowLeft, Loader2, Mic } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { Button } from "@/components/ui/button";
 import { QuickInformeResult } from "@/components/quick-informe-result";
 
@@ -25,26 +25,28 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function InformeRapidoPage({ params }: Props) {
-  const { id } = await params;
+  const [{ id }, authResult, supabase, t] = await Promise.all([
+    params,
+    getAuthUser(),
+    createClient(),
+    getTranslations(),
+  ]);
   const {
     data: { user },
-  } = await getAuthUser();
+  } = authResult;
 
   if (!user) redirect("/login");
 
-  const supabase = await createClient();
-  const [t, { data: doctor }, plan] = await Promise.all([
-    getTranslations(),
+  const [{ data: doctor }, plan, { data: informe, error }] = await Promise.all([
     getDoctor(user.id),
     getPlanInfo(user.id),
+    supabase
+      .from("informes_rapidos")
+      .select("id, status, informe_doctor, created_at")
+      .eq("id", id)
+      .eq("doctor_id", user.id)
+      .single(),
   ]);
-
-  const { data: informe, error } = await supabase
-    .from("informes_rapidos")
-    .select("id, status, informe_doctor, created_at")
-    .eq("id", id)
-    .eq("doctor_id", user.id)
-    .single();
 
   if (error || !informe) notFound();
 

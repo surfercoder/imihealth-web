@@ -8,7 +8,7 @@ jest.mock('sonner', () => ({
 }))
 
 const mockCreateCheckout = jest.fn()
-jest.mock('@/actions/billing', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   createCheckout: (...args: unknown[]) => mockCreateCheckout(...args),
 }))
 

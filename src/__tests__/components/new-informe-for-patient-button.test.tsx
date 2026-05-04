@@ -16,7 +16,7 @@ jest.mock('@/actions/informes', () => ({
 
 import { NewInformeForPatientButton } from '@/components/new-informe-for-patient-button'
 import { PlanProvider } from '@/contexts/plan-context'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const defaultPlan: PlanInfo = {
   plan: 'free',

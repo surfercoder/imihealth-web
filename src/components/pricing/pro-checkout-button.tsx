@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createCheckout, type ProPlanTier } from "@/actions/billing";
+import { createCheckout, type ProPlanTier } from "@/actions/subscriptions";
 import { navigateTo } from "@/lib/navigate";
 
 interface Props {
@@ -26,7 +26,7 @@ export function ProCheckoutButton({ plan, isSignedIn, children }: Props) {
     );
   }
 
-  async function handleClick() {
+  async function handleCheckout() {
     setLoading(true);
     const result = await createCheckout(plan);
     if (result.error || !result.initPoint) {
@@ -40,7 +40,7 @@ export function ProCheckoutButton({ plan, isSignedIn, children }: Props) {
   }
 
   return (
-    <Button className="w-full" onClick={handleClick} disabled={loading}>
+    <Button className="w-full" onClick={handleCheckout} disabled={loading}>
       {loading ? t("checkoutLoading") : children}
     </Button>
   );

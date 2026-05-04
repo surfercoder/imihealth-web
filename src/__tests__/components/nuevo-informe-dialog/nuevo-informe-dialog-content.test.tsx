@@ -8,14 +8,16 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/actions/informes', () => ({
+jest.mock('@/actions/patients', () => ({
   createPatient: jest.fn(),
+}))
+jest.mock('@/actions/informes', () => ({
   createInforme: jest.fn(),
 }))
 
 import { NuevoInformeDialogContent } from '@/components/nuevo-informe-dialog/nuevo-informe-dialog-content'
 import { PlanProvider } from '@/contexts/plan-context'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const defaultPlan: PlanInfo = {
   plan: 'free',

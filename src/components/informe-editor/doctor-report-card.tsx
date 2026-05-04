@@ -38,6 +38,7 @@ export function DoctorReportCard({
 }) {
   const t = useTranslations("informeEditor");
   const [isEditing, setIsEditing] = useState(false);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read transitively via doctorText
   const [edited, setEdited] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
 

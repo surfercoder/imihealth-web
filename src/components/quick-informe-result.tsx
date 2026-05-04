@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { MarkdownDisplay } from "@/components/informe-editor/markdown-display";
 import { stripMarkdown } from "@/lib/utils";
-import { updateQuickInformeDoctorOnly } from "@/actions/informes";
+import { updateQuickInformeDoctorOnly } from "@/actions/informes-rapidos";
 import {
   Tooltip,
   TooltipContent,
@@ -25,9 +25,10 @@ interface QuickInformeResultProps {
 export function QuickInformeResult({ informeId, informe }: QuickInformeResultProps) {
   const t = useTranslations();
   const tEditor = useTranslations("informeEditor");
-  const router = useRouter();
+  const { push } = useRouter();
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read transitively via doctorText
   const [edited, setEdited] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
 
@@ -129,12 +130,12 @@ export function QuickInformeResult({ informeId, informe }: QuickInformeResultPro
       </div>
 
       <div className="flex gap-3">
-        <Button onClick={() => router.push("/")} variant="outline" className="flex-1">
+        <Button onClick={() => push("/")} variant="outline" className="flex-1">
           <ArrowLeft className="size-4 mr-2" />
           {t("nav.home")}
         </Button>
         <Button
-          onClick={() => router.push("/quick-informe")}
+          onClick={() => push("/quick-informe")}
           className="flex-1"
         >
           {t("informes.createAnother")}

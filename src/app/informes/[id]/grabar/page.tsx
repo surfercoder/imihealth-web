@@ -11,7 +11,7 @@ import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tMeta = await getTranslations("metadata");

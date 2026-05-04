@@ -14,7 +14,7 @@ function RealtimeNotificationsContentInner({
   children: React.ReactNode;
   userId: string;
 }) {
-  const nav = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const searchParams = useNextSearchParams();
   const t = useTranslations("notifications");
@@ -48,11 +48,11 @@ function RealtimeNotificationsContentInner({
 
       notification.onclick = () => {
         window.focus();
-        nav.push(url);
+        push(url);
         notification.close();
       };
     },
-    [nav]
+    [push]
   );
 
   // Dismiss all toasts when navigating *away* from an informe detail page
@@ -121,7 +121,7 @@ function RealtimeNotificationsContentInner({
               action: {
                 label: t("viewReport"),
                 onClick: () => {
-                  nav.push(informUrl);
+                  push(informUrl);
                 },
               },
               duration: Infinity,
@@ -180,7 +180,7 @@ function RealtimeNotificationsContentInner({
               action: {
                 label: t("viewReport"),
                 onClick: () => {
-                  nav.push(quickUrl);
+                  push(quickUrl);
                 },
               },
               duration: Infinity,
@@ -220,7 +220,7 @@ function RealtimeNotificationsContentInner({
         supabase.removeChannel(quickChannelRef.current);
       }
     };
-  }, [userId, nav, t, searchParams, showBrowserNotification]);
+  }, [userId, push, t, searchParams, showBrowserNotification]);
 
   return <>{children}</>;
 }

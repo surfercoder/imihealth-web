@@ -1,11 +1,15 @@
-export { createPatient } from "./informes/patients";
+export type {
+  Informe,
+  InformeStatus,
+  CertificadoOptions,
+} from "@/types/informe";
+
 export { createInforme } from "./informes/create-informe";
 export { processInformeFromTranscript } from "./informes/process-transcript";
 export { deleteInforme } from "./informes/delete";
 export { getInformes, getInforme } from "./informes/queries";
 export {
   updateInformeDoctorOnly,
-  updateQuickInformeDoctorOnly,
   updateInformePacienteWithPdf,
   updateInformeReports,
 } from "./informes/updates";

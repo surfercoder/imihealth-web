@@ -17,7 +17,7 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockCancelSubscription = jest.fn()
-jest.mock('@/actions/billing', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   cancelSubscription: (...args: unknown[]) => mockCancelSubscription(...args),
 }))
 

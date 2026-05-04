@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import type { PatientWithStats } from "./types";
+import type { PatientWithStats } from "@/types/patient";
 
 export async function getPatients(): Promise<{
   data?: PatientWithStats[];

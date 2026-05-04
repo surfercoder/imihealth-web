@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext } from "react";
-import type { PlanInfo } from "@/actions/plan";
+import { createContext, use } from "react";
+import type { PlanInfo } from "@/actions/subscriptions";
 
 const PlanContext = createContext<PlanInfo | null>(null);
 
@@ -16,7 +16,7 @@ export function PlanProvider({
 }
 
 export function usePlan(): PlanInfo {
-  const ctx = useContext(PlanContext);
+  const ctx = use(PlanContext);
   if (!ctx) {
     throw new Error("usePlan must be used within a PlanProvider");
   }

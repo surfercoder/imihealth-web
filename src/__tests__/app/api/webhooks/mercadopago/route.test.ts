@@ -381,6 +381,61 @@ describe('POST /api/webhooks/mercadopago', () => {
       info.mockRestore()
     })
 
+    it('logs and reports when cancelling the old preapproval at MP fails', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        subByUser: { user_id: 'switcher', mp_preapproval_id: 'old-monthly' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'new-yearly',
+        external_reference: 'switcher',
+        status: 'authorized',
+        payer_id: 7,
+        next_payment_date: '2027-04-30T00:00:00Z',
+        auto_recurring: { frequency: 12, frequency_type: 'months' },
+      })
+      mockUpdatePreapprovalStatus.mockRejectedValue(new Error('mp cancel failed'))
+      const errSpy = jest.spyOn(console, 'error').mockImplementation()
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=new-yearly',
+          body: { type: 'subscription_preapproval', data: { id: 'new-yearly' } },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).toHaveBeenCalled()
+      expect(mockUpdatePreapprovalStatus).toHaveBeenCalledWith('old-monthly', 'cancelled')
+      expect(mockCaptureException).toHaveBeenCalled()
+      errSpy.mockRestore()
+    })
+
+    it('upserts with payer_id null and status cancelled when matched by preapproval', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        subscriptionRow: { user_id: 'replay-user' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-replay-cancel',
+        external_reference: 'pending-uuid-now-deleted',
+        status: 'cancelled',
+        payer_id: null,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      await POST(
+        makeRequest({
+          query: '?data.id=pre-replay-cancel',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-replay-cancel' },
+          },
+        }),
+      )
+      const arg = subscriptionsUpsert.mock.calls[0][0]
+      expect(arg.user_id).toBe('replay-user')
+      expect(arg.mp_payer_id).toBeNull()
+      expect(arg.status).toBe('cancelled')
+      expect(arg.cancelled_at).toBeTruthy()
+    })
+
     it('does not call MP cancel when no previous preapproval was bound', async () => {
       const { subscriptionsUpsert } = setupAdminTables({
         subByUser: { user_id: 'fresh-user', mp_preapproval_id: null },
@@ -478,6 +533,113 @@ describe('POST /api/webhooks/mercadopago', () => {
         expect.any(Object),
       )
       expect(handles.pendingDelete).toHaveBeenCalled()
+    })
+
+    it('materializes a pending signup with no firma/avatar/tagline and null payer_id', async () => {
+      const handles = setupAdminTables({
+        pendingRow: {
+          id: 'pending-uuid',
+          email: 'newdoc@example.com',
+          encrypted_password: 'enc:P@ssw0rd1!',
+          signup_data: {
+            plan: 'pro_monthly',
+            name: 'Doctora',
+            dni: '12345678',
+            matricula: '999',
+            phone: '+5491100000000',
+            especialidad: 'Cardiología',
+          },
+        },
+      })
+      mockAnonSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user-100' } },
+        error: null,
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-mat-bare',
+        external_reference: 'pending-uuid',
+        status: 'authorized',
+        payer_id: null,
+        next_payment_date: '2026-05-30T00:00:00Z',
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-mat-bare',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-mat-bare' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      // No extras → doctorsUpdate should never be called.
+      expect(handles.doctorsUpdate).not.toHaveBeenCalled()
+      expect(handles.subscriptionsUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'new-user-100',
+          mp_payer_id: null,
+        }),
+        expect.any(Object),
+      )
+    })
+
+    it('uses an empty appUrl when NEXT_PUBLIC_APP_URL is unset during materialization', async () => {
+      delete process.env.NEXT_PUBLIC_APP_URL
+      setupAdminTables({ pendingRow: pendingRow() })
+      mockAnonSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user-101' } },
+        error: null,
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-mat-noenv',
+        external_reference: 'pending-uuid',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: '2026-05-30T00:00:00Z',
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      await POST(
+        makeRequest({
+          query: '?data.id=pre-mat-noenv',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-mat-noenv' },
+          },
+        }),
+      )
+      const call = mockAnonSignUp.mock.calls[0][0]
+      expect(call.options.emailRedirectTo).toBe(
+        '/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
+      )
+    })
+
+    it('throws "no user" message when signUp returns no user and no error message', async () => {
+      setupAdminTables({ pendingRow: pendingRow() })
+      mockAnonSignUp.mockResolvedValue({
+        data: { user: null },
+        error: null,
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-fail-blank',
+        external_reference: 'pending-uuid',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      const errSpy = jest.spyOn(console, 'error').mockImplementation()
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-fail-blank',
+          body: { type: 'subscription_preapproval', data: { id: 'pre-fail-blank' } },
+        }),
+      )
+      expect(res.status).toBe(500)
+      const captured = mockCaptureException.mock.calls[0][0] as Error
+      expect(captured.message).toMatch(/no user/)
+      errSpy.mockRestore()
     })
 
     it('drops the pending row when preapproval is cancelled before payment', async () => {

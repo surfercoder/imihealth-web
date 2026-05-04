@@ -175,6 +175,41 @@ describe('SignupForm — plan param', () => {
     mockSearchParamsMap = {}
   })
 
+  it('forwards a pro_monthly plan param into the submitted form data', async () => {
+    mockSearchParamsMap = { plan: 'pro_monthly' }
+    const user = userEvent.setup()
+    render(<SignupForm />)
+    await user.type(screen.getByLabelText('Nombre completo'), 'Dr. Juan Pérez')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'doctor@hospital.com')
+    await user.type(screen.getByLabelText('Matrícula'), '123456')
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '5551234567' } })
+    await user.click(screen.getByRole('combobox', { name: /especialidad/i }))
+    await user.click(screen.getByRole('option', { name: 'Cardiología' }))
+    await user.type(screen.getByLabelText('Contraseña'), 'P@ssw0rd1!')
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'P@ssw0rd1!')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(screen.getByText('Términos y Condiciones')).toBeInTheDocument())
+    const scrollEl = screen.getAllByText(/Términos y Condiciones de Uso/)[0].closest('.overflow-y-auto')
+    if (scrollEl) {
+      Object.defineProperty(scrollEl, 'scrollTop', { value: 1000, configurable: true })
+      Object.defineProperty(scrollEl, 'clientHeight', { value: 288, configurable: true })
+      Object.defineProperty(scrollEl, 'scrollHeight', { value: 1200, configurable: true })
+      fireEvent.scroll(scrollEl)
+    }
+    await waitFor(() => expect(screen.getByRole('checkbox')).not.toBeDisabled())
+    await user.click(screen.getByRole('checkbox'))
+    await waitFor(() => expect(screen.getByTestId('recaptcha')).toBeInTheDocument())
+    await act(async () => {
+      if (mockCaptchaCallbacks.onChange) mockCaptchaCallbacks.onChange('test-token')
+    })
+    await waitFor(() => expect(screen.getByText(/Todo listo/)).toBeInTheDocument())
+    mockVerifyCaptchaToken.mockResolvedValue({ success: true })
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(mockFormAction).toHaveBeenCalled())
+    const fd = mockFormAction.mock.calls[0][0] as FormData
+    expect(fd.get('plan')).toBe('pro_monthly')
+  })
+
   it('forwards the plan param into the submitted form data', async () => {
     const user = userEvent.setup()
     render(<SignupForm />)

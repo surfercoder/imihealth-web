@@ -76,7 +76,7 @@ beforeEach(() => {
 })
 
 const mockProcessQuickInforme = jest.fn()
-jest.mock('@/actions/quick-informe', () => ({
+jest.mock('@/actions/informes-rapidos', () => ({
   processQuickInforme: (...args: unknown[]) => mockProcessQuickInforme(...args),
 }))
 

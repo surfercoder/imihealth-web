@@ -20,7 +20,7 @@ jest.mock('sonner', () => ({
 }))
 
 const mockSubmitEnterpriseLead = jest.fn()
-jest.mock('@/actions/billing', () => ({
+jest.mock('@/actions/enterprise-leads', () => ({
   submitEnterpriseLead: (...args: unknown[]) => mockSubmitEnterpriseLead(...args),
 }))
 

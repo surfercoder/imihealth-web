@@ -17,13 +17,13 @@ jest.mock('@/lib/mercadopago/api', () => ({
     mockUpdatePreapprovalStatus(...args),
 }))
 
+import { submitEnterpriseLead } from '@/actions/enterprise-leads'
 import {
-  submitEnterpriseLead,
   createCheckout,
   startProCheckout,
   cancelSubscription,
   getCurrentArsPrice,
-} from '@/actions/billing'
+} from '@/actions/subscriptions'
 
 const validInput = {
   companyName: 'Acme Health',

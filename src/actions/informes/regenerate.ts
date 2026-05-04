@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { ANTHROPIC_MODEL } from "@/lib/ai-model";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { anthropic } from "./anthropic-client";
 import { updateInformeReports } from "./updates";
 

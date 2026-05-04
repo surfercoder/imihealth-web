@@ -11,8 +11,10 @@ interface PublicHeaderProps {
 }
 
 export async function PublicHeader({ useBotIcon = false }: PublicHeaderProps = {}) {
-  const t = await getTranslations("nav");
-  const tAlt = await getTranslations("alt");
+  const [t, tAlt] = await Promise.all([
+    getTranslations("nav"),
+    getTranslations("alt"),
+  ]);
 
   return (
     <header className="fixed top-0 left-0 right-0 border-b border-border/60 bg-background/95 backdrop-blur-sm z-50">

@@ -13,7 +13,7 @@ import {
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
-import { startProCheckout, type ProPlanTier } from "@/actions/billing";
+import { startProCheckout, type ProPlanTier } from "@/actions/subscriptions";
 
 export async function login(
   _prevState: ActionResult | null,

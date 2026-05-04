@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { PlanInfo } from "@/actions/plan";
+import type { PlanInfo } from "@/actions/subscriptions";
 
 interface Props {
   plan: PlanInfo;

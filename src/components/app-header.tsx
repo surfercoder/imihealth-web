@@ -13,7 +13,7 @@ import { logout } from "@/actions/auth";
 import { useTranslations } from "next-intl";
 import { useCurrentTab } from "@/hooks/use-current-tab";
 import { getDoctorInitials } from "@/lib/avatar";
-import type { PlanInfo } from "@/actions/plan";
+import type { PlanInfo } from "@/actions/subscriptions";
 import logo from "@/../public/assets/images/imihealth-logo.webp";
 
 interface AppHeaderProps {

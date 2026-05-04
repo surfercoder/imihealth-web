@@ -106,6 +106,45 @@ describe('BillingReturnPage', () => {
     expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
   })
 
+  it('shows the static page when reconcile reports pending-signup-cancelled', async () => {
+    reconcileMock.mockResolvedValue({ kind: 'pending-signup-cancelled' })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute(
+      'href',
+      '/',
+    )
+  })
+
+  it('shows the static page when reconcile reports a stale cancellation', async () => {
+    reconcileMock.mockResolvedValue({ kind: 'stale', reason: 'whatever' })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute(
+      'href',
+      '/',
+    )
+  })
+
+  it('shows the static page when reconcile reports no-ref', async () => {
+    reconcileMock.mockResolvedValue({ kind: 'no-ref' })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute(
+      'href',
+      '/',
+    )
+  })
+
   it('falls back to fetching the preapproval if reconcile throws', async () => {
     reconcileMock.mockRejectedValue(new Error('boom'))
     getPreapprovalMock.mockResolvedValue({
@@ -118,6 +157,20 @@ describe('BillingReturnPage', () => {
     )
     expect(getPreapprovalMock).toHaveBeenCalledWith('mp-1')
     expect(screen.queryByRole('link', { name: /Volver al panel/i })).not.toBeInTheDocument()
+  })
+
+  it('falls back to refId=null when the fallback preapproval has no external_reference', async () => {
+    reconcileMock.mockRejectedValue(new Error('boom'))
+    getPreapprovalMock.mockResolvedValue({ external_reference: '' })
+    render(
+      await BillingReturnPage({
+        searchParams: Promise.resolve({ preapproval_id: 'mp-1' }),
+      }),
+    )
+    expect(screen.getByRole('link', { name: /Volver al panel/i })).toHaveAttribute(
+      'href',
+      '/',
+    )
   })
 
   it('shows the static page when both reconcile and the fallback fail', async () => {

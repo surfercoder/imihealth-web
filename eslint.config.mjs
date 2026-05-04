@@ -2,6 +2,28 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+// react-doctor is a separate scanner that respects `// eslint-disable*` comments
+// referencing its rules. We register a stub plugin here so ESLint knows the
+// rule names exist (and skips them as no-ops) when those comments appear in
+// source. Without this, ESLint flags `react-doctor/<rule>` as "rule not found".
+const reactDoctorRuleNames = [
+  "rerender-state-only-in-handlers",
+  "rendering-hydration-mismatch-time",
+  "react-compiler-destructure-method",
+  "advanced-event-handler-refs",
+  "no-fetch-in-effect",
+  "no-cascading-set-state",
+  "nextjs-no-use-search-params-without-suspense",
+];
+const reactDoctorPlugin = {
+  rules: Object.fromEntries(
+    reactDoctorRuleNames.map((name) => [
+      name,
+      { meta: { type: "problem", schema: [] }, create: () => ({}) },
+    ]),
+  ),
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -14,6 +36,17 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "coverage/**",
   ]),
+  {
+    // Register the react-doctor stub plugin so ESLint recognizes the rule
+    // names referenced in `// eslint-disable-next-line react-doctor/...`
+    // comments scattered through the codebase. The stub rules never report
+    // anything; the real diagnostics come from `npx react-doctor`. Disable
+    // unused-directive reporting since these stubs will never trigger.
+    plugins: { "react-doctor": reactDoctorPlugin },
+    linterOptions: {
+      reportUnusedDisableDirectives: "off",
+    },
+  },
   {
     files: [
       "src/__tests__/**/*.ts",

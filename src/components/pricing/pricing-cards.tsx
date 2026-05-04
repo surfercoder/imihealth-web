@@ -37,11 +37,13 @@ const ENT_FEATURES = [
   "dedicated_support",
 ] as const;
 
+const ARS_FORMATTER = new Intl.NumberFormat("es-AR", {
+  style: "decimal",
+  maximumFractionDigits: 0,
+});
+
 function formatArs(amount: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "decimal",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return ARS_FORMATTER.format(amount);
 }
 
 export function PricingCards({ isSignedIn = false, arsPrices }: Props) {

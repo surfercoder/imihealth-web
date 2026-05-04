@@ -11,7 +11,7 @@ jest.mock('@/utils/supabase/server', () => ({
 }))
 
 const mockGetPlanInfo = jest.fn()
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
 

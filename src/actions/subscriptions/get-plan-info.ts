@@ -2,27 +2,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { MVP_LIMITS } from "@/lib/mvp-limits";
-
-export type PlanTier = "free" | "pro_monthly" | "pro_yearly";
-export type SubscriptionStatus =
-  | "active"
-  | "cancelled"
-  | "past_due"
-  | "pending";
-
-export interface PlanInfo {
-  plan: PlanTier;
-  status: SubscriptionStatus;
-  isPro: boolean;
-  isReadOnly: boolean;
-  periodEnd: string | null;
-  maxInformes: number;
-  currentInformes: number;
-  canCreateInforme: boolean;
-  maxDoctors: number;
-  currentDoctors: number;
-  canSignUp: boolean;
-}
+import type {
+  PlanInfo,
+  PlanTier,
+  SubscriptionStatus,
+} from "@/types/subscription";
 
 interface SubscriptionRow {
   plan: PlanTier;
@@ -46,8 +30,6 @@ function deriveAccess(sub: SubscriptionRow | null): AccessState {
     return { plan, status, isPro: plan !== "free", periodEnd };
   }
 
-  // past_due gets a brief grace until period_end while MP retries the charge,
-  // so a transient billing failure doesn't lock a paying doctor out.
   if (status === "past_due") {
     const periodActive = periodEnd
       ? new Date(periodEnd).getTime() > Date.now()
@@ -55,8 +37,6 @@ function deriveAccess(sub: SubscriptionRow | null): AccessState {
     return { plan, status, isPro: periodActive, periodEnd };
   }
 
-  // cancelled and pending both lose Pro access immediately. Cancellation is
-  // intentional; pending hasn't been authorized yet.
   return { plan, status, isPro: false, periodEnd };
 }
 
@@ -102,9 +82,6 @@ export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
   const access = deriveAccess(subscription);
   const freeLimit = MVP_LIMITS.MAX_INFORMES_PER_DOCTOR;
   const overFreeQuota = currentInformes >= freeLimit;
-  // Read-only = effectively-free user who already used the quota. A doctor
-  // who downgrades from Pro after writing 50 informes lands here, keeping
-  // their data accessible but blocking further creation.
   const isReadOnly = !access.isPro && overFreeQuota;
   const canCreateInforme = access.isPro || !overFreeQuota;
 

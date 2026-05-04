@@ -180,7 +180,7 @@ export default async function ManifestPage() {
       {/* Footer */}
       <footer className="border-t border-border/60">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm text-foreground/60" suppressHydrationWarning>
             {tLanding("copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-3">

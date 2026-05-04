@@ -10,7 +10,7 @@ const DashboardCharts = dynamic(
   () => import("@/components/dashboard-charts").then((mod) => mod.DashboardCharts),
   { ssr: false }
 );
-import type { PlanInfo } from "@/actions/plan";
+import type { PlanInfo } from "@/actions/subscriptions";
 import { useTranslations } from "next-intl";
 
 interface DashboardTabProps {

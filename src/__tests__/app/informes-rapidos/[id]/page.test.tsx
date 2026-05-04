@@ -25,7 +25,7 @@ jest.mock('@/components/app-header', () => ({
   AppHeader: () => <div data-testid="app-header" />,
 }))
 
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: jest.fn().mockResolvedValue({
     plan: 'free',
     status: 'active',

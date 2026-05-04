@@ -19,7 +19,7 @@ jest.mock('@/utils/supabase/server', () => ({
 }))
 
 const mockGetPlanInfo = jest.fn()
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
 
@@ -53,7 +53,7 @@ jest.mock('@/lib/transcribe', () => ({
   transcribeAudio: jest.fn().mockResolvedValue({ text: '', utterances: null }),
 }))
 
-import { processQuickInforme } from '@/actions/quick-informe'
+import { processQuickInforme } from '@/actions/informes-rapidos/process-quick-informe'
 
  
 const { transcribeAudio: mockTranscribeAudio } = require('@/lib/transcribe') as { transcribeAudio: jest.Mock }

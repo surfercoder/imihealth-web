@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { updateProfile } from "@/actions/profile";
+import { updateProfile } from "@/actions/doctors";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ export function ProfileForm({ doctor }: ProfileFormProps) {
   const [state, formAction] = useActionState(updateProfile, null);
   const [isPending, startTransition] = useTransition();
   const [signatureChanged, setSignatureChanged] = useState(false);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read in handler that fires after a re-render
   const [avatarChanged, setAvatarChanged] = useState(false);
 
   const clientSchema = buildProfileFormSchema(v);

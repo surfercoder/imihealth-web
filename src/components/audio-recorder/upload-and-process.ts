@@ -61,7 +61,7 @@ export async function uploadAndProcess(
       audioPath = storagePath;
     }
 
-    const { processQuickInforme } = await import("@/actions/quick-informe");
+    const { processQuickInforme } = await import("@/actions/informes-rapidos");
 
     dispatch({ type: "SET_PROGRESS", progress: 50 });
     dispatch({ type: "SET_PHASE", phase: "processing" });

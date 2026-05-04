@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { LimitReachedButton } from '@/components/nuevo-informe-dialog/limit-reached-button'
 import { PlanProvider } from '@/contexts/plan-context'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const limitedPlan: PlanInfo = {
   plan: 'free',

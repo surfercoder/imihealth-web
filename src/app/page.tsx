@@ -9,7 +9,7 @@ import { AppFooter } from "@/components/app-footer";
 import { HomeTabs } from "@/components/home-tabs";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import type { PatientWithStats } from "@/actions/patients";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { PlanProvider } from "@/contexts/plan-context";
 import { getDashboardChartData } from "@/actions/dashboard-charts";
 import { PublicLandingPage } from "@/components/public-landing-page";
@@ -90,13 +90,13 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ welcome?: string; tab?: string }>;
 }) {
-  const params = await searchParams;
+  const [params, authResult] = await Promise.all([searchParams, getAuthUser()]);
   const showWelcome = params.welcome === "true";
   const activeTab = params.tab || "informes";
 
   const {
     data: { user },
-  } = await getAuthUser();
+  } = authResult;
 
   if (!user) {
     return <PublicLandingPage />;

@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/utils/supabase/server";
 import { getSpecialtyPrompt } from "@/lib/prompts";
-import { getPlanInfo } from "@/actions/plan";
+import { getPlanInfo } from "@/actions/subscriptions";
 import {
   extractTextFromContent,
   generateDoctorReport,
@@ -33,14 +33,17 @@ export async function processQuickInforme(
 
     const plan = await getPlanInfo(user.id);
     if (plan.isReadOnly) {
-      return { error: "Tu suscripción Pro fue cancelada. Reactivala para crear nuevos informes." };
+      return {
+        error:
+          "Tu suscripción Pro fue cancelada. Reactivala para crear nuevos informes.",
+      };
     }
     if (!plan.canCreateInforme) {
-      return { error: `Alcanzaste el límite de ${plan.maxInformes} informes del plan gratuito. Pasate al plan Pro para informes ilimitados.` };
+      return {
+        error: `Alcanzaste el límite de ${plan.maxInformes} informes del plan gratuito. Pasate al plan Pro para informes ilimitados.`,
+      };
     }
 
-    // Create the persistent record up-front so we have an id we can update at
-    // the end (which fires Supabase Realtime → notification on the client).
     const { data: created, error: createError } = await supabase
       .from("informes_rapidos")
       .insert({ doctor_id: user.id, status: "processing" })
@@ -49,7 +52,9 @@ export async function processQuickInforme(
 
     if (createError || !created) {
       console.error("[quick-informe] failed to create row:", createError);
-      return { error: createError?.message || "No se pudo crear el informe rápido" };
+      return {
+        error: createError?.message || "No se pudo crear el informe rápido",
+      };
     }
 
     const informeRapidoId = created.id as string;
@@ -66,25 +71,20 @@ export async function processQuickInforme(
     };
 
     try {
-      // Download audio from Supabase Storage so we can pass a Buffer to AssemblyAI.
-      // The client uploads to storage first and only sends the path through the
-      // server action — keeps the action body small and avoids Vercel's 4.5 MB
-      // serverless body limit on long recordings.
       let audioBuffer: Buffer | null = null;
       if (audioPath) {
         const { data: audioData, error: downloadError } = await supabase.storage
           .from("audio-recordings")
           .download(audioPath);
         if (downloadError) {
-          console.warn(`[quick-informe] storage download failed: ${downloadError.message}`);
+          console.warn(
+            `[quick-informe] storage download failed: ${downloadError.message}`,
+          );
         } else if (audioData) {
           audioBuffer = Buffer.from(await audioData.arrayBuffer());
         }
       }
 
-      // The browser may pass through a localized fallback string when its
-      // SpeechRecognition produced nothing. Treat that as "no transcript" so we
-      // don't end up sending the literal error message to AssemblyAI/Anthropic.
       const browserFallbackMarkers = [
         "No se pudo transcribir",
         "could not be transcribed",
@@ -92,7 +92,9 @@ export async function processQuickInforme(
       const isBrowserFallback = browserFallbackMarkers.some((marker) =>
         browserTranscript.includes(marker),
       );
-      const cleanedBrowserTranscript = isBrowserFallback ? "" : browserTranscript;
+      const cleanedBrowserTranscript = isBrowserFallback
+        ? ""
+        : browserTranscript;
 
       console.info(
         `[quick-informe] start: id=${informeRapidoId}, browserTranscriptLen=${browserTranscript.length}, isBrowserFallback=${isBrowserFallback}, audioBufferSize=${audioBuffer?.length ?? 0}`,
@@ -131,8 +133,6 @@ export async function processQuickInforme(
 
       const parsed = parseDoctorResponse(doctorText);
       const { validMedicalContent } = parsed;
-      // Defensive: if a stale or buggy parser returns a non-string here, coerce
-      // to empty so the no-content branch fires instead of crashing.
       const rawInformeDoctor: unknown = parsed.informeDoctor;
       const informeDoctor: string =
         typeof rawInformeDoctor === "string" ? rawInformeDoctor : "";
@@ -152,12 +152,17 @@ export async function processQuickInforme(
           status: "completed",
           informe_doctor: informeDoctor,
           updated_at: new Date().toISOString(),
-          ...(recordingDuration != null && { recording_duration: recordingDuration }),
+          ...(recordingDuration != null && {
+            recording_duration: recordingDuration,
+          }),
         })
         .eq("id", informeRapidoId);
 
       if (updateError) {
-        console.error("[quick-informe] failed to persist completion:", updateError);
+        console.error(
+          "[quick-informe] failed to persist completion:",
+          updateError,
+        );
         return await failWith(updateError.message);
       }
 
@@ -172,13 +177,14 @@ export async function processQuickInforme(
       return await failWith(message);
     }
   } finally {
-    // Always remove the temporary audio so the bucket stays empty after processing.
     if (audioPath) {
       const { error } = await supabase.storage
         .from("audio-recordings")
         .remove([audioPath]);
       if (error) {
-        console.warn(`[quick-informe] storage cleanup failed: ${error.message}`);
+        console.warn(
+          `[quick-informe] storage cleanup failed: ${error.message}`,
+        );
       }
     }
   }

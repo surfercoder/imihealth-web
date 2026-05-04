@@ -1,16 +1,17 @@
 /**
  * @jest-environment jsdom
  */
-import { redirectBrowser } from '@/lib/redirect-browser'
+import { redirectBrowser, navigator } from '@/lib/redirect-browser'
 
 describe('redirectBrowser', () => {
-  it('calls window.location.assign with the URL', () => {
-    const assign = jest.fn()
-    const original = window.location
-    delete (window as unknown as { location?: Location }).location
-    ;(window as unknown as { location: Pick<Location, 'assign'> }).location = { assign }
-    redirectBrowser('https://example.com/x')
-    expect(assign).toHaveBeenCalledWith('https://example.com/x')
-    ;(window as unknown as { location: Location }).location = original
+  it('delegates to the navigator with the given URL', () => {
+    const goSpy = jest.spyOn(navigator, 'go').mockImplementation(() => {})
+    try {
+      redirectBrowser('https://example.com/x')
+      expect(goSpy).toHaveBeenCalledWith('https://example.com/x')
+    } finally {
+      goSpy.mockRestore()
+    }
   })
+
 })

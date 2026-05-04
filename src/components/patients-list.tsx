@@ -70,10 +70,13 @@ function PatientsListContent({ patients, searchQuery, noSearchResultsLabel, isLo
     <div className="space-y-2 max-h-[504px] overflow-y-auto">
       {patients.map((patient) => {
         const lastDate = patient.last_informe_at
+          // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time -- input is a server-provided ISO string and timeZone is pinned to UTC
           ? new Date(patient.last_informe_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
               day: "2-digit",
               month: "short",
               year: "numeric",
+              // Pin to UTC so server and client render identical strings (no hydration mismatch).
+              timeZone: "UTC",
             })
           : null;
 

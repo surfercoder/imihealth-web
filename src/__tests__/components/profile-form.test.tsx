@@ -13,7 +13,7 @@ jest.mock('react', () => ({
   useTransition: () => [mockIsPending, mockStartTransition],
 }))
 
-jest.mock('@/actions/profile', () => ({
+jest.mock('@/actions/doctors', () => ({
   updateProfile: jest.fn(),
 }))
 

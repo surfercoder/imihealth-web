@@ -20,7 +20,7 @@ jest.mock('@/lib/prompts', () => ({
   PATIENT_REPORT_PROMPT: 'patient prompt',
 }))
 
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: jest.fn().mockResolvedValue({
     plan: 'free',
     status: 'active',
@@ -51,7 +51,7 @@ jest.mock('@/app/api/process-informe/helpers', () => ({
   })),
 }))
 
-import { processQuickInforme } from '@/actions/quick-informe'
+import { processQuickInforme } from '@/actions/informes-rapidos/process-quick-informe'
 
 const mockUser = { id: 'doctor-1', email: 'doctor@hospital.com' }
 

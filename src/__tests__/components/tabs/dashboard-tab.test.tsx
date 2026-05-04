@@ -18,7 +18,7 @@ jest.mock('next/dynamic', () => {
 })
 
 import { DashboardTab } from '@/components/tabs/dashboard-tab'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const defaultPlan: PlanInfo = {
   plan: 'free',

@@ -28,7 +28,7 @@ jest.mock('@/components/app-header', () => ({
   ),
 }))
 
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: jest.fn().mockResolvedValue({
     plan: 'free',
     status: 'active',

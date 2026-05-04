@@ -46,7 +46,7 @@ jest.mock('@/components/read-only-banner', () => ({
   ReadOnlyBanner: () => <div data-testid="read-only-banner" />,
 }))
 
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: jest.fn(() => Promise.resolve({
     plan: 'free',
     status: 'active',

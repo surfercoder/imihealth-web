@@ -10,7 +10,7 @@ jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve(mockSupabase)),
 }))
 
-import { getPlanInfo } from '@/actions/plan'
+import { getPlanInfo } from '@/actions/subscriptions'
 import { MVP_LIMITS } from '@/lib/mvp-limits'
 
 interface SubscriptionFields {
@@ -199,6 +199,22 @@ describe('getPlanInfo', () => {
 
     const result = await getPlanInfo()
     expect(result.isReadOnly).toBe(true)
+    expect(result.canCreateInforme).toBe(false)
+  })
+
+  it('treats past_due subscription with null periodEnd as expired (no grace)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
+    setupTables({
+      informeCount: 50,
+      subscription: {
+        plan: 'pro_monthly',
+        status: 'past_due',
+        current_period_end: null,
+      },
+    })
+
+    const result = await getPlanInfo()
+    expect(result.isPro).toBe(false)
     expect(result.canCreateInforme).toBe(false)
   })
 

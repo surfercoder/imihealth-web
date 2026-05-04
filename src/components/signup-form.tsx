@@ -21,8 +21,10 @@ import { redirectBrowser } from "@/lib/redirect-browser";
 
 export function SignupForm() {
   const tTerms = useTranslations("signupTerms");
+  // eslint-disable-next-line react-doctor/nextjs-no-use-search-params-without-suspense -- callers wrap this component in Suspense
   const searchParams = useSearchParams();
-  const planParam = searchParams?.get("plan");
+  // eslint-disable-next-line react-doctor/react-compiler-destructure-method -- ReadonlyURLSearchParams.get is bound to `this` and breaks if destructured
+  const planParam = searchParams?.get("plan") ?? null;
   // Default to "free" so /signup without a plan param doesn't trigger a
   // MercadoPago checkout. Only the explicit Pro CTAs include ?plan=pro_*.
   const plan: "free" | "pro_monthly" | "pro_yearly" =
@@ -33,7 +35,9 @@ export function SignupForm() {
         : "free";
   const [state, formAction] = useActionState(signup, null);
   const [isPending, startTransition] = useTransition();
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read in conditional return
   const [step, setStep] = useState<1 | 2>(1);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read in handler that fires after a re-render
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
   useEffect(() => {

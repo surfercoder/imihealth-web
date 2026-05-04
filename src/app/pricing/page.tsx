@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
-import { getCurrentArsPrice } from "@/actions/billing";
-import { getPlanInfo } from "@/actions/plan";
+import { getCurrentArsPrice } from "@/actions/subscriptions";
+import { getPlanInfo } from "@/actions/subscriptions";
 import { AppHeader } from "@/components/app-header";
 import { PublicHeader } from "@/components/public-header";
 import { PricingCards } from "@/components/pricing/pricing-cards";
@@ -33,13 +33,17 @@ async function getArsPrices(): Promise<
 }
 
 export default async function PricingPage() {
-  const t = await getTranslations("pricing");
   const [
+    t,
     {
       data: { user },
     },
     arsPrices,
-  ] = await Promise.all([getAuthUser(), getArsPrices()]);
+  ] = await Promise.all([
+    getTranslations("pricing"),
+    getAuthUser(),
+    getArsPrices(),
+  ]);
 
   const [plan, doctorRes] = user
     ? await Promise.all([getPlanInfo(user.id), getDoctor(user.id)])
@@ -52,7 +56,10 @@ export default async function PricingPage() {
         <AppHeader
           doctorName={doctor?.name}
           doctorAvatar={doctor?.avatar}
-          plan={plan ?? undefined}
+          plan={
+            /* v8 ignore next -- defensive; user truthiness already implies plan is set */
+            plan ?? undefined
+          }
         />
       ) : (
         <PublicHeader />

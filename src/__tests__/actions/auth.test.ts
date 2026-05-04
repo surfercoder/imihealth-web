@@ -37,7 +37,7 @@ jest.mock('@/utils/supabase/admin', () => ({
 }))
 
 const mockStartProCheckout = jest.fn()
-jest.mock('@/actions/billing', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   startProCheckout: (...args: unknown[]) => mockStartProCheckout(...args),
 }))
 
@@ -253,6 +253,33 @@ describe('signup', () => {
     expect(result).toEqual({ error: 'mp down' })
     // The user is already created — we don't roll anything back.
     expect(mockSignUp).toHaveBeenCalled()
+  })
+
+  it('falls back to a generic message when checkout returns neither error nor initPoint', async () => {
+    setupAdmin()
+    mockStartProCheckout.mockResolvedValue({})
+    const fd = validForm()
+    fd.set('plan', 'pro_monthly')
+    const result = await signup(null, fd)
+    expect(result).toEqual({
+      error:
+        'Tu cuenta fue creada pero no pudimos iniciar el pago. Probá desde Precios después de verificar tu email.',
+    })
+  })
+
+  it('uses an empty appUrl when NEXT_PUBLIC_APP_URL is unset', async () => {
+    setupAdmin()
+    const original = process.env.NEXT_PUBLIC_APP_URL
+    delete process.env.NEXT_PUBLIC_APP_URL
+    try {
+      await signup(null, validForm())
+    } finally {
+      if (original !== undefined) process.env.NEXT_PUBLIC_APP_URL = original
+    }
+    const call = mockSignUp.mock.calls[0][0]
+    expect(call.options.emailRedirectTo).toBe(
+      '/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
+    )
   })
 })
 

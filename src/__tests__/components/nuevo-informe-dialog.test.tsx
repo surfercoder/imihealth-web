@@ -11,14 +11,16 @@ jest.mock('next/navigation', () => ({
 
 const mockCreatePatient = jest.fn()
 const mockCreateInforme = jest.fn()
-jest.mock('@/actions/informes', () => ({
+jest.mock('@/actions/patients', () => ({
   createPatient: (...args: unknown[]) => mockCreatePatient(...args),
+}))
+jest.mock('@/actions/informes', () => ({
   createInforme: (...args: unknown[]) => mockCreateInforme(...args),
 }))
 
 import { NuevoInformeDialog } from '@/components/nuevo-informe-dialog'
 import { PlanProvider } from '@/contexts/plan-context'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 const defaultPlan: PlanInfo = {
   plan: 'free',

@@ -28,6 +28,7 @@ export function AvatarUpload({
 }: AvatarUploadProps) {
   const t = useTranslations("avatarUpload");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // eslint-disable-next-line react-doctor/rerender-state-only-in-handlers -- read transitively via `message`
   const [localError, setLocalError] = useState<string | null>(null);
 
   const hasImage = Boolean(value);
@@ -51,7 +52,7 @@ export function AvatarUpload({
     }
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     /* v8 ignore next */
     if (!file) return;
@@ -122,7 +123,7 @@ export function AvatarUpload({
         type="file"
         accept="image/png,image/jpeg,image/webp"
         className="hidden"
-        onChange={handleChange}
+        onChange={handleFileInputChange}
         disabled={disabled}
       />
     </div>

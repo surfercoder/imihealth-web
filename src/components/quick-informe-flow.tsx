@@ -14,7 +14,7 @@ interface QuickInformeFlowProps {
  * through the URL or React state.
  */
 export function QuickInformeFlow({ doctorId }: QuickInformeFlowProps) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -26,7 +26,7 @@ export function QuickInformeFlow({ doctorId }: QuickInformeFlowProps) {
         doctorId={doctorId}
         isQuickReport={true}
         onQuickReportComplete={(informeRapidoId) =>
-          router.push(`/informes-rapidos/${informeRapidoId}`)
+          push(`/informes-rapidos/${informeRapidoId}`)
         }
       />
     </div>

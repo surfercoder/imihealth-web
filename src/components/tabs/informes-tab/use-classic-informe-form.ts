@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { createPatient, createInforme } from "@/actions/informes";
+import { createPatient } from "@/actions/patients";
+import { createInforme } from "@/actions/informes";
 import { detectCountryFromLocale } from "@/components/ui/phone-input";
 import { buildPatientSchema, type PatientFormValues } from "./schema";
 

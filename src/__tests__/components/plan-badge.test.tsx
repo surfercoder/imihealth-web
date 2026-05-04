@@ -15,7 +15,7 @@ jest.mock('next/link', () => {
 })
 
 import { PlanBadge } from '@/components/plan-badge'
-import type { PlanInfo } from '@/actions/plan'
+import type { PlanInfo } from '@/actions/subscriptions'
 
 function makePlan(overrides: Partial<PlanInfo> = {}): PlanInfo {
   return {

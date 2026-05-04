@@ -24,7 +24,7 @@ export function PatientSearchContent({
   onSearchChange,
 }: PatientSearchProps) {
   const t = useTranslations("patientSearch");
-  const router = useRouter();
+  const { push } = useRouter();
   const currentTab = useCurrentTab();
   const [state, dispatch] = useReducer(searchReducer, initialState);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +80,7 @@ export function PatientSearchContent({
 
   const selectPatient = (patient: PatientSearchResult) => {
     const url = currentTab ? `/patients/${patient.id}?tab=${currentTab}` : `/patients/${patient.id}`;
-    router.push(url);
+    push(url);
     dispatch({ type: "CLEAR" });
   };
 
@@ -109,7 +109,7 @@ export function PatientSearchContent({
     }
   };
 
-  const handleFocus = () => {
+  const handleSearchFocus = () => {
     if (state.results.length > 0 && state.query.trim().length >= 2) {
       dispatch({ type: "SET_OPEN", isOpen: true });
     }
@@ -129,7 +129,7 @@ export function PatientSearchContent({
         value={state.query}
         onChange={(e) => handleChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
+        onFocus={handleSearchFocus}
         placeholder={placeholder ?? t("placeholder")}
         className="pl-9 pr-9 bg-card border-border text-card-foreground placeholder:text-muted-foreground focus-visible:ring-primary/50"
         autoComplete="off"

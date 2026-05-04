@@ -56,7 +56,7 @@ jest.mock('@/components/home-tabs', () => ({
 jest.mock('@/components/public-landing-page', () => ({
   PublicLandingPage: () => <div data-testid="public-landing-page" />,
 }))
-jest.mock('@/actions/plan', () => ({
+jest.mock('@/actions/subscriptions', () => ({
   getPlanInfo: (...args: unknown[]) => mockGetPlanInfo(...args),
 }))
 jest.mock('@/contexts/plan-context', () => ({

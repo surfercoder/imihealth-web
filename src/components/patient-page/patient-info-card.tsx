@@ -47,7 +47,7 @@ export function PatientInfoCard({
           <DictarPedidosButton
             patientId={patientId}
             patientName={name}
-            phone={phone}
+            phone={phone ?? ""}
           />
         </div>
       </div>

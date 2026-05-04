@@ -88,8 +88,10 @@ async function resolveReturn(params: {
 }
 
 export default async function BillingReturnPage({ searchParams }: PageProps) {
-  const t = await getTranslations("pricing");
-  const params = await searchParams;
+  const [t, params] = await Promise.all([
+    getTranslations("pricing"),
+    searchParams,
+  ]);
   const { ready, refId } = await resolveReturn(params);
 
   if (ready) {

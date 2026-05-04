@@ -77,12 +77,15 @@ function InformesListContent({ informes }: InformesListProps) {
             : `/informes/${informe.id}`;
         const href = currentTab ? `${baseHref}?tab=${currentTab}` : baseHref;
 
+        // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time -- input is a server-provided ISO string and timeZone is pinned to UTC
         const date = new Date(informe.created_at).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
           day: "2-digit",
           month: "short",
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          // Pin to UTC so server and client render identical strings (no hydration mismatch).
+          timeZone: "UTC",
         });
 
         return (
