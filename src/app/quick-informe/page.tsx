@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getAuthUser, getDoctor } from "@/lib/cached-queries";
-import { getPlanInfo } from "@/actions/subscriptions";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
+import { getAuthUser } from "@/lib/cached-queries";
 import { QuickInformeFlow } from "@/components/quick-informe-flow";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -26,18 +23,10 @@ export default async function QuickInformePage() {
 
   if (!user) redirect("/login");
 
-  const [t, { data: doctor }, plan] = await Promise.all([
-    getTranslations(),
-    getDoctor(user.id),
-    getPlanInfo(user.id),
-  ]);
+  const t = await getTranslations();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
-      </Suspense>
-
+    <>
       <div className="border-b border-border/40">
         <div className="mx-auto flex h-11 max-w-3xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild className="text-foreground hover:text-foreground">
@@ -76,8 +65,6 @@ export default async function QuickInformePage() {
           </ol>
         </div>
       </main>
-
-      <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
-    </div>
+    </>
   );
 }

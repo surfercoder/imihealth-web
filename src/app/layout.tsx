@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
+import { Suspense, ViewTransition } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,7 +9,11 @@ import { RealtimeNotificationsProvider } from "@/providers/realtime-notification
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { getAuthUser } from "@/lib/cached-queries";
+import { getAuthUser, getDoctor } from "@/lib/cached-queries";
+import { getPlanInfo } from "@/actions/subscriptions";
+import { PlanProvider } from "@/contexts/plan-context";
+import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +55,33 @@ export default async function RootLayout({
     getAuthUser(),
   ]);
 
+  let shell: React.ReactNode = (
+    <ViewTransition name="page-content">{children}</ViewTransition>
+  );
+
+  if (user) {
+    const [{ data: doctor }, plan] = await Promise.all([
+      getDoctor(user.id),
+      getPlanInfo(user.id),
+    ]);
+    const headerProps = {
+      doctorName: doctor?.name,
+      doctorAvatar: doctor?.avatar,
+      plan,
+    };
+    shell = (
+      <PlanProvider plan={plan}>
+        <div className="flex min-h-screen flex-col bg-background pt-14">
+          <Suspense fallback={<AppHeader {...headerProps} />}>
+            <AppHeader {...headerProps} />
+          </Suspense>
+          <ViewTransition name="page-content">{children}</ViewTransition>
+          <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
+        </div>
+      </PlanProvider>
+    );
+  }
+
   return (
     <html lang={locale}>
       <body
@@ -59,9 +90,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SentryErrorBoundary>
             <RealtimeNotificationsProvider userId={user?.id ?? null}>
-              <ViewTransition name="page-content">
-                {children}
-              </ViewTransition>
+              {shell}
             </RealtimeNotificationsProvider>
           </SentryErrorBoundary>
           <Toaster position="bottom-right" richColors={false} />

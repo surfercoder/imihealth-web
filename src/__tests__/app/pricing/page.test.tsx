@@ -103,12 +103,9 @@ describe('PricingPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders the app header with doctor info for authenticated users', async () => {
+  it('skips the public header and renders the subscription section for authenticated users', async () => {
     mockGetAuthUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     render(await PricingPage())
-    const appHeader = screen.getByTestId('app-header')
-    expect(appHeader).toBeInTheDocument()
-    expect(appHeader).toHaveAttribute('data-doctor-name', 'Dr. Juan Pérez')
     expect(screen.queryByTestId('public-header')).not.toBeInTheDocument()
     expect(screen.getByTestId('pricing-cards')).toHaveAttribute('data-signed-in', 'true')
     expect(screen.getByTestId('subscription-section')).toBeInTheDocument()

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
@@ -7,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Clock, Home } from "lucide-react";
 import Link from "next/link";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/subscriptions";
 import { InformeEditor } from "@/components/informe-editor";
 import { PatientCard } from "@/components/informe-page/patient-card";
 import { InformeBreadcrumb } from "@/components/informe-page/informe-breadcrumb";
@@ -46,12 +42,11 @@ export default async function InformePage({ params, searchParams }: Props) {
 
   if (!user) redirect("/login");
 
-  const [supabase, t, { data: doctor }, locale, plan] = await Promise.all([
+  const [supabase, t, { data: doctor }, locale] = await Promise.all([
     createClient(),
     getTranslations(),
     getDoctor(user.id),
     getLocale(),
-    getPlanInfo(user.id),
   ]);
   /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
@@ -94,11 +89,7 @@ export default async function InformePage({ params, searchParams }: Props) {
   const doctorWhatsappPhone = normalizePhone(doctor?.phone);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
-      </Suspense>
-
+    <>
       <InformeBreadcrumb
         patient={patient}
         tab={tab}
@@ -172,8 +163,6 @@ export default async function InformePage({ params, searchParams }: Props) {
 
 
       </main>
-
-      <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
-    </div>
+    </>
   );
 }

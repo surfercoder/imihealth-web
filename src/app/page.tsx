@@ -4,13 +4,10 @@ import { createClient } from "@/utils/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { HomeWrapper } from "@/components/home-wrapper";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
 import { HomeTabs } from "@/components/home-tabs";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import type { PatientWithStats } from "@/actions/patients";
 import { getPlanInfo } from "@/actions/subscriptions";
-import { PlanProvider } from "@/contexts/plan-context";
 import { getDashboardChartData } from "@/actions/dashboard-charts";
 import { PublicLandingPage } from "@/components/public-landing-page";
 import { InformesTab } from "@/components/tabs/informes-tab";
@@ -110,37 +107,29 @@ export default async function HomePage({
   ]);
 
   return (
-    <PlanProvider plan={plan}>
-      <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
-        <div className="flex min-h-screen flex-col bg-background pt-14">
-          <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
-          <ReadOnlyBanner plan={plan} />
-
-          <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-            <HomeTabs
-              initialTab={activeTab}
-              translations={{
-                informes: t("tabs.informes"),
-                misPacientes: t("tabs.misPacientes"),
-                dashboard: t("tabs.dashboard"),
-              }}
-              informesContent={<InformesTab />}
-              patientsContent={
-                <Suspense fallback={<TabContentSkeleton variant="patients" />}>
-                  <PatientsTabServer userId={user.id} />
-                </Suspense>
-              }
-              dashboardContent={
-                <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
-                  <DashboardTabServer userId={user.id} plan={plan} />
-                </Suspense>
-              }
-            />
-          </main>
-
-          <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
-        </div>
-      </HomeWrapper>
-    </PlanProvider>
+    <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
+      <ReadOnlyBanner plan={plan} />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+        <HomeTabs
+          initialTab={activeTab}
+          translations={{
+            informes: t("tabs.informes"),
+            misPacientes: t("tabs.misPacientes"),
+            dashboard: t("tabs.dashboard"),
+          }}
+          informesContent={<InformesTab />}
+          patientsContent={
+            <Suspense fallback={<TabContentSkeleton variant="patients" />}>
+              <PatientsTabServer userId={user.id} />
+            </Suspense>
+          }
+          dashboardContent={
+            <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
+              <DashboardTabServer userId={user.id} plan={plan} />
+            </Suspense>
+          }
+        />
+      </main>
+    </HomeWrapper>
   );
 }

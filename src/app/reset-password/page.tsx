@@ -3,7 +3,6 @@ import { ResetPasswordForm } from "@/components/reset-password-form";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { AppHeader } from "@/components/app-header";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tMeta = await getTranslations("metadata");
@@ -26,8 +25,7 @@ export default async function ResetPasswordPage() {
   const t = await getTranslations("resetPasswordPage");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 pt-20">
-      <AppHeader />
+    <div className="flex flex-1 items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">

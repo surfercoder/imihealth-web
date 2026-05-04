@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAuthUser, getDoctor } from "@/lib/cached-queries";
 import { getPlanInfo } from "@/actions/subscriptions";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
 import { ProfileForm } from "@/components/profile-form";
 import { SubscriptionSection } from "@/components/subscription-section";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
@@ -39,10 +37,9 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader doctorName={doctor.name} doctorAvatar={doctor.avatar} plan={plan} />
+    <>
       <ReadOnlyBanner plan={plan} />
-      <main className="mx-auto max-w-3xl px-6 pb-24 pt-20">
+      <main className="mx-auto max-w-3xl flex-1 px-6 pb-24 pt-6">
         <div className="mb-6">
           <Link
             href="/"
@@ -65,7 +62,6 @@ export default async function ProfilePage() {
           <ProfileForm doctor={doctor} />
         </div>
       </main>
-      <AppFooter />
-    </div>
+    </>
   );
 }

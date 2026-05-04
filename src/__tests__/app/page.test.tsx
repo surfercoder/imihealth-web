@@ -203,24 +203,16 @@ describe('HomePage', () => {
     expect(mockRedirect).not.toHaveBeenCalled()
   })
 
-  it('renders the home page with app header and tabs', async () => {
+  it('renders the home page with tabs', async () => {
     setupMocks()
     render(await HomePage({ searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('app-header')).toHaveTextContent('Dr. Ana Garcia')
     expect(screen.getByTestId('home-tabs')).toBeInTheDocument()
   })
 
-  it('renders within PlanProvider and HomeWrapper', async () => {
+  it('renders within HomeWrapper', async () => {
     setupMocks()
     render(await HomePage({ searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('plan-provider')).toBeInTheDocument()
     expect(screen.getByTestId('home-wrapper')).toBeInTheDocument()
-  })
-
-  it('renders footer', async () => {
-    setupMocks()
-    render(await HomePage({ searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('app-footer')).toBeInTheDocument()
   })
 
   it('sets showWelcome=true when welcome param is "true"', async () => {

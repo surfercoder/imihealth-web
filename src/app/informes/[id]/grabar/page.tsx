@@ -2,16 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { getAuthUser, getDoctor } from "@/lib/cached-queries";
+import { getAuthUser } from "@/lib/cached-queries";
 import { AudioRecorder } from "@/components/audio-recorder";
 import { SentryErrorBoundary } from "@/components/sentry-error-boundary";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, Calendar } from "lucide-react";
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/subscriptions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tMeta = await getTranslations("metadata");
@@ -36,12 +33,10 @@ export default async function GrabarPage({ params, searchParams }: Props) {
 
   if (!user) redirect("/login");
 
-  const [supabase, t, { data: doctor }, locale, plan] = await Promise.all([
+  const [supabase, t, locale] = await Promise.all([
     createClient(),
     getTranslations(),
-    getDoctor(user.id),
     getLocale(),
-    getPlanInfo(user.id),
   ]);
   /* v8 ignore next */
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
@@ -87,11 +82,7 @@ export default async function GrabarPage({ params, searchParams }: Props) {
     : null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
-      </Suspense>
-
+    <>
       {!isQuickReport && patient && (
         <div className="border-b border-border/40">
           <div className="mx-auto flex h-11 max-w-3xl items-center gap-3 px-6">
@@ -177,8 +168,6 @@ export default async function GrabarPage({ params, searchParams }: Props) {
           </ol>
         </div>
       </main>
-
-      <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
-    </div>
+    </>
   );
 }

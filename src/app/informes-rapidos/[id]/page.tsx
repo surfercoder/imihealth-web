@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { getAuthUser, getDoctor } from "@/lib/cached-queries";
+import { getAuthUser } from "@/lib/cached-queries";
 import { getTranslations } from "next-intl/server";
 import { AlertCircle, ArrowLeft, Loader2, Mic } from "lucide-react";
 import Link from "next/link";
-import { AppHeader } from "@/components/app-header";
-import { AppFooter } from "@/components/app-footer";
-import { getPlanInfo } from "@/actions/subscriptions";
 import { Button } from "@/components/ui/button";
 import { QuickInformeResult } from "@/components/quick-informe-result";
 
@@ -37,25 +33,17 @@ export default async function InformeRapidoPage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const [{ data: doctor }, plan, { data: informe, error }] = await Promise.all([
-    getDoctor(user.id),
-    getPlanInfo(user.id),
-    supabase
-      .from("informes_rapidos")
-      .select("id, status, informe_doctor, created_at")
-      .eq("id", id)
-      .eq("doctor_id", user.id)
-      .single(),
-  ]);
+  const { data: informe, error } = await supabase
+    .from("informes_rapidos")
+    .select("id, status, informe_doctor, created_at")
+    .eq("id", id)
+    .eq("doctor_id", user.id)
+    .single();
 
   if (error || !informe) notFound();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-14">
-      <Suspense fallback={<AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />}>
-        <AppHeader doctorName={doctor?.name} doctorAvatar={doctor?.avatar} plan={plan} />
-      </Suspense>
-
+    <>
       <div className="border-b border-border/40">
         <div className="mx-auto flex h-11 max-w-3xl items-center gap-3 px-6">
           <Button
@@ -120,8 +108,6 @@ export default async function InformeRapidoPage({ params }: Props) {
           <QuickInformeResult informeId={informe.id} informe={informe.informe_doctor} />
         )}
       </main>
-
-      <AppFooter doctorName={doctor?.name} doctorEmail={user.email} />
-    </div>
+    </>
   );
 }

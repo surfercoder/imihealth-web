@@ -103,20 +103,6 @@ describe('QuickInformePage', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/login')
   })
 
-  it('renders the app header with doctor name', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: { name: 'Dr. López' }, error: null }))
-    render(await QuickInformePage())
-    expect(screen.getByTestId('app-header')).toHaveTextContent('Dr. López')
-  })
-
-  it('renders the app header when doctor is null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: null, error: null }))
-    render(await QuickInformePage())
-    expect(screen.getByTestId('app-header')).toBeInTheDocument()
-  })
-
   it('renders the AudioRecorder with isQuickReport=true', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     mockFrom.mockReturnValue(makeChain({ data: { name: 'Dr. López' }, error: null }))
@@ -138,13 +124,6 @@ describe('QuickInformePage', () => {
     render(await QuickInformePage())
     const homeLink = screen.getByRole('link')
     expect(homeLink).toHaveAttribute('href', '/')
-  })
-
-  it('renders the app footer with doctor name and email', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: { name: 'Dr. López' }, error: null }))
-    render(await QuickInformePage())
-    expect(screen.getByTestId('app-footer')).toHaveTextContent('Dr. López')
   })
 
   it('renders how-it-works steps', async () => {

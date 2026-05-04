@@ -325,13 +325,6 @@ describe('PatientPage', () => {
     expect(screen.getByText('2 consultas')).toBeInTheDocument()
   })
 
-  it('renders footer', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    setupMocks(basePatient)
-    render(await PatientPage({ params: Promise.resolve({ id: 'p-1' }), searchParams: Promise.resolve({}) }))
-    expect(screen.getByTestId('app-footer')).toBeInTheDocument()
-  })
-
   it('decrements age when birthday has not yet occurred this year', async () => {
     jest.useFakeTimers({ now: new Date('2025-06-10T12:00:00Z').getTime() })
     try {

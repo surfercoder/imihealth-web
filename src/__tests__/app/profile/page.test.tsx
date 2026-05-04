@@ -117,25 +117,11 @@ describe('ProfilePage', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/')
   })
 
-  it('renders the app header with doctor name', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: baseDoctor, error: null }))
-    render(await ProfilePage())
-    expect(screen.getByTestId('app-header')).toHaveTextContent('Dr. Ana García')
-  })
-
   it('renders the ProfileForm component with doctor data', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     mockFrom.mockReturnValue(makeChain({ data: baseDoctor, error: null }))
     render(await ProfilePage())
     expect(screen.getByTestId('profile-form')).toHaveTextContent('Dr. Ana García')
-  })
-
-  it('renders the app footer', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: mockUser } })
-    mockFrom.mockReturnValue(makeChain({ data: baseDoctor, error: null }))
-    render(await ProfilePage())
-    expect(screen.getByTestId('app-footer')).toBeInTheDocument()
   })
 
   it('renders back link to home (/)', async () => {
