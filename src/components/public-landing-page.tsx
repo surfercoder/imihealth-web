@@ -32,20 +32,20 @@ export async function PublicLandingPage() {
       <PublicHeader useBotIcon />
 
       <main className="flex-1">
-        <section className="mx-auto max-w-5xl px-6 py-20 text-center">
+        <section className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-5xl flex-col items-center justify-center px-6 py-16 text-center">
           <div className="mx-auto max-w-5xl">
             <Image
               src={imihealthLogo}
               alt={tAlt("logo")}
-              width={320}
-              className="mx-auto mb-6 h-auto w-[260px] sm:w-[320px] mix-blend-multiply"
+              width={640}
+              className="mx-auto mb-14 h-auto w-[320px] sm:w-[480px] lg:w-[560px] mix-blend-multiply"
               priority
             />
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               {t("heroTitle")}
             </h1>
-            <p className="mt-4 text-lg text-foreground/60">{t("heroSubtitle")}</p>
-            <div className="mt-8 flex items-center justify-center gap-3">
+            <p className="mt-6 text-lg text-foreground/60 sm:text-xl">{t("heroSubtitle")}</p>
+            <div className="mt-10 flex items-center justify-center gap-3">
               <Button size="lg" asChild>
                 <Link href="/pricing">{t("getStarted")}</Link>
               </Button>
