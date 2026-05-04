@@ -97,6 +97,22 @@ describe('MarkdownEditor', () => {
     expect(onChange).toHaveBeenCalledWith('new-md')
   })
 
+  it('strips hard-break backslashes before forwarding markdown to onChange', () => {
+    const onChange = jest.fn()
+    render(<MarkdownEditor value="" onChange={onChange} />)
+    editorState.markdownOut = 'line one\\\nline two\\\nline three'
+    lastConfig?.onUpdate({ editor: fakeEditor })
+    expect(onChange).toHaveBeenCalledWith('line one\nline two\nline three')
+  })
+
+  it('strips a trailing backslash with no following newline', () => {
+    const onChange = jest.fn()
+    render(<MarkdownEditor value="" onChange={onChange} />)
+    editorState.markdownOut = 'final line\\'
+    lastConfig?.onUpdate({ editor: fakeEditor })
+    expect(onChange).toHaveBeenCalledWith('final line')
+  })
+
   it('disables the editor when disabled flips to true after mount', () => {
     editorState.isEditable = true
     const { rerender } = render(<MarkdownEditor value="" onChange={() => {}} disabled={false} />)

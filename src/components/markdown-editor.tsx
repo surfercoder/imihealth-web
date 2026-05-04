@@ -46,7 +46,8 @@ export function MarkdownEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      onChange(editor.storage.markdown.getMarkdown());
+      const md = editor.storage.markdown.getMarkdown();
+      onChange(md.replace(/\\\n/g, "\n").replace(/\\$/g, ""));
     },
   });
 

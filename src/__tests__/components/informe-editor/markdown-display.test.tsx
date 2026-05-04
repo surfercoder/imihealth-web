@@ -34,4 +34,10 @@ describe('MarkdownDisplay', () => {
     render(<MarkdownDisplay text="*italic* and **bold**" />)
     expect(screen.getByText('italic and bold')).toBeInTheDocument()
   })
+
+  it('strips trailing hard-break backslashes from each line', () => {
+    render(<MarkdownDisplay text={"DATOS DEL ENCUENTRO\\\nSegunda línea\\"} />)
+    expect(screen.getByText('DATOS DEL ENCUENTRO')).toBeInTheDocument()
+    expect(screen.getByText('Segunda línea')).toBeInTheDocument()
+  })
 })

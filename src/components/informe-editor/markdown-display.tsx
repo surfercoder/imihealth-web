@@ -28,6 +28,7 @@ export function MarkdownDisplay({ text }: { text: string }) {
           .replace(/^#+\s*/, "")
           .replace(/\*\*/g, "")
           .replace(/\*/g, "")
+          .replace(/\\$/, "")
           .trim();
 
         if (isHeader) {
