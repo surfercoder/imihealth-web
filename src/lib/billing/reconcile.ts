@@ -160,42 +160,13 @@ export async function reconcilePreapproval(
   const preapproval = await getPreapproval(preapprovalId);
   const admin = createServiceClient();
 
-  // MP's plan-based subscription checkout drops external_reference, so
-  // /billing/return passes a refOverride read from our signed cookie. The
-  // webhook has no cookie context, but on a brand-new preapproval it doesn't
-  // need one: /billing/return runs first in the happy path and links the row
-  // by mp_preapproval_id, after which subsequent webhook events resolve via
-  // the subByPreapproval branch below.
-  const ref = preapproval.external_reference || options.refOverride || null;
-  if (!ref) {
-    console.warn(
-      `[reconcile] preapproval ${preapprovalId} has no external_reference and no refOverride; skipping`,
-    );
-    return { kind: "no-ref" };
-  }
-
-  // Path A: external_reference points at a staged signup awaiting payment.
-  const { data: pending } = await admin
-    .from("pending_signups")
-    .select("id, email, encrypted_password, signup_data")
-    .eq("id", ref)
-    .maybeSingle<PendingSignupRow>();
-
-  if (pending) {
-    if (preapproval.status === "authorized") {
-      const userId = await materializePendingSignup(pending, preapproval);
-      return { kind: "materialized", userId, pendingSignupId: pending.id };
-    }
-    if (preapproval.status === "cancelled") {
-      await admin.from("pending_signups").delete().eq("id", pending.id);
-      return { kind: "pending-signup-cancelled", pendingSignupId: pending.id };
-    }
-    return { kind: "pending-signup-waiting", pendingSignupId: pending.id };
-  }
-
-  // Path B: webhook replay after materialization, OR existing-user upgrade,
-  // OR a plan-switch (monthly ↔ yearly). The subscription row carries the
-  // current mp_preapproval_id, so we use that to disambiguate.
+  // Path A: do we already know this preapproval? Once /billing/return has
+  // linked the row, every subsequent webhook event (cancel from MP portal,
+  // recurring charge follow-up, plan switch) finds the user via
+  // mp_preapproval_id alone — no ref needed. MP's plan-based subscription
+  // checkout drops external_reference, so this is also the only branch that
+  // resolves MP-portal cancellations: without it, the cancel webhook arrives
+  // with an empty external_reference and our DB never flips to cancelled.
   const { data: subByPreapproval } = await admin
     .from("subscriptions")
     .select("user_id")
@@ -226,10 +197,42 @@ export async function reconcilePreapproval(
     };
   }
 
-  // No row matches by preapproval id — fall back to the external_reference,
-  // which is the user.id for existing-user checkouts. Every doctor has a
-  // subscription row (the on_auth_user_created trigger creates a free one),
-  // so subByUser is expected to be present in production.
+  // Otherwise we need a ref. /billing/return passes one from a signed cookie;
+  // the webhook only has external_reference, which MP drops for plan-based
+  // subscriptions. The first-ever webhook for a brand-new preapproval bails
+  // here — that's OK: /billing/return runs first in the happy path and links
+  // the row, so the cancel/replay branch above handles everything after that.
+  const ref = preapproval.external_reference || options.refOverride || null;
+  if (!ref) {
+    console.warn(
+      `[reconcile] preapproval ${preapprovalId} has no external_reference, no refOverride, and no matching row; skipping`,
+    );
+    return { kind: "no-ref" };
+  }
+
+  // Path B: external_reference points at a staged signup awaiting payment.
+  const { data: pending } = await admin
+    .from("pending_signups")
+    .select("id, email, encrypted_password, signup_data")
+    .eq("id", ref)
+    .maybeSingle<PendingSignupRow>();
+
+  if (pending) {
+    if (preapproval.status === "authorized") {
+      const userId = await materializePendingSignup(pending, preapproval);
+      return { kind: "materialized", userId, pendingSignupId: pending.id };
+    }
+    if (preapproval.status === "cancelled") {
+      await admin.from("pending_signups").delete().eq("id", pending.id);
+      return { kind: "pending-signup-cancelled", pendingSignupId: pending.id };
+    }
+    return { kind: "pending-signup-waiting", pendingSignupId: pending.id };
+  }
+
+  // Path C: existing-user first-time link via external_reference=user.id.
+  // Every doctor has a subscription row (the on_auth_user_created trigger
+  // creates a free one), so subByUser is expected to be present in
+  // production.
   const { data: subByUser } = await admin
     .from("subscriptions")
     .select("user_id, mp_preapproval_id")

@@ -274,7 +274,7 @@ describe('POST /api/webhooks/mercadopago', () => {
       expect(subscriptionsUpsert.mock.calls[0][0].status).toBe('pending')
     })
 
-    it('skips when preapproval has no external_reference', async () => {
+    it('skips when preapproval has no external_reference and no matching subscription row', async () => {
       const { subscriptionsUpsert } = setupAdminTables()
       mockGetPreapproval.mockResolvedValue({
         id: 'pre-orphan',
@@ -294,6 +294,41 @@ describe('POST /api/webhooks/mercadopago', () => {
       expect(res.status).toBe(200)
       expect(subscriptionsUpsert).not.toHaveBeenCalled()
       warn.mockRestore()
+    })
+
+    it('flips status to cancelled when MP-portal cancellation arrives with no external_reference (resolved via mp_preapproval_id)', async () => {
+      // Doctor cancels directly from MP's portal: MP fires the cancel webhook
+      // with external_reference='' (plan-based subscriptions never carry it).
+      // The subByPreapproval lookup is the ONLY thing that links this back to
+      // our user — without it, the doctor would silently keep Pro for free.
+      const { subscriptionsUpsert } = setupAdminTables({
+        subscriptionRow: { user_id: 'mp-portal-canceller' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-mp-portal',
+        external_reference: '',
+        status: 'cancelled',
+        payer_id: 99,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-mp-portal',
+          body: { type: 'subscription_preapproval', data: { id: 'pre-mp-portal' } },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'mp-portal-canceller',
+          status: 'cancelled',
+          mp_preapproval_id: 'pre-mp-portal',
+        }),
+        expect.any(Object),
+      )
+      const arg = subscriptionsUpsert.mock.calls[0][0]
+      expect(arg.cancelled_at).toBeTruthy()
     })
 
     it('uses user_id from subscription when preapproval webhook is replayed after materialization', async () => {
