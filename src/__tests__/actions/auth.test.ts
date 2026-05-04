@@ -36,32 +36,80 @@ jest.mock('@/utils/supabase/admin', () => ({
   createAdminClient: (...args: unknown[]) => mockCreateAdminClient(...args),
 }))
 
-const mockStartProCheckout = jest.fn()
+const mockStartProCheckoutForPendingSignup = jest.fn()
 jest.mock('@/actions/subscriptions', () => ({
-  startProCheckout: (...args: unknown[]) => mockStartProCheckout(...args),
+  startProCheckoutForPendingSignup: (...args: unknown[]) =>
+    mockStartProCheckoutForPendingSignup(...args),
+}))
+
+const mockEncryptPassword = jest.fn()
+jest.mock('@/lib/signup-password-crypto', () => ({
+  encryptPassword: (...args: unknown[]) => mockEncryptPassword(...args),
 }))
 
 import { login, signup, forgotPassword, resetPassword, logout } from '@/actions/auth'
 
 interface AdminMocks {
-  doctorsCount: number
   doctorsUpdate: jest.Mock
+  doctorByEmail: { id: string } | null
+  pendingInsertResult: {
+    data: { id: string } | null
+    error: { message: string } | null
+  }
+  pendingDeleteByEmail: jest.Mock
+  pendingDeleteById: jest.Mock
+  pendingInsert: jest.Mock
 }
 
 function setupAdmin(overrides: Partial<AdminMocks> = {}): AdminMocks {
   const m: AdminMocks = {
-    doctorsCount: 0,
     doctorsUpdate: jest.fn(() => ({
       eq: jest.fn().mockResolvedValue({ error: null }),
     })),
+    doctorByEmail: null,
+    pendingInsertResult: { data: { id: 'pending-1' }, error: null },
+    pendingDeleteByEmail: jest.fn(() => ({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    })),
+    pendingDeleteById: jest.fn(() => ({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    })),
+    pendingInsert: jest.fn(),
     ...overrides,
   }
+
+  m.pendingInsert.mockReturnValue({
+    select: jest.fn(() => ({
+      single: jest.fn().mockResolvedValue(m.pendingInsertResult),
+    })),
+  })
 
   const adminFrom = jest.fn((table: string) => {
     if (table === 'doctors') {
       return {
-        select: jest.fn(() => Promise.resolve({ count: m.doctorsCount })),
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest
+              .fn()
+              .mockResolvedValue({ data: m.doctorByEmail }),
+          })),
+        })),
         update: m.doctorsUpdate,
+      }
+    }
+    if (table === 'pending_signups') {
+      // Two delete shapes are used by the action: by email (pre-insert
+      // cleanup) and by id (rollback after a failed checkout).
+      const deleteFn = jest.fn(() => ({
+        eq: jest.fn((col: string, _val: unknown) =>
+          col === 'email'
+            ? m.pendingDeleteByEmail().eq(col, _val)
+            : m.pendingDeleteById().eq(col, _val),
+        ),
+      }))
+      return {
+        delete: deleteFn,
+        insert: m.pendingInsert,
       }
     }
     throw new Error(`unexpected table ${table}`)
@@ -121,13 +169,14 @@ describe('signup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHeadersGet.mockReturnValue('http://localhost:3001')
-    mockStartProCheckout.mockResolvedValue({
+    mockStartProCheckoutForPendingSignup.mockResolvedValue({
       initPoint: 'https://mp.example/checkout/xyz',
     })
     mockSignUp.mockResolvedValue({
       data: { user: { id: 'new-user-id' } },
       error: null,
     })
+    mockEncryptPassword.mockReturnValue('enc::password')
   })
 
   function validForm(): FormData {
@@ -165,121 +214,163 @@ describe('signup', () => {
     expect(result).toEqual({ error: 'Las contraseñas no coinciden' })
   })
 
-  it('rejects with the friendly already-exists message when signUp says so', async () => {
-    setupAdmin()
-    mockSignUp.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'User already registered' },
+  describe('free plan path', () => {
+    it('rejects with the friendly already-exists message when signUp says so', async () => {
+      setupAdmin()
+      mockSignUp.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'User already registered' },
+      })
+      const result = await signup(null, validForm())
+      expect(result).toEqual({ error: 'Ya existe una cuenta con ese email.' })
+      expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
     })
-    const result = await signup(null, validForm())
-    expect(result).toEqual({ error: 'Ya existe una cuenta con ese email.' })
-    expect(mockStartProCheckout).not.toHaveBeenCalled()
-  })
 
-  it('returns a generic error when signUp fails for an unknown reason', async () => {
-    setupAdmin()
-    mockSignUp.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Network glitch' },
+    it('returns a generic error when signUp fails for an unknown reason', async () => {
+      setupAdmin()
+      mockSignUp.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Network glitch' },
+      })
+      const result = await signup(null, validForm())
+      expect(result).toEqual({
+        error: 'No se pudo crear la cuenta. Intentá nuevamente.',
+      })
     })
-    const result = await signup(null, validForm())
-    expect(result).toEqual({
-      error: 'No se pudo crear la cuenta. Intentá nuevamente.',
+
+    it('defaults to the free plan and skips MercadoPago when no plan is provided', async () => {
+      setupAdmin()
+      const result = await signup(null, validForm())
+      expect(result).toEqual({ success: true })
+      expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
+      expect(mockSignUp).toHaveBeenCalled()
     })
-  })
 
-  it('defaults to the free plan and skips MercadoPago when no plan is provided', async () => {
-    setupAdmin()
-    const result = await signup(null, validForm())
-    expect(result).toEqual({ success: true })
-    expect(mockStartProCheckout).not.toHaveBeenCalled()
-  })
-
-  it('skips MercadoPago when plan is explicitly free', async () => {
-    setupAdmin()
-    const fd = validForm()
-    fd.set('plan', 'free')
-    const result = await signup(null, fd)
-    expect(result).toEqual({ success: true })
-    expect(mockStartProCheckout).not.toHaveBeenCalled()
-  })
-
-  it('returns initPoint when plan is pro_monthly', async () => {
-    setupAdmin()
-    const fd = validForm()
-    fd.set('plan', 'pro_monthly')
-    const result = await signup(null, fd)
-    expect(result).toEqual({
-      success: true,
-      initPoint: 'https://mp.example/checkout/xyz',
+    it('skips MercadoPago when plan is explicitly free', async () => {
+      setupAdmin()
+      const fd = validForm()
+      fd.set('plan', 'free')
+      const result = await signup(null, fd)
+      expect(result).toEqual({ success: true })
+      expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
     })
-    expect(mockStartProCheckout).toHaveBeenCalledWith('pro_monthly', 'new-user-id')
-  })
 
-  it('passes pro_yearly when plan field is pro_yearly', async () => {
-    setupAdmin()
-    const fd = validForm()
-    fd.set('plan', 'pro_yearly')
-    await signup(null, fd)
-    expect(mockStartProCheckout).toHaveBeenCalledWith('pro_yearly', 'new-user-id')
-  })
-
-  it('patches doctor extras (firma, avatar, tagline) onto the auto-created doctor row', async () => {
-    const m = setupAdmin()
-    const fd = validForm()
-    fd.set('firmaDigital', 'data:image/png;base64,sig')
-    fd.set('avatar', 'data:image/jpeg;base64,av')
-    fd.set('tagline', 'For your heart')
-    await signup(null, fd)
-    expect(m.doctorsUpdate).toHaveBeenCalledWith({
-      firma_digital: 'data:image/png;base64,sig',
-      avatar: 'data:image/jpeg;base64,av',
-      tagline: 'For your heart',
+    it('patches doctor extras (firma, avatar, tagline) onto the auto-created doctor row', async () => {
+      const m = setupAdmin()
+      const fd = validForm()
+      fd.set('firmaDigital', 'data:image/png;base64,sig')
+      fd.set('avatar', 'data:image/jpeg;base64,av')
+      fd.set('tagline', 'For your heart')
+      await signup(null, fd)
+      expect(m.doctorsUpdate).toHaveBeenCalledWith({
+        firma_digital: 'data:image/png;base64,sig',
+        avatar: 'data:image/jpeg;base64,av',
+        tagline: 'For your heart',
+      })
     })
-  })
 
-  it('skips the doctor patch when no optional extras are provided', async () => {
-    const m = setupAdmin()
-    await signup(null, validForm())
-    expect(m.doctorsUpdate).not.toHaveBeenCalled()
-  })
-
-  it('surfaces the checkout error when MP fails after the user is created', async () => {
-    setupAdmin()
-    mockStartProCheckout.mockResolvedValue({ error: 'mp down' })
-    const fd = validForm()
-    fd.set('plan', 'pro_monthly')
-    const result = await signup(null, fd)
-    expect(result).toEqual({ error: 'mp down' })
-    // The user is already created — we don't roll anything back.
-    expect(mockSignUp).toHaveBeenCalled()
-  })
-
-  it('falls back to a generic message when checkout returns neither error nor initPoint', async () => {
-    setupAdmin()
-    mockStartProCheckout.mockResolvedValue({})
-    const fd = validForm()
-    fd.set('plan', 'pro_monthly')
-    const result = await signup(null, fd)
-    expect(result).toEqual({
-      error:
-        'Tu cuenta fue creada pero no pudimos iniciar el pago. Probá desde Precios después de verificar tu email.',
-    })
-  })
-
-  it('uses an empty appUrl when NEXT_PUBLIC_APP_URL is unset', async () => {
-    setupAdmin()
-    const original = process.env.NEXT_PUBLIC_APP_URL
-    delete process.env.NEXT_PUBLIC_APP_URL
-    try {
+    it('skips the doctor patch when no optional extras are provided', async () => {
+      const m = setupAdmin()
       await signup(null, validForm())
-    } finally {
-      if (original !== undefined) process.env.NEXT_PUBLIC_APP_URL = original
-    }
-    const call = mockSignUp.mock.calls[0][0]
-    expect(call.options.emailRedirectTo).toBe(
-      '/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
-    )
+      expect(m.doctorsUpdate).not.toHaveBeenCalled()
+    })
+
+    it('uses an empty appUrl when NEXT_PUBLIC_APP_URL is unset', async () => {
+      setupAdmin()
+      const original = process.env.NEXT_PUBLIC_APP_URL
+      delete process.env.NEXT_PUBLIC_APP_URL
+      try {
+        await signup(null, validForm())
+      } finally {
+        if (original !== undefined) process.env.NEXT_PUBLIC_APP_URL = original
+      }
+      const call = mockSignUp.mock.calls[0][0]
+      expect(call.options.emailRedirectTo).toBe(
+        '/auth/confirm?next=%2F%3Fwelcome%3Dtrue',
+      )
+    })
+  })
+
+  describe('pro plan path (deferred until payment)', () => {
+    it('does NOT create the auth user; stages a pending_signups row and starts checkout', async () => {
+      setupAdmin()
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      fd.set('name', 'Dr. Test')
+      const result = await signup(null, fd)
+      expect(result).toEqual({
+        success: true,
+        initPoint: 'https://mp.example/checkout/xyz',
+      })
+      expect(mockSignUp).not.toHaveBeenCalled()
+      expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
+        'pending-1',
+        'pro_monthly',
+      )
+      expect(mockEncryptPassword).toHaveBeenCalledWith('P@ssw0rd1!')
+    })
+
+    it('passes pro_yearly through to the pending-signup checkout', async () => {
+      setupAdmin()
+      const fd = validForm()
+      fd.set('plan', 'pro_yearly')
+      await signup(null, fd)
+      expect(mockStartProCheckoutForPendingSignup).toHaveBeenCalledWith(
+        'pending-1',
+        'pro_yearly',
+      )
+    })
+
+    it('rejects when the email already maps to a real doctor', async () => {
+      setupAdmin({ doctorByEmail: { id: 'existing-doc' } })
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      const result = await signup(null, fd)
+      expect(result).toEqual({ error: 'Ya existe una cuenta con ese email.' })
+      expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
+    })
+
+    it('clears any abandoned pending_signups row for the same email before inserting', async () => {
+      const m = setupAdmin()
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      await signup(null, fd)
+      expect(m.pendingDeleteByEmail).toHaveBeenCalled()
+    })
+
+    it('returns a friendly error when the pending insert fails', async () => {
+      setupAdmin({
+        pendingInsertResult: { data: null, error: { message: 'pg down' } },
+      })
+      const errSpy = jest.spyOn(console, 'error').mockImplementation()
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      const result = await signup(null, fd)
+      expect(result).toEqual({
+        error: 'No se pudo iniciar el registro. Intentá nuevamente.',
+      })
+      expect(mockStartProCheckoutForPendingSignup).not.toHaveBeenCalled()
+      errSpy.mockRestore()
+    })
+
+    it('rolls back the staged pending row when checkout fails', async () => {
+      const m = setupAdmin()
+      mockStartProCheckoutForPendingSignup.mockResolvedValue({ error: 'mp down' })
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      const result = await signup(null, fd)
+      expect(result).toEqual({ error: 'mp down' })
+      expect(m.pendingDeleteById).toHaveBeenCalled()
+    })
+
+    it('falls back to a generic message when checkout returns neither error nor initPoint', async () => {
+      setupAdmin()
+      mockStartProCheckoutForPendingSignup.mockResolvedValue({})
+      const fd = validForm()
+      fd.set('plan', 'pro_monthly')
+      const result = await signup(null, fd)
+      expect(result).toEqual({ error: 'No se pudo iniciar el pago.' })
+    })
   })
 })
 

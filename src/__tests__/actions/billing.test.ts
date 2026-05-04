@@ -21,6 +21,7 @@ import { submitEnterpriseLead } from '@/actions/enterprise-leads'
 import {
   createCheckout,
   startProCheckout,
+  startProCheckoutForPendingSignup,
   cancelSubscription,
   getCurrentArsPrice,
 } from '@/actions/subscriptions'
@@ -218,6 +219,69 @@ describe('startProCheckout', () => {
     adminMaybeSingle({ data: { plan: 'free', status: 'active' } })
     const result = await startProCheckout('pro_monthly', 'user-1')
     expect(result.initPoint).toBe('https://mp.example/checkout/abc')
+  })
+})
+
+describe('startProCheckoutForPendingSignup', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setBillingEnv()
+    mockCreatePreapproval.mockResolvedValue({
+      id: 'mp-pre-pending',
+      init_point: 'https://mp.example/checkout/pending',
+    })
+  })
+
+  it('returns config error when NEXT_PUBLIC_APP_URL is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL
+    const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
+    expect(result.error).toMatch(/no está configurada/i)
+    expect(mockCreatePreapproval).not.toHaveBeenCalled()
+  })
+
+  it('uses the pending-signup id as external_reference', async () => {
+    const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
+    expect(result.initPoint).toBe('https://mp.example/checkout/pending')
+    expect(mockCreatePreapproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        external_reference: 'pending-1',
+        back_url: 'https://example.com/billing/return',
+        status: 'pending',
+        auto_recurring: expect.objectContaining({
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: 15,
+          currency_id: 'ARS',
+        }),
+      }),
+      expect.any(String),
+    )
+  })
+
+  it('does NOT touch the subscriptions table — there is no user yet', async () => {
+    await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
+    expect(mockAdminFrom).not.toHaveBeenCalled()
+  })
+
+  it('passes pro_yearly through with the yearly amount and frequency', async () => {
+    await startProCheckoutForPendingSignup('pending-1', 'pro_yearly')
+    expect(mockCreatePreapproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        auto_recurring: expect.objectContaining({
+          frequency: 12,
+          transaction_amount: 75,
+        }),
+      }),
+      expect.any(String),
+    )
+  })
+
+  it('returns user-facing error when MP createPreapproval fails', async () => {
+    mockCreatePreapproval.mockRejectedValue(new Error('boom'))
+    const errSpy = jest.spyOn(console, 'error').mockImplementation()
+    const result = await startProCheckoutForPendingSignup('pending-1', 'pro_monthly')
+    expect(result.error).toMatch(/no se pudo iniciar/i)
+    errSpy.mockRestore()
   })
 })
 

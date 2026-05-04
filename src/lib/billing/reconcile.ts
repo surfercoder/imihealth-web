@@ -91,6 +91,10 @@ async function materializePendingSignup(
   // Use the anon client so signUp() triggers Supabase's confirmation email —
   // admin.createUser would create the user silently. Sign-up emails are only
   // sent after payment is authorized, so abandoned signups never get one.
+  // Concurrent calls (webhook vs /billing/return) are safe: the email is
+  // unique in auth.users, so the second signUp throws "already registered".
+  // That bubbles up as a 500 (MP retries the webhook) or as the polling
+  // fallback on /billing/return — both converge to the materialized state.
   const anon = createAnonClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,

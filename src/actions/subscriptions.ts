@@ -10,6 +10,7 @@ export { getPlanInfo } from "./subscriptions/get-plan-info";
 export { cancelSubscription } from "./subscriptions/cancel-subscription";
 export {
   startProCheckout,
+  startProCheckoutForPendingSignup,
   createCheckout,
   getCurrentArsPrice,
 } from "./subscriptions/checkout";

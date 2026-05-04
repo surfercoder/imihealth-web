@@ -1,52 +1,44 @@
-function trimAtSectionBreak(raw: string): string {
-  const cleaned = raw.replace(/\*+/g, "").trim();
-  const sectionBreak = cleaned.search(/[)\s.][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+:/);
-  if (sectionBreak > 0) {
-    return cleaned.slice(0, sectionBreak + 1).trim();
-  }
-  return cleaned;
+function cleanLine(s: string): string {
+  return s.replace(/\*+/g, "").replace(/\\+\s*$/, "").trim();
 }
+
+function trimAtInlineSectionBreak(raw: string): string {
+  const sectionBreak = raw.search(/[)\s.][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+:/);
+  if (sectionBreak > 0) {
+    return raw.slice(0, sectionBreak + 1).trim();
+  }
+  return raw.trim();
+}
+
+const SECTION_HEADER_REGEX = /^[A-ZÁÉÍÓÚÑ][^:]*:\s*$/;
+const HEADER_REGEX = /^diagn[oó]stico\s+presuntivo\s*:?\s*(.*)$/i;
 
 export function extractDiagnosticoPresuntivo(text: string | null): string | null {
   if (!text) return null;
   const lines = text.split("\n");
 
-  for (const line of lines) {
-    const trimmed = line.trim().replace(/\*+/g, "").trim();
-    const inlineMatch = trimmed.match(/diagn[oó]stico\s+presuntivo\s*:\s*(.+)/i);
-    if (inlineMatch && inlineMatch[1].trim()) {
-      const content = inlineMatch[1].trim();
-      // CIE-10 wrapped in parens is an annotation on the diagnosis — keep the whole line.
-      if (/\([^)]*CIE-10[^)]*\)/i.test(content)) {
-        return content;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = cleanLine(lines[i]);
+    const headerMatch = trimmed.match(HEADER_REGEX);
+    if (!headerMatch) continue;
+
+    const inline = trimAtInlineSectionBreak(headerMatch[1]);
+    if (inline) return inline;
+
+    const collected: string[] = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = cleanLine(lines[j]);
+      if (!next) {
+        if (collected.length === 0) continue;
+        break;
       }
-      // CIE-10 appearing standalone (after a period/space) takes precedence.
-      const cieInContent = content.match(/CIE-10[^\n]*/i);
-      if (cieInContent) {
-        return trimAtSectionBreak(cieInContent[0]);
-      }
-      return content;
+      if (SECTION_HEADER_REGEX.test(next)) break;
+      const stripped = next.replace(/^[-•*]\s*/, "").replace(/^\d+\.\s*/, "");
+      collected.push(trimAtInlineSectionBreak(stripped));
     }
+
+    if (collected.length > 0) return collected.join(". ");
   }
 
-  const cieMatch = text.match(/CIE-10[^\n]*/i);
-  if (cieMatch) {
-    return trimAtSectionBreak(cieMatch[0]);
-  }
-
-  for (const line of lines) {
-    const trimmed = line.trim().replace(/\*+/g, "").trim();
-    if (/diagn[oó]stico\s+presuntivo/i.test(trimmed)) {
-      const idx = lines.indexOf(line);
-      const result: string[] = [];
-      for (let i = idx + 1; i < lines.length; i++) {
-        const next = lines[i].trim().replace(/\*+/g, "").trim();
-        if (!next && result.length === 0) continue;
-        if (!next || next.endsWith(":") || next.startsWith("**")) break;
-        result.push(next.replace(/^-\s*/, ""));
-      }
-      if (result.length > 0) return result.join(". ");
-    }
-  }
   return null;
 }

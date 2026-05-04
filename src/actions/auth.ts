@@ -12,7 +12,11 @@ import {
   resetPasswordSchema,
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
-import { startProCheckout, type ProPlanTier } from "@/actions/subscriptions";
+import {
+  startProCheckoutForPendingSignup,
+  type ProPlanTier,
+} from "@/actions/subscriptions";
+import { encryptPassword } from "@/lib/signup-password-crypto";
 
 export async function login(
   _prevState: ActionResult | null,
@@ -38,14 +42,16 @@ export async function login(
   redirect("/?welcome=true");
 }
 
-// Signup creates the auth user up-front and, for paid plans, sends them to
-// MercadoPago for the Pro checkout. Free-plan signups stop after auth user
-// creation — the on_auth_user_created_subscription trigger seeds a free
-// subscription row automatically. We deliberately do NOT block account
-// creation on payment success: a doctor who bails mid-checkout still has a
-// verified free-tier account, and the worst case is a dangling free user —
-// strictly preferable to the previous "pending signup never materializes"
-// failure mode where the user paid but no auth record was created.
+// Free signups create the auth user (and, via DB triggers, the doctor +
+// free subscription) up-front, then Supabase sends the confirmation email.
+//
+// Pro signups are deferred: nothing real exists until MercadoPago confirms
+// payment. We stage the form into pending_signups (password encrypted at
+// rest) and hand the user off to MP. The MP webhook — and /billing/return
+// as a backup path — runs reconcilePreapproval → materializePendingSignup
+// on `authorized`, which calls supabase.auth.signUp() (creating the
+// doctor + subscription via triggers) and triggers the confirmation email.
+// A doctor who abandons checkout never gets an auth record or an email.
 export async function signup(
   _prevState: ActionResult | null,
   formData: FormData
@@ -81,6 +87,30 @@ export async function signup(
         ? "pro_monthly"
         : "free";
 
+  if (plan === "free") {
+    return signupFree(parsed.data, admin);
+  }
+
+  return signupPro(parsed.data, plan, admin);
+}
+
+type SignupParsed = {
+  name?: string;
+  email: string;
+  password: string;
+  dni?: string;
+  matricula: string;
+  phone: string;
+  especialidad: string;
+  tagline?: string;
+  firmaDigital?: string;
+  avatar?: string;
+};
+
+async function signupFree(
+  data: SignupParsed,
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<ActionResult> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   // Use the cookie-aware SSR client so signup runs in the PKCE flow. PKCE
   // is what makes Supabase send `?code=…` in the confirmation email link
@@ -90,21 +120,19 @@ export async function signup(
   // /auth/auth-error even though Supabase has confirmed the account.
   const supabase = await createClient();
   const { data: signUp, error: signUpErr } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
+    email: data.email,
+    password: data.password,
     options: {
-      // Send the doctor through email confirmation; the dashboard route
-      // welcomes them on first arrival.
       emailRedirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent("/?welcome=true")}`,
       // The on_auth_user_created trigger reads these to populate the doctor
       // row. Optional extras (firma, avatar, tagline) don't fit raw metadata,
       // so we patch them in below.
       data: {
-        name: parsed.data.name ?? "",
-        dni: parsed.data.dni ?? null,
-        matricula: parsed.data.matricula,
-        phone: parsed.data.phone,
-        especialidad: parsed.data.especialidad,
+        name: data.name ?? "",
+        dni: data.dni ?? null,
+        matricula: data.matricula,
+        phone: data.phone,
+        especialidad: data.especialidad,
       },
     },
   });
@@ -120,29 +148,64 @@ export async function signup(
   const userId = signUp.user.id;
 
   const docUpdates: Record<string, string> = {};
-  if (parsed.data.firmaDigital) docUpdates.firma_digital = parsed.data.firmaDigital;
-  if (parsed.data.avatar) docUpdates.avatar = parsed.data.avatar;
-  if (parsed.data.tagline) docUpdates.tagline = parsed.data.tagline;
+  if (data.firmaDigital) docUpdates.firma_digital = data.firmaDigital;
+  if (data.avatar) docUpdates.avatar = data.avatar;
+  if (data.tagline) docUpdates.tagline = data.tagline;
   if (Object.keys(docUpdates).length > 0) {
     await admin.from("doctors").update(docUpdates).eq("id", userId);
   }
 
-  // Free signups skip checkout entirely — the on_auth_user_created_subscription
-  // trigger has already inserted a free subscription row, so the doctor is
-  // good to go once they confirm their email.
-  if (plan === "free") {
-    return { success: true };
+  return { success: true };
+}
+
+async function signupPro(
+  data: SignupParsed,
+  plan: ProPlanTier,
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<ActionResult> {
+  // Reject if email already maps to a real account; replace any abandoned
+  // pending row for the same email so the user can retry without a 23505.
+  const { data: existingDoctor } = await admin
+    .from("doctors")
+    .select("id")
+    .eq("email", data.email)
+    .maybeSingle();
+  if (existingDoctor) {
+    return { error: "Ya existe una cuenta con ese email." };
+  }
+  await admin.from("pending_signups").delete().eq("email", data.email);
+
+  const signupData = {
+    plan,
+    name: data.name ?? "",
+    dni: data.dni ?? null,
+    matricula: data.matricula,
+    phone: data.phone,
+    especialidad: data.especialidad,
+    tagline: data.tagline ?? null,
+    firmaDigital: data.firmaDigital ?? null,
+    avatar: data.avatar ?? null,
+  };
+
+  const { data: pending, error: pendingErr } = await admin
+    .from("pending_signups")
+    .insert({
+      email: data.email,
+      encrypted_password: encryptPassword(data.password),
+      signup_data: signupData,
+    })
+    .select("id")
+    .single();
+  if (pendingErr || !pending) {
+    console.error("[auth.signup] pending_signups insert failed", pendingErr);
+    return { error: "No se pudo iniciar el registro. Intentá nuevamente." };
   }
 
-  const checkout = await startProCheckout(plan, userId);
+  const checkout = await startProCheckoutForPendingSignup(pending.id, plan);
   if (checkout.error || !checkout.initPoint) {
-    // The user account already exists. They can finish the upgrade later
-    // from /pricing, so surface the failure but don't try to clean up.
-    return {
-      error:
-        checkout.error ??
-        "Tu cuenta fue creada pero no pudimos iniciar el pago. Probá desde Precios después de verificar tu email.",
-    };
+    // Roll back the staged signup so the user can retry from scratch.
+    await admin.from("pending_signups").delete().eq("id", pending.id);
+    return { error: checkout.error ?? "No se pudo iniciar el pago." };
   }
 
   return { success: true, initPoint: checkout.initPoint };

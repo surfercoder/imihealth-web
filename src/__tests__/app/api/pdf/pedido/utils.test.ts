@@ -62,33 +62,45 @@ describe('extractDiagnosticoPresuntivo', () => {
     expect(extractDiagnosticoPresuntivo(text)).toBe('Lumbalgia crónica. Hernia discal L4-L5')
   })
 
-  it('returns CIE-10 onwards when present, ignoring prior diagnostic text', () => {
+  it('returns the full diagnosis sentence including the CIE-10 annotation', () => {
     const text =
       'Diagnóstico presuntivo: Luxación acromioclavicular (LAC) de hombro derecho, secundaria a traumatismo deportivo de alta energía relativa. CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
     expect(extractDiagnosticoPresuntivo(text)).toBe(
-      'CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
+      'Luxación acromioclavicular (LAC) de hombro derecho, secundaria a traumatismo deportivo de alta energía relativa. CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
     )
   })
 
-  it('stops CIE-10 line at next newline (does not bleed into following sections)', () => {
+  it('joins multi-line diagnosis content including a CIE-10 line', () => {
     const text =
       'Diagnóstico presuntivo:\n- Lumbalgia crónica\nCIE-10: M54.5 (Lumbago no especificado)\nOtra sección:'
     expect(extractDiagnosticoPresuntivo(text)).toBe(
-      'CIE-10: M54.5 (Lumbago no especificado)'
+      'Lumbalgia crónica. CIE-10: M54.5 (Lumbago no especificado)'
     )
   })
 
-  it('strips markdown bold around CIE-10 block', () => {
+  it('strips markdown bold around an inline CIE-10 block', () => {
     const text =
       'Diagnóstico presuntivo: Contractura cervical. **CIE-10: M54.2 (Cervicalgia)**'
-    expect(extractDiagnosticoPresuntivo(text)).toBe('CIE-10: M54.2 (Cervicalgia)')
+    expect(extractDiagnosticoPresuntivo(text)).toBe(
+      'Contractura cervical. CIE-10: M54.2 (Cervicalgia)'
+    )
   })
 
-  it('cuts CIE-10 at next section header in run-on text without newlines', () => {
+  it('cuts at next section header in run-on text without newlines', () => {
     const text =
       'Diagnóstico presuntivo: Luxación acromioclavicular. CIE-10: S43.0 (Luxación de articulación acromioclavicular)Clasificación: Pendiente confirmación imagenológica.Diferenciales considerados:- Fractura'
     expect(extractDiagnosticoPresuntivo(text)).toBe(
-      'CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
+      'Luxación acromioclavicular. CIE-10: S43.0 (Luxación de articulación acromioclavicular)'
     )
+  })
+
+  it('keeps the diagnosis name when CIE-10 is wrapped in parens on the next line', () => {
+    const text = 'Diagnóstico presuntivo:\nRosácea (CIE-10: L71.9)\n\n- Criterios diagnósticos presentes'
+    expect(extractDiagnosticoPresuntivo(text)).toBe('Rosácea (CIE-10: L71.9)')
+  })
+
+  it('ignores a trailing markdown hard-break backslash after the header colon', () => {
+    const text = 'Diagnóstico presuntivo:\\\nRosácea (CIE-10: L71.9)'
+    expect(extractDiagnosticoPresuntivo(text)).toBe('Rosácea (CIE-10: L71.9)')
   })
 })
