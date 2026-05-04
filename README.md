@@ -63,37 +63,37 @@ The app expects (non-exhaustive):
 
 ```mermaid
 flowchart LR
-  subgraph Client[Doctor's browser]
-    REC[Audio recorder<br/>MediaRecorder + WakeLock]
-    SR[Browser SpeechRecognition<br/>live transcript fallback]
-    UI[Next.js 16 app<br/>RSC + Server Actions]
+  subgraph Client["Doctor's browser"]
+    REC["Audio recorder<br/>MediaRecorder and WakeLock"]
+    SR["Browser SpeechRecognition<br/>live transcript fallback"]
+    UI["Next.js 16 app<br/>RSC and Server Actions"]
     REC --> UI
     SR --> UI
   end
 
-  subgraph Vercel[Vercel — Next.js runtime]
-    PROXY[proxy.ts<br/>Supabase session refresh<br/>+ CSP headers]
-    RSC[Server Components &<br/>Server Actions]
-    APIROUTES[/api routes/<br/>process-informe<br/>send-whatsapp<br/>webhooks/mercadopago<br/>pdf/*]
+  subgraph Vercel["Vercel - Next.js runtime"]
+    PROXY["proxy.ts<br/>Supabase session refresh<br/>and CSP headers"]
+    RSC["Server Components and<br/>Server Actions"]
+    APIROUTES["api routes<br/>process-informe<br/>send-whatsapp<br/>webhooks mercadopago<br/>pdf"]
   end
 
-  subgraph Supabase
-    AUTH[(auth.users)]
-    DB[(Postgres + RLS<br/>doctors, patients,<br/>informes, informes_rapidos,<br/>subscriptions,<br/>pending_signups,<br/>enterprise_leads)]
-    STORAGE[(Storage:<br/>audio-recordings)]
-    RT[Realtime channels]
+  subgraph Supabase["Supabase"]
+    AUTH[("auth.users")]
+    DB[("Postgres and RLS<br/>doctors, patients,<br/>informes, informes_rapidos,<br/>subscriptions,<br/>pending_signups,<br/>enterprise_leads")]
+    STORAGE[("Storage<br/>audio-recordings")]
+    RT["Realtime channels"]
   end
 
-  subgraph External[External services]
-    AAI[AssemblyAI<br/>diarized transcription]
-    ANT[Anthropic Claude<br/>doctor + patient reports]
-    MP[MercadoPago<br/>Preapproval subscriptions]
-    WA[WhatsApp Cloud API]
-    RESEND[Resend e-mail]
-    SENTRY[Sentry]
+  subgraph External["External services"]
+    AAI["AssemblyAI<br/>diarized transcription"]
+    ANT["Anthropic Claude<br/>doctor and patient reports"]
+    MP["MercadoPago<br/>Preapproval subscriptions"]
+    WA["WhatsApp Cloud API"]
+    RESEND["Resend e-mail"]
+    SENTRY["Sentry"]
   end
 
-  Client -->|cookies + session| PROXY
+  Client -->|cookies and session| PROXY
   PROXY --> RSC
   RSC --> DB
   RSC --> APIROUTES
@@ -128,31 +128,31 @@ sequenceDiagram
   autonumber
   participant Br as Browser
   participant ST as Supabase Storage
-  participant API as /api/process-informe
+  participant API as process-informe API
   participant AAI as AssemblyAI
   participant CL as Claude
   participant DB as Postgres
-  Br->>Br: MediaRecorder captures audio<br/>SpeechRecognition runs live
-  Br->>ST: PUT audio-recordings/{informeId}.webm
-  Br->>API: POST { informeId, audioPath, browserTranscript, locale }
-  API->>API: rate-limit per user (10/min)<br/>set informe.status='processing'
-  API->>ST: download(audioPath) → Buffer
-  API->>AAI: transcribe(Buffer, lang)
-  AAI-->>API: text + utterances (or empty/error)
-  Note over API: If AssemblyAI empty/failed,<br/>fall back to browser transcript
-  API->>API: load doctor.especialidad
-  API->>CL: Promise.all [<br/>doctor report (specialty prompt),<br/>patient report (Haiku, simple language)<br/>]
-  CL-->>API: JSON {informe_doctor / informe_paciente}
-  API->>API: parse + repair JSON; render objects to MD if needed
+  Br->>Br: MediaRecorder captures audio plus live SpeechRecognition
+  Br->>ST: upload audio-recordings informeId.webm
+  Br->>API: POST informeId, audioPath, browserTranscript, locale
+  API->>API: rate-limit per user, set informe status processing
+  API->>ST: download audio path as Buffer
+  API->>AAI: transcribe Buffer with language
+  AAI-->>API: text and utterances or empty or error
+  Note over API: If AssemblyAI empty or failed, fall back to browser transcript
+  API->>API: load doctor especialidad
+  API->>CL: parallel doctor report and patient report
+  CL-->>API: JSON with informe_doctor and informe_paciente
+  API->>API: parse and repair JSON, render objects to markdown if needed
   alt Insufficient medical content
-    API->>DB: status='recording' (back to start)
-    API-->>Br: { insufficientContent: true }
+    API->>DB: status recording, back to start
+    API-->>Br: insufficientContent true
   else
-    API->>DB: status='completed' + reports
-    API->>API: revalidatePath('/'), ('/informes/{id}')
-    API-->>Br: { success: true }
+    API->>DB: status completed plus reports
+    API->>API: revalidate informe paths
+    API-->>Br: success true
   end
-  API->>ST: remove(audioPath)
+  API->>ST: remove audio path
 ```
 
 Notable design choices:
@@ -181,32 +181,32 @@ A streamlined variant exposed at `/quick-informe`. Same audio + AI pipeline, but
 sequenceDiagram
   autonumber
   participant Br as Browser
-  participant SA as Server Action (signup)
+  participant SA as Server Action signup
   participant DB as Postgres
   participant MP as MercadoPago
-  participant WH as /api/webhooks/mercadopago
-  participant RET as /billing/return
+  participant WH as MP webhook route
+  participant RET as billing return page
 
-  Br->>SA: POST signup form (plan=pro_monthly, ...)
-  SA->>SA: validate; reject if email already a doctor
-  SA->>DB: INSERT pending_signups (encrypted password + signup_data)
-  SA->>MP: getPreapprovalPlan(planId) → init_point
-  SA->>Br: set signed cookie mp_checkout_ref = pending_signup_id
-  SA-->>Br: redirect → MP checkout
+  Br->>SA: POST signup form with plan pro_monthly
+  SA->>SA: validate and reject if email already a doctor
+  SA->>DB: INSERT pending_signups with encrypted password and signup_data
+  SA->>MP: getPreapprovalPlan returns init_point
+  SA->>Br: set signed cookie mp_checkout_ref equals pending_signup_id
+  SA-->>Br: redirect to MP checkout
   Br->>MP: pay
-  par MP webhook (async, may be delayed)
-    MP-->>WH: subscription_preapproval (signed)
+  par MP webhook async, may be delayed
+    MP-->>WH: subscription_preapproval signed
     WH->>WH: verifyWebhookSignature
-    WH->>MP: getPreapproval(id)
-    WH->>WH: reconcilePreapproval()
-  and User redirect (synchronous on /billing/return)
-    MP-->>Br: 302 → /billing/return?preapproval_id=...
-    Br->>RET: GET (with mp_checkout_ref cookie)
-    RET->>RET: reconcilePreapproval(preapproval_id, refOverride=cookie)
+    WH->>MP: getPreapproval by id
+    WH->>WH: reconcilePreapproval
+  and User redirect synchronous on billing return
+    MP-->>Br: 302 to billing return with preapproval_id
+    Br->>RET: GET with mp_checkout_ref cookie
+    RET->>RET: reconcilePreapproval with refOverride from cookie
   end
-  Note over WH,RET: First caller to win materializes:<br/>signUp() (PKCE) → trigger creates doctor & subscription;<br/>upsert subscription with mp_preapproval_id;<br/>delete pending_signups row
-  WH->>DB: subscription = active
-  RET-->>Br: "Account ready" → /login
+  Note over WH,RET: First caller to win materializes the user. signUp PKCE triggers create doctor and subscription, upsert links mp_preapproval_id, delete pending_signups row.
+  WH->>DB: subscription active
+  RET-->>Br: Account ready, redirect to login
 ```
 
 Why this shape:
