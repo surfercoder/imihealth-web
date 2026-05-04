@@ -24,7 +24,7 @@ export function formatPatientDob(dob: string | null, locale: string): string | n
 export function formatInformeDate(createdAt: string, locale: string): string {
   return new Date(createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
     day: "2-digit",
-    month: "short",
+    month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
