@@ -8,7 +8,7 @@ const FEEDBACK_ADDRESS = 'support@imihealth.ai';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { to, subject, text, html } = body;
+    const { to, subject, text, html, replyTo } = body;
 
     // Allow unauthenticated requests only for feedback emails
     if (to !== FEEDBACK_ADDRESS) {
@@ -46,14 +46,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
       return NextResponse.json(
         { success: false, error: 'Email service not configured' },
         { status: 500 }
       );
     }
 
-    const result = await sendEmail({ to, subject, text, ...(html && { html }) });
+    const result = await sendEmail({
+      to,
+      subject,
+      text,
+      ...(html && { html }),
+      ...(replyTo && { replyTo }),
+    });
 
     return NextResponse.json({
       success: true,

@@ -31,9 +31,6 @@ const defaultPlan: PlanInfo = {
   maxInformes: 10,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 20,
-  currentDoctors: 1,
-  canSignUp: true,
 }
 
 function renderTab(plan: PlanInfo = defaultPlan) {

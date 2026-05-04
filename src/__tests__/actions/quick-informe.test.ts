@@ -32,9 +32,6 @@ const activePlan = {
   maxInformes: 10,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 20,
-  currentDoctors: 1,
-  canSignUp: true,
 }
 
 const mockAnthropicCreate = jest.fn()
@@ -136,7 +133,7 @@ describe('processQuickInforme', () => {
       canCreateInforme: false,
     })
     const result = await processQuickInforme('transcript con suficiente contenido')
-    expect(result).toEqual({ error: expect.stringContaining('límite') })
+    expect(result).toEqual({ error: expect.stringContaining('plan Gratis') })
   })
 
   it('returns read-only error when subscription is cancelled past period end', async () => {

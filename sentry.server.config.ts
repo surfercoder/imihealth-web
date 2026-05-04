@@ -5,6 +5,6 @@ Sentry.init({
 
   environment: process.env.NODE_ENV,
 
-  // Performance Monitoring — capture all traces during MVP, reduce in production
+  // Performance Monitoring — capture every trace in non-prod, sample 20% in prod.
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
 });

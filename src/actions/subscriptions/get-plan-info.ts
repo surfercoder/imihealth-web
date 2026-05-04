@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { MVP_LIMITS } from "@/lib/mvp-limits";
+import { FREE_PLAN_LIMITS } from "@/lib/free-plan-limits";
 import type {
   PlanInfo,
   PlanTier,
@@ -51,25 +51,22 @@ export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
     resolvedUserId = user?.id;
   }
 
-  const [{ count: doctorCount }, informeResult, subscriptionResult] =
-    await Promise.all([
-      supabase.from("doctors").select("id", { count: "exact", head: true }),
-      resolvedUserId
-        ? supabase
-            .from("inform_generation_log")
-            .select("id", { count: "exact", head: true })
-            .eq("doctor_id", resolvedUserId)
-        : Promise.resolve({ count: 0 }),
-      resolvedUserId
-        ? supabase
-            .from("subscriptions")
-            .select("plan, status, current_period_end")
-            .eq("user_id", resolvedUserId)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
+  const [informeResult, subscriptionResult] = await Promise.all([
+    resolvedUserId
+      ? supabase
+          .from("inform_generation_log")
+          .select("id", { count: "exact", head: true })
+          .eq("doctor_id", resolvedUserId)
+      : Promise.resolve({ count: 0 }),
+    resolvedUserId
+      ? supabase
+          .from("subscriptions")
+          .select("plan, status, current_period_end")
+          .eq("user_id", resolvedUserId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  const currentDoctors = doctorCount ?? 0;
   const currentInformes =
     (typeof informeResult === "object" && "count" in informeResult
       ? informeResult.count
@@ -80,7 +77,7 @@ export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
       : null;
 
   const access = deriveAccess(subscription);
-  const freeLimit = MVP_LIMITS.MAX_INFORMES_PER_DOCTOR;
+  const freeLimit = FREE_PLAN_LIMITS.MAX_INFORMES;
   const overFreeQuota = currentInformes >= freeLimit;
   const isReadOnly = !access.isPro && overFreeQuota;
   const canCreateInforme = access.isPro || !overFreeQuota;
@@ -94,8 +91,5 @@ export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
     maxInformes: freeLimit,
     currentInformes,
     canCreateInforme,
-    maxDoctors: MVP_LIMITS.MAX_DOCTORS,
-    currentDoctors,
-    canSignUp: currentDoctors < MVP_LIMITS.MAX_DOCTORS,
   };
 }

@@ -56,9 +56,6 @@ jest.mock('@/actions/subscriptions', () => ({
     maxInformes: 10,
     currentInformes: 3,
     canCreateInforme: true,
-    maxDoctors: 20,
-    currentDoctors: 1,
-    canSignUp: true,
   })),
 }))
 

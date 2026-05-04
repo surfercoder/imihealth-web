@@ -117,9 +117,6 @@ const defaultPlan = {
   maxInformes: 10,
   currentInformes: 3,
   canCreateInforme: true,
-  maxDoctors: 15,
-  currentDoctors: 5,
-  canSignUp: true,
 }
 
 function makeChain(resolvedValue: unknown, { terminal = 'single' }: { terminal?: 'single' | 'eq' | 'order' } = {}) {

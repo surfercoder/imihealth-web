@@ -5,11 +5,8 @@ const mockRedirect = jest.fn()
 const mockGetUser = jest.fn()
 
 jest.mock('next/navigation', () => ({ redirect: (...args: unknown[]) => mockRedirect(...args), useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))
-const mockSelect = jest.fn().mockResolvedValue({ count: 0 })
-const mockFrom = jest.fn().mockReturnValue({ select: mockSelect })
 jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve({ auth: { getUser: mockGetUser } })),
-  createServiceClient: jest.fn(() => ({ from: mockFrom })),
 }))
 jest.mock('@/components/signup-form', () => ({
   SignupForm: () => <div data-testid="signup-form" />,
@@ -47,14 +44,5 @@ describe('SignupPage', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     try { await SignupPage() } catch { /* redirect throws */ }
     expect(mockRedirect).toHaveBeenCalledWith('/')
-  })
-
-  it('renders limit reached screen when doctor count >= MAX_DOCTORS', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    mockSelect.mockResolvedValue({ count: 20 })
-    render(await SignupPage())
-    expect(screen.getByText('Registro no disponible')).toBeInTheDocument()
-    expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument()
-    mockSelect.mockResolvedValue({ count: 0 })
   })
 })

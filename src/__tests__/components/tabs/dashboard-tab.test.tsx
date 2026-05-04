@@ -29,9 +29,6 @@ const defaultPlan: PlanInfo = {
   maxInformes: 100,
   currentInformes: 5,
   canCreateInforme: true,
-  maxDoctors: 5,
-  currentDoctors: 1,
-  canSignUp: true,
 }
 
 const defaultProps = {

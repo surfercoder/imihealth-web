@@ -11,7 +11,7 @@ jest.mock('@/utils/supabase/server', () => ({
 }))
 
 import { getPlanInfo } from '@/actions/subscriptions'
-import { MVP_LIMITS } from '@/lib/mvp-limits'
+import { FREE_PLAN_LIMITS } from '@/lib/free-plan-limits'
 
 interface SubscriptionFields {
   plan?: 'free' | 'pro_monthly' | 'pro_yearly'
@@ -20,22 +20,15 @@ interface SubscriptionFields {
 }
 
 function setupTables({
-  doctorCount = 1,
   informeCount = 0,
   informeResultOverride,
   subscription,
 }: {
-  doctorCount?: number | null
   informeCount?: number | null
   informeResultOverride?: Record<string, unknown>
   subscription?: SubscriptionFields | null
 } = {}) {
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'doctors') {
-      return {
-        select: jest.fn().mockResolvedValue({ count: doctorCount }),
-      }
-    }
     if (table === 'inform_generation_log') {
       return {
         select: jest.fn(() => ({
@@ -65,7 +58,7 @@ describe('getPlanInfo', () => {
 
   it('returns plan info with zero informes when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    setupTables({ doctorCount: 3 })
+    setupTables()
 
     const result = await getPlanInfo()
     expect(result).toEqual({
@@ -74,19 +67,15 @@ describe('getPlanInfo', () => {
       isPro: false,
       isReadOnly: false,
       periodEnd: null,
-      maxInformes: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
+      maxInformes: FREE_PLAN_LIMITS.MAX_INFORMES,
       currentInformes: 0,
       canCreateInforme: true,
-      maxDoctors: MVP_LIMITS.MAX_DOCTORS,
-      currentDoctors: 3,
-      canSignUp: true,
     })
   })
 
   it('returns plan info with currentInformes when user is authenticated on free plan', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     setupTables({
-      doctorCount: 5,
       informeCount: 4,
       subscription: { plan: 'free', status: 'active', current_period_end: null },
     })
@@ -102,13 +91,13 @@ describe('getPlanInfo', () => {
   it('returns canCreateInforme false when free plan limit is reached', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     setupTables({
-      informeCount: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
+      informeCount: FREE_PLAN_LIMITS.MAX_INFORMES,
       subscription: { plan: 'free', status: 'active', current_period_end: null },
     })
 
     const result = await getPlanInfo()
     expect(result.canCreateInforme).toBe(false)
-    expect(result.currentInformes).toBe(MVP_LIMITS.MAX_INFORMES_PER_DOCTOR)
+    expect(result.currentInformes).toBe(FREE_PLAN_LIMITS.MAX_INFORMES)
   })
 
   it('grants unlimited informes for active Pro monthly plan', async () => {
@@ -189,7 +178,7 @@ describe('getPlanInfo', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     const pastDate = new Date(Date.now() - 86_400_000).toISOString()
     setupTables({
-      informeCount: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR + 5,
+      informeCount: FREE_PLAN_LIMITS.MAX_INFORMES + 5,
       subscription: {
         plan: 'pro_monthly',
         status: 'past_due',
@@ -252,21 +241,8 @@ describe('getPlanInfo', () => {
     expect(result.canCreateInforme).toBe(true)
   })
 
-  it('returns canSignUp false when doctor limit is reached', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
-    setupTables({
-      doctorCount: MVP_LIMITS.MAX_DOCTORS,
-      subscription: { plan: 'free', status: 'active', current_period_end: null },
-    })
-
-    const result = await getPlanInfo()
-    expect(result.canSignUp).toBe(false)
-    expect(result.currentDoctors).toBe(MVP_LIMITS.MAX_DOCTORS)
-  })
-
   it('uses userId parameter when provided instead of fetching from auth', async () => {
     setupTables({
-      doctorCount: 2,
       informeCount: 5,
       subscription: { plan: 'free', status: 'active', current_period_end: null },
     })
@@ -279,7 +255,6 @@ describe('getPlanInfo', () => {
   it('defaults currentInformes to 0 when informeResult lacks count property', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     setupTables({
-      doctorCount: 1,
       informeResultOverride: { error: 'something went wrong' },
       subscription: { plan: 'free', status: 'active', current_period_end: null },
     })
@@ -291,9 +266,6 @@ describe('getPlanInfo', () => {
   it('defaults to free plan when subscription query result lacks data property', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'doctors') {
-        return { select: jest.fn().mockResolvedValue({ count: 1 }) }
-      }
       if (table === 'inform_generation_log') {
         return {
           select: jest.fn(() => ({
@@ -321,13 +293,11 @@ describe('getPlanInfo', () => {
   it('handles null counts and missing subscription by defaulting safely', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'doctor-1' } } })
     setupTables({
-      doctorCount: null,
       informeCount: null,
       subscription: null,
     })
 
     const result = await getPlanInfo()
-    expect(result.currentDoctors).toBe(0)
     expect(result.currentInformes).toBe(0)
     expect(result.plan).toBe('free')
     expect(result.isReadOnly).toBe(false)

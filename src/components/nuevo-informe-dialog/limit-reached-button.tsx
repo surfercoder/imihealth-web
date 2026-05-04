@@ -11,7 +11,7 @@ interface LimitReachedButtonProps {
 }
 
 export function LimitReachedButton({ fullWidth = false }: LimitReachedButtonProps) {
-  const tMvp = useTranslations("mvpLimits");
+  const tFreePlan = useTranslations("freePlanLimits");
   const plan = usePlan();
 
   return (
@@ -23,11 +23,11 @@ export function LimitReachedButton({ fullWidth = false }: LimitReachedButtonProp
       >
         <Link href="/pricing">
           <Sparkles className="size-4 mr-1.5" />
-          {tMvp("informeLimitUpgradeCta")}
+          {tFreePlan("informeLimitUpgradeCta")}
         </Link>
       </Button>
       <p className="text-xs text-muted-foreground max-w-[240px] text-right">
-        {tMvp("informeLimitMessage", { max: plan.maxInformes })}
+        {tFreePlan("informeLimitMessage", { max: plan.maxInformes })}
       </p>
     </div>
   );

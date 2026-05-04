@@ -38,7 +38,7 @@ describe('POST /api/send-email', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env = { ...originalEnv, EMAIL_USER: 'user@gmail.com', EMAIL_APP_PASSWORD: 'pass' }
+    process.env = { ...originalEnv, RESEND_API_KEY: 're_test_key', RESEND_FROM: 'IMI Health <contact@imihealth.ai>' }
   })
 
   afterAll(() => {
@@ -81,9 +81,9 @@ describe('POST /api/send-email', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 500 when email env vars are not configured', async () => {
+  it('returns 500 when RESEND_API_KEY is not configured', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
-    delete process.env.EMAIL_USER
+    delete process.env.RESEND_API_KEY
 
     const res = await POST(makeRequest({ to: 'a@b.com', subject: 'Hi', text: 'Body' }))
     const json = await res.json()
@@ -92,13 +92,35 @@ describe('POST /api/send-email', () => {
     expect(json).toEqual({ success: false, error: 'Email service not configured' })
   })
 
-  it('returns 500 when EMAIL_APP_PASSWORD is not configured', async () => {
+  it('returns 500 when RESEND_FROM is not configured', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
-    delete process.env.EMAIL_APP_PASSWORD
+    delete process.env.RESEND_FROM
 
     const res = await POST(makeRequest({ to: 'a@b.com', subject: 'Hi', text: 'Body' }))
+    const json = await res.json()
 
     expect(res.status).toBe(500)
+    expect(json).toEqual({ success: false, error: 'Email service not configured' })
+  })
+
+  it('forwards replyTo when provided', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    mockSendEmail.mockResolvedValue({ messageId: 'msg-reply' })
+
+    const res = await POST(makeRequest({
+      to: 'support@imihealth.ai',
+      subject: 'Hi',
+      text: 'Body',
+      replyTo: 'user@example.com',
+    }))
+
+    expect(res.status).toBe(200)
+    expect(mockSendEmail).toHaveBeenCalledWith({
+      to: 'support@imihealth.ai',
+      subject: 'Hi',
+      text: 'Body',
+      replyTo: 'user@example.com',
+    })
   })
 
   it('returns success with messageId when email is sent', async () => {
@@ -127,7 +149,7 @@ describe('POST /api/send-email', () => {
 
   it('returns 500 when sendEmail throws', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
-    mockSendEmail.mockRejectedValue(new Error('SMTP failure'))
+    mockSendEmail.mockRejectedValue(new Error('Resend failure'))
 
     const res = await POST(makeRequest({ to: 'a@b.com', subject: 'Hi', text: 'Body' }))
     const json = await res.json()

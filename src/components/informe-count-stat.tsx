@@ -16,7 +16,7 @@ export function InformeCountStat({
   current: number;
   max: number;
 }) {
-  const tMvp = useTranslations("mvpLimits");
+  const tFreePlan = useTranslations("freePlanLimits");
 
   return (
     <div className="flex items-center gap-1.5">
@@ -38,7 +38,7 @@ export function InformeCountStat({
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[240px]">
-            {tMvp("dashboardTooltip", { max })}
+            {tFreePlan("dashboardTooltip", { max })}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

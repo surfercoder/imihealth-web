@@ -28,9 +28,6 @@ const defaultPlan: PlanInfo = {
   maxInformes: 7,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 2,
-  currentDoctors: 0,
-  canSignUp: true,
 }
 
 const limitedPlan: PlanInfo = { ...defaultPlan, canCreateInforme: false }

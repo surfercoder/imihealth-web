@@ -15,7 +15,7 @@ interface NewInformeForPatientButtonProps {
 
 function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientButtonProps) {
   const t = useTranslations("newInformeButton");
-  const tMvp = useTranslations("mvpLimits");
+  const tFreePlan = useTranslations("freePlanLimits");
   const plan = usePlan();
   const { push } = useRouter();
   const currentTab = useCurrentTab();
@@ -43,7 +43,7 @@ function NewInformeForPatientButtonContent({ patientId }: NewInformeForPatientBu
           {t("submit")}
         </Button>
         <p className="text-xs text-muted-foreground max-w-[240px] text-right">
-          {tMvp("informeLimitMessage", { max: plan.maxInformes })}
+          {tFreePlan("informeLimitMessage", { max: plan.maxInformes })}
         </p>
       </div>
     );

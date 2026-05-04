@@ -21,9 +21,6 @@ const basePlan: PlanInfo = {
   maxInformes: 10,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 20,
-  currentDoctors: 1,
-  canSignUp: true,
 }
 
 describe('ReadOnlyBanner', () => {

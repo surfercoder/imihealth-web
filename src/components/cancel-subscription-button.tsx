@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cancelSubscription } from "@/actions/subscriptions";
-import { MVP_LIMITS } from "@/lib/mvp-limits";
+import { FREE_PLAN_LIMITS } from "@/lib/free-plan-limits";
 
 export function CancelSubscriptionButton() {
   const t = useTranslations("subscription");
@@ -50,7 +50,7 @@ export function CancelSubscriptionButton() {
           <DialogTitle>{t("cancelDialogTitle")}</DialogTitle>
           <DialogDescription>
             {t("cancelDialogDescription", {
-              max: MVP_LIMITS.MAX_INFORMES_PER_DOCTOR,
+              max: FREE_PLAN_LIMITS.MAX_INFORMES,
             })}
           </DialogDescription>
         </DialogHeader>

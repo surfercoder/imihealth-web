@@ -15,7 +15,7 @@ export async function createInforme(patientId: string) {
     return { error: "Tu suscripción Pro fue cancelada. Reactivala para crear nuevos informes." };
   }
   if (!plan.canCreateInforme) {
-    return { error: `Alcanzaste el límite de ${plan.maxInformes} informes del plan gratuito. Pasate al plan Pro para informes ilimitados.` };
+    return { error: `Llegaste a los ${plan.maxInformes} informes del plan Gratis. Pasate a Pro para informes ilimitados, soporte prioritario y todo IMI Health sin restricciones.` };
   }
 
   const { data, error } = await supabase

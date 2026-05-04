@@ -849,15 +849,10 @@
     "hasDigit": "Al menos un número",
     "hasSpecial": "Al menos un carácter especial (!@#$%…)"
   },
-  "mvpLimits": {
-    "signupLimitTitle": "Registro no disponible",
-    "signupLimitMessage": "Hemos alcanzado el límite de {max} médicos para nuestra fase de prueba MVP. Pronto lanzaremos la versión de producción y podrás registrarte. ¡Gracias por tu interés!",
-    "informeLimitTitle": "Límite de informes alcanzado",
-    "informeLimitMessage": "Alcanzaste el límite de {max} informes del plan Gratis. Pasá a Pro y seguí creando sin límite.",
+  "freePlanLimits": {
+    "informeLimitMessage": "Llegaste a los {max} informes del plan Gratis. Pasate a Pro y obtené informes ilimitados, soporte prioritario y todo IMI Health sin restricciones.",
     "informeLimitUpgradeCta": "Pasar a Pro",
-    "informeCount": "{current} de {max} informes usados",
-    "dashboardTooltip": "Estás en la versión de prueba MVP con un límite de {max} informes. Pronto lanzaremos la versión de producción con informes ilimitados.",
-    "backToLogin": "Volver al inicio de sesión"
+    "dashboardTooltip": "El plan Gratis incluye {max} informes. Pasate a Pro para tener informes ilimitados y aprovechar IMI Health al máximo."
   },
   "feedbackDialog": {
     "trigger": "Feedback",

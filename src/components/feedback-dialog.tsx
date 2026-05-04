@@ -79,6 +79,7 @@ export function FeedbackDialog({ doctorName, doctorEmail }: FeedbackDialogProps)
         subject: `[${reasonLabel}] ${t("emailSubject")}`,
         text: plainText,
         html,
+        ...(doctorEmail && { replyTo: doctorEmail }),
       }),
     }).catch(() => null);
 

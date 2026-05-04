@@ -12,7 +12,6 @@ import {
   resetPasswordSchema,
 } from "@/schemas/auth";
 import type { ActionResult } from "@/types/auth";
-import { MVP_LIMITS } from "@/lib/mvp-limits";
 import { startProCheckout, type ProPlanTier } from "@/actions/subscriptions";
 
 export async function login(
@@ -73,17 +72,6 @@ export async function signup(
   }
 
   const admin = createAdminClient();
-
-  /* v8 ignore start */
-  const { count: doctorCount } = await admin
-    .from("doctors")
-    .select("id", { count: "exact", head: true });
-  if ((doctorCount ?? 0) >= MVP_LIMITS.MAX_DOCTORS) {
-    return {
-      error: `Hemos alcanzado el límite de ${MVP_LIMITS.MAX_DOCTORS} médicos para la fase de prueba MVP.`,
-    };
-  }
-  /* v8 ignore stop */
 
   const planRaw = g("plan");
   const plan: "free" | ProPlanTier =

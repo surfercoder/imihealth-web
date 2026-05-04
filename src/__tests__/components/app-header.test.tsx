@@ -100,9 +100,6 @@ describe('AppHeader', () => {
           maxInformes: 10,
           currentInformes: 1,
           canCreateInforme: true,
-          maxDoctors: 20,
-          currentDoctors: 1,
-          canSignUp: true,
         }}
       />
     )

@@ -20,7 +20,4 @@ export interface PlanInfo {
   maxInformes: number;
   currentInformes: number;
   canCreateInforme: boolean;
-  maxDoctors: number;
-  currentDoctors: number;
-  canSignUp: boolean;
 }

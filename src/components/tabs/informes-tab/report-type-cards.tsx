@@ -16,7 +16,7 @@ export function ReportTypeCards({
   isLoadingClassic,
 }: ReportTypeCardsProps) {
   const t = useTranslations();
-  const tMvp = useTranslations("mvpLimits");
+  const tFreePlan = useTranslations("freePlanLimits");
   const plan = usePlan();
   const limitReached = !plan.canCreateInforme;
 
@@ -67,7 +67,7 @@ export function ReportTypeCards({
       {limitReached && (
         <p className="sm:col-span-2 text-center text-sm text-muted-foreground">
           <Lock className="inline size-3.5 mr-1 -translate-y-px" />
-          {tMvp("informeLimitMessage", { max: plan.maxInformes })}
+          {tFreePlan("informeLimitMessage", { max: plan.maxInformes })}
         </p>
       )}
     </div>

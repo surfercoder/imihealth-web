@@ -27,9 +27,6 @@ const defaultPlan: PlanInfo = {
   maxInformes: 7,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 2,
-  currentDoctors: 0,
-  canSignUp: true,
 }
 
 function renderWithPlan(ui: React.ReactElement, plan: PlanInfo = defaultPlan) {
@@ -127,7 +124,7 @@ describe('NewInformeForPatientButton', () => {
     renderWithPlan(<NewInformeForPatientButton patientId="p-1" />, limitedPlan)
     const btn = screen.getByRole('button')
     expect(btn).toBeDisabled()
-    expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
+    expect(screen.getByText(/Llegaste a los 7 informes del plan Gratis/)).toBeInTheDocument()
   })
 
   it('navigates with tab param in URL when currentTab is set', async () => {

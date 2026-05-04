@@ -13,9 +13,6 @@ const limitedPlan: PlanInfo = {
   maxInformes: 7,
   currentInformes: 7,
   canCreateInforme: false,
-  maxDoctors: 2,
-  currentDoctors: 0,
-  canSignUp: true,
 }
 
 function renderWithPlan(ui: React.ReactElement) {
@@ -39,6 +36,6 @@ describe('LimitReachedButton', () => {
 
   it('shows the limit message with max informes', () => {
     renderWithPlan(<LimitReachedButton />)
-    expect(screen.getByText(/Alcanzaste el límite de 7 informes/)).toBeInTheDocument()
+    expect(screen.getByText(/Llegaste a los 7 informes del plan Gratis/)).toBeInTheDocument()
   })
 })

@@ -28,9 +28,6 @@ const activePlan = {
   maxInformes: 10,
   currentInformes: 0,
   canCreateInforme: true,
-  maxDoctors: 20,
-  currentDoctors: 1,
-  canSignUp: true,
 }
 
 function makeChain() {
@@ -84,7 +81,7 @@ describe('createInforme', () => {
       canCreateInforme: false,
     })
     const result = await createInforme('p-1')
-    expect(result).toEqual({ error: expect.stringContaining('límite') })
+    expect(result).toEqual({ error: expect.stringContaining('plan Gratis') })
   })
 
   it('returns read-only error when subscription is cancelled past period end', async () => {

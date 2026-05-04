@@ -40,7 +40,7 @@ export async function processQuickInforme(
     }
     if (!plan.canCreateInforme) {
       return {
-        error: `Alcanzaste el límite de ${plan.maxInformes} informes del plan gratuito. Pasate al plan Pro para informes ilimitados.`,
+        error: `Llegaste a los ${plan.maxInformes} informes del plan Gratis. Pasate a Pro para informes ilimitados, soporte prioritario y todo IMI Health sin restricciones.`,
       };
     }
 
