@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageCircle, Pencil, X, Save, Loader2 } from "lucide-react";
+import { User, Pencil, X, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { CopyToClipboardButton } from "@/components/copy-to-clipboard-button";
@@ -75,7 +75,7 @@ export function PatientReportCard({
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
       <div className="flex items-center gap-3 border-b bg-emerald-50/50 px-5 py-4">
         <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-          <MessageCircle className="size-5" />
+          <User className="size-5" />
         </div>
         <div className="flex-1">
           <p className="font-semibold text-base text-card-foreground">{t("patientReport")}</p>
