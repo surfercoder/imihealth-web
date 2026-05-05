@@ -45,7 +45,11 @@ export async function updateSession(request: NextRequest) {
     Sentry.setUser(null);
   }
 
-  const publicPaths = ["/home", "/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest", "/assets", "/api/send-email", "/api/webhooks", "/pricing"];
+  // /billing is public so MercadoPago can redirect anon users back to
+  // /billing/return after a deferred-signup payment. The page itself runs the
+  // reconciliation and materializes the auth user; if we redirected to /home
+  // first, the pending_signups row would never become a real account.
+  const publicPaths = ["/home", "/login", "/signup", "/forgot-password", "/auth", "/reset-password", "/manifest", "/assets", "/api/send-email", "/api/webhooks", "/api/billing", "/billing", "/pricing"];
   const isPublicPath =
     request.nextUrl.pathname === "/" ||
     publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));

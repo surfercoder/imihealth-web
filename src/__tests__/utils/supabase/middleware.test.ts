@@ -73,6 +73,20 @@ describe('updateSession', () => {
     expect(res.status).toBe(200)
   })
 
+  it('does NOT redirect on /billing/return (public — MP redirects anon users here after payment)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const req = makeRequest('/billing/return?preapproval_id=abc')
+    const res = await updateSession(req)
+    expect(res.status).toBe(200)
+  })
+
+  it('does NOT redirect on /api/billing/signup-status (polled by anon /billing/return)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const req = makeRequest('/api/billing/signup-status?ref=abc')
+    const res = await updateSession(req)
+    expect(res.status).toBe(200)
+  })
+
   it('passes cookies from request to createServerClient', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: '1' } } })
     const req = makeRequest('/dashboard')
