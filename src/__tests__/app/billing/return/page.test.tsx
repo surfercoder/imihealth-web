@@ -20,21 +20,16 @@ jest.mock('@/lib/mercadopago/api', () => ({
 }))
 
 const cookieGetMock = jest.fn()
-const cookieDeleteMock = jest.fn()
 jest.mock('next/headers', () => ({
   cookies: jest.fn(async () => ({
     get: cookieGetMock,
-    delete: cookieDeleteMock,
   })),
 }))
 
 const readCheckoutRefCookieMock = jest.fn()
-const clearCheckoutRefCookieMock = jest.fn()
 jest.mock('@/lib/billing/checkout-ref-cookie', () => ({
   readCheckoutRefCookie: (...args: unknown[]) =>
     readCheckoutRefCookieMock(...args),
-  clearCheckoutRefCookie: (...args: unknown[]) =>
-    clearCheckoutRefCookieMock(...args),
 }))
 
 import BillingReturnPage, { generateMetadata } from '@/app/billing/return/page'
@@ -43,10 +38,8 @@ beforeEach(() => {
   reconcileMock.mockReset()
   getPreapprovalMock.mockReset()
   cookieGetMock.mockReset()
-  cookieDeleteMock.mockReset()
   readCheckoutRefCookieMock.mockReset()
   readCheckoutRefCookieMock.mockReturnValue(null)
-  clearCheckoutRefCookieMock.mockReset()
 })
 
 describe('generateMetadata', () => {
@@ -95,7 +88,6 @@ describe('BillingReturnPage', () => {
       }),
     )
     expect(reconcileMock).toHaveBeenCalledWith('mp-1', { refOverride: null })
-    expect(clearCheckoutRefCookieMock).toHaveBeenCalled()
     expect(screen.getByText(/cuenta fue creada/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Ir al login/i })).toHaveAttribute(
       'href',
@@ -117,7 +109,6 @@ describe('BillingReturnPage', () => {
     expect(reconcileMock).toHaveBeenCalledWith('mp-1', {
       refOverride: 'user-from-cookie',
     })
-    expect(clearCheckoutRefCookieMock).toHaveBeenCalled()
   })
 
   it('falls back to the URL ref when no cookie is present', async () => {

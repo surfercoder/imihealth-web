@@ -5,7 +5,6 @@
 import { createHmac } from 'crypto'
 import {
   __testing,
-  clearCheckoutRefCookie,
   decodeCheckoutRef,
   encodeCheckoutRef,
   readCheckoutRefCookie,
@@ -28,25 +27,18 @@ beforeEach(() => {
 })
 
 function makeMutableStore() {
-  const calls: Array<
-    | {
-        kind: 'set'
-        name: string
-        value: string
-        options: Record<string, unknown>
-      }
-    | { kind: 'delete'; name: string }
-  > = []
+  const calls: Array<{
+    kind: 'set'
+    name: string
+    value: string
+    options: Record<string, unknown>
+  }> = []
   let stored: { name: string; value: string } | null = null
   return {
     calls,
     set(name: string, value: string, options: Record<string, unknown>) {
       stored = { name, value }
       calls.push({ kind: 'set', name, value, options })
-    },
-    delete(name: string) {
-      stored = null
-      calls.push({ kind: 'delete', name })
     },
     get(name: string) {
       if (!stored || stored.name !== name) return undefined
@@ -159,18 +151,6 @@ describe('cookie store helpers', () => {
 
   it('readCheckoutRefCookie returns null when the cookie is missing', () => {
     const store = makeMutableStore()
-    expect(readCheckoutRefCookie(store)).toBeNull()
-  })
-
-  it('clearCheckoutRefCookie deletes the cookie by name', () => {
-    const store = makeMutableStore()
-    setCheckoutRefCookie(store, 'user-1')
-    clearCheckoutRefCookie(store)
-    const deleteCall = store.calls.find((c) => c.kind === 'delete')
-    expect(deleteCall).toBeTruthy()
-    if (deleteCall && deleteCall.kind === 'delete') {
-      expect(deleteCall.name).toBe(__testing.COOKIE_NAME)
-    }
     expect(readCheckoutRefCookie(store)).toBeNull()
   })
 })

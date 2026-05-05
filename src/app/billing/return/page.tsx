@@ -7,10 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { SignupStatusPoller } from "@/components/billing/signup-status-poller";
 import { reconcilePreapproval } from "@/lib/billing/reconcile";
-import {
-  clearCheckoutRefCookie,
-  readCheckoutRefCookie,
-} from "@/lib/billing/checkout-ref-cookie";
+import { readCheckoutRefCookie } from "@/lib/billing/checkout-ref-cookie";
 import { getPreapproval } from "@/lib/mercadopago/api";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -60,7 +57,10 @@ async function resolveReturn(params: {
         result.kind === "materialized" ||
         result.kind === "subscription-updated"
       ) {
-        clearCheckoutRefCookie(cookieStore);
+        // Don't clear the mp_checkout_ref cookie here: cookie mutation from a
+        // Server Component render throws in Next.js 15. The cookie is signed,
+        // HttpOnly, scoped to a single signup ref, and either expires on its
+        // 30-min TTL or gets overwritten on the next checkout.
         return { ready: true, refId: null };
       }
       if (result.kind === "pending-signup-waiting") {

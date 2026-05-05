@@ -32,7 +32,6 @@ interface MutableCookieStore extends ReadableCookieStore {
       maxAge: number;
     },
   ): unknown;
-  delete(name: string): unknown;
 }
 
 function secret(): string {
@@ -112,10 +111,6 @@ export function readCheckoutRefCookie(
   const c = store.get(COOKIE_NAME);
   if (!c?.value) return null;
   return decodeCheckoutRef(c.value);
-}
-
-export function clearCheckoutRefCookie(store: MutableCookieStore): void {
-  store.delete(COOKIE_NAME);
 }
 
 export const __testing = { COOKIE_NAME, TTL_SECONDS };
