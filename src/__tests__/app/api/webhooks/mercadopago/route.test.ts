@@ -10,11 +10,16 @@ jest.mock('@/utils/supabase/server', () => ({
 const mockGetPreapproval = jest.fn()
 const mockGetAuthorizedPayment = jest.fn()
 const mockUpdatePreapprovalStatus = jest.fn()
+const mockSearchAuthorizedPayments = jest.fn()
+const mockGetPayment = jest.fn()
 jest.mock('@/lib/mercadopago/api', () => ({
   getPreapproval: (...args: unknown[]) => mockGetPreapproval(...args),
   getAuthorizedPayment: (...args: unknown[]) => mockGetAuthorizedPayment(...args),
   updatePreapprovalStatus: (...args: unknown[]) =>
     mockUpdatePreapprovalStatus(...args),
+  searchAuthorizedPaymentsByPreapproval: (...args: unknown[]) =>
+    mockSearchAuthorizedPayments(...args),
+  getPayment: (...args: unknown[]) => mockGetPayment(...args),
 }))
 
 const mockVerify = jest.fn()
@@ -23,8 +28,10 @@ jest.mock('@/lib/mercadopago/webhook', () => ({
 }))
 
 const mockCaptureException = jest.fn()
+const mockCaptureMessage = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
+  captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
 }))
 
 jest.mock('@/lib/signup-password-crypto', () => ({
@@ -73,10 +80,13 @@ interface Handles {
 
 function setupAdminTables({
   pendingRow = null,
+  pendingByEmail = null,
   subscriptionRow = null,
   subByUser = null,
 }: {
   pendingRow?: unknown
+  // Lookup by .ilike("email", ...). Used by the webhook self-heal path.
+  pendingByEmail?: unknown
   // First subscriptions lookup, by mp_preapproval_id.
   subscriptionRow?: unknown
   // Second lookup, by user_id (=external_reference). null by default; tests
@@ -98,6 +108,9 @@ function setupAdminTables({
   const pendingMaybeSingle = jest
     .fn()
     .mockResolvedValue({ data: pendingRow })
+  const pendingByEmailMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: pendingByEmail })
   const pendingDelete = jest.fn(() => ({
     eq: jest.fn().mockResolvedValue({ error: null }),
   }))
@@ -110,6 +123,7 @@ function setupAdminTables({
       return {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({ maybeSingle: pendingMaybeSingle })),
+          ilike: jest.fn(() => ({ maybeSingle: pendingByEmailMaybeSingle })),
         })),
         delete: pendingDelete,
       }
@@ -143,6 +157,10 @@ describe('POST /api/webhooks/mercadopago', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockVerify.mockReturnValue({ ok: true })
+    // Self-heal path is opt-in per test: default to "no payments returned"
+    // so existing tests can keep ignoring the mock.
+    mockSearchAuthorizedPayments.mockResolvedValue([])
+    mockGetPayment.mockResolvedValue({ payer: { email: null } })
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test'
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = 'anon-key'
@@ -274,7 +292,7 @@ describe('POST /api/webhooks/mercadopago', () => {
       expect(subscriptionsUpsert.mock.calls[0][0].status).toBe('pending')
     })
 
-    it('skips when preapproval has no external_reference and no matching subscription row', async () => {
+    it('skips and warns to Sentry when preapproval has no ref and no payer-email match', async () => {
       const { subscriptionsUpsert } = setupAdminTables()
       mockGetPreapproval.mockResolvedValue({
         id: 'pre-orphan',
@@ -284,7 +302,6 @@ describe('POST /api/webhooks/mercadopago', () => {
         next_payment_date: null,
         auto_recurring: { frequency: 1, frequency_type: 'months' },
       })
-      const warn = jest.spyOn(console, 'warn').mockImplementation()
       const res = await POST(
         makeRequest({
           query: '?data.id=pre-orphan',
@@ -293,7 +310,312 @@ describe('POST /api/webhooks/mercadopago', () => {
       )
       expect(res.status).toBe(200)
       expect(subscriptionsUpsert).not.toHaveBeenCalled()
-      warn.mockRestore()
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('no external_reference'),
+        expect.objectContaining({
+          level: 'warning',
+          tags: expect.objectContaining({ flow: 'reconcile-no-ref' }),
+        }),
+      )
+    })
+
+    it('self-heals: materializes pending_signup matched by payer email when no ref is present', async () => {
+      const { subscriptionsUpsert, pendingDelete } = setupAdminTables({
+        pendingByEmail: {
+          id: 'pending-email-1',
+          email: 'doctor@example.com',
+          encrypted_password: 'enc:s3cret',
+          signup_data: {
+            name: 'Doc',
+            dni: null,
+            matricula: 'M1',
+            phone: '+5491100000000',
+            especialidad: 'Cardiología',
+            tagline: null,
+            firmaDigital: null,
+            avatar: null,
+          },
+        },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-self-heal',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 42,
+        next_payment_date: '2026-06-05T00:00:00Z',
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      mockSearchAuthorizedPayments.mockResolvedValue([
+        {
+          id: 1,
+          date_created: '2026-05-05T00:00:00Z',
+          payment: { id: 999 },
+        },
+      ])
+      mockGetPayment.mockResolvedValue({
+        id: 999,
+        payer: { email: 'DOCTOR@example.com', id: 42 },
+      })
+      mockAnonSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user-1' } },
+        error: null,
+      })
+
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-self-heal',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-self-heal' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(mockAnonSignUp).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'doctor@example.com' }),
+      )
+      expect(subscriptionsUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'new-user-1',
+          plan: 'pro_monthly',
+          status: 'active',
+          mp_preapproval_id: 'pre-self-heal',
+          mp_payer_id: '42',
+        }),
+        expect.any(Object),
+      )
+      expect(pendingDelete).toHaveBeenCalled()
+    })
+
+    it('self-heals: warns and bails when payer email does not match any pending_signup', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        pendingByEmail: null,
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-no-match',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 7,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      mockSearchAuthorizedPayments.mockResolvedValue([
+        {
+          id: 1,
+          date_created: '2026-05-05T00:00:00Z',
+          payment: { id: 555 },
+        },
+      ])
+      mockGetPayment.mockResolvedValue({
+        id: 555,
+        payer: { email: 'someone-else@example.com', id: 7 },
+      })
+
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-no-match',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-no-match' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).not.toHaveBeenCalled()
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('no matching pending_signup'),
+        expect.objectContaining({
+          level: 'warning',
+          tags: expect.objectContaining({
+            flow: 'reconcile-payer-email-miss',
+          }),
+          extra: expect.objectContaining({
+            payerEmail: 'someone-else@example.com',
+          }),
+        }),
+      )
+    })
+
+    it('captures Sentry exception and bails when searchAuthorizedPayments throws', async () => {
+      const { subscriptionsUpsert } = setupAdminTables()
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-search-fail',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      mockSearchAuthorizedPayments.mockRejectedValue(new Error('mp 500'))
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-search-fail',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-search-fail' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).not.toHaveBeenCalled()
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          tags: expect.objectContaining({
+            flow: 'reconcile-payer-email-search',
+          }),
+        }),
+      )
+    })
+
+    it('captures Sentry exception and bails when getPayment throws', async () => {
+      const { subscriptionsUpsert } = setupAdminTables()
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-payment-fail',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      mockSearchAuthorizedPayments.mockResolvedValue([
+        { id: 1, date_created: '2026-05-05T00:00:00Z', payment: { id: 7 } },
+      ])
+      mockGetPayment.mockRejectedValue(new Error('mp 500 on payment'))
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-payment-fail',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-payment-fail' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).not.toHaveBeenCalled()
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          tags: expect.objectContaining({
+            flow: 'reconcile-payer-email-fetch',
+          }),
+        }),
+      )
+    })
+
+    it('self-heal: bails quietly when MP returns the payment but with no payer email', async () => {
+      const { subscriptionsUpsert } = setupAdminTables()
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-no-email',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      mockSearchAuthorizedPayments.mockResolvedValue([
+        { id: 1, date_created: '2026-05-05T00:00:00Z', payment: { id: 7 } },
+      ])
+      // Mirrors the real MP /v1/payments behavior we observed: the payment
+      // exists but the payer email field comes back null.
+      mockGetPayment.mockResolvedValue({ id: 7, payer: { email: null, id: 1 } })
+
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-no-email',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-no-email' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      expect(subscriptionsUpsert).not.toHaveBeenCalled()
+    })
+
+    it('self-heal: tolerates payments missing date_created when picking the most recent one', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        pendingByEmail: {
+          id: 'pending-no-date',
+          email: 'd@example.com',
+          encrypted_password: 'enc:x',
+          signup_data: {
+            name: 'D',
+            dni: null,
+            matricula: 'M',
+            phone: '+5491100000000',
+            especialidad: 'X',
+            tagline: null,
+            firmaDigital: null,
+            avatar: null,
+          },
+        },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-no-date',
+        external_reference: '',
+        status: 'authorized',
+        payer_id: 1,
+        next_payment_date: '2026-06-05T00:00:00Z',
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      // Both payments lack date_created → sort is a no-op, latest is index 0.
+      mockSearchAuthorizedPayments.mockResolvedValue([
+        { id: 1, payment: { id: 11 } },
+        { id: 2, payment: { id: 22 } },
+      ])
+      mockGetPayment.mockResolvedValue({
+        id: 11,
+        payer: { email: 'd@example.com', id: 1 },
+      })
+      mockAnonSignUp.mockResolvedValue({
+        data: { user: { id: 'no-date-user' } },
+        error: null,
+      })
+      await POST(
+        makeRequest({
+          query: '?data.id=pre-no-date',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-no-date' },
+          },
+        }),
+      )
+      expect(subscriptionsUpsert).toHaveBeenCalled()
+    })
+
+    it('downgrades plan to free when MP-portal cancellation arrives for a Pro user', async () => {
+      const { subscriptionsUpsert } = setupAdminTables({
+        subscriptionRow: { user_id: 'cancel-pro-user' },
+      })
+      mockGetPreapproval.mockResolvedValue({
+        id: 'pre-cancel-pro',
+        external_reference: '',
+        status: 'cancelled',
+        payer_id: 9,
+        next_payment_date: null,
+        auto_recurring: { frequency: 1, frequency_type: 'months' },
+      })
+      const res = await POST(
+        makeRequest({
+          query: '?data.id=pre-cancel-pro',
+          body: {
+            type: 'subscription_preapproval',
+            data: { id: 'pre-cancel-pro' },
+          },
+        }),
+      )
+      expect(res.status).toBe(200)
+      const upserted = subscriptionsUpsert.mock.calls[0][0]
+      expect(upserted).toEqual(
+        expect.objectContaining({
+          user_id: 'cancel-pro-user',
+          plan: 'free',
+          status: 'cancelled',
+          mp_preapproval_id: 'pre-cancel-pro',
+        }),
+      )
+      expect(upserted.cancelled_at).toBeTruthy()
     })
 
     it('flips status to cancelled when MP-portal cancellation arrives with no external_reference (resolved via mp_preapproval_id)', async () => {

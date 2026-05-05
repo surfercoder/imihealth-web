@@ -39,9 +39,16 @@ export async function cancelSubscription(): Promise<{
     };
   }
 
+  // Drop straight back to the free plan. We keep the MP linkage so the
+  // webhook's later "cancelled" event still finds the row by
+  // mp_preapproval_id and idempotently no-ops.
   await admin
     .from("subscriptions")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .update({
+      plan: "free",
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+    })
     .eq("user_id", user.id);
 
   return { success: true };

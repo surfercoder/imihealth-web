@@ -376,7 +376,7 @@ describe('cancelSubscription', () => {
     expect(result.error).toMatch(/no se encontró/i)
   })
 
-  it('cancels at MP and marks the DB row cancelled on success', async () => {
+  it('cancels at MP and downgrades the DB row to free / cancelled on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: mockUser } })
     const { update } = adminMaybeSingle({
       data: { plan: 'pro_monthly', status: 'active', mp_preapproval_id: 'mp-1' },
@@ -386,7 +386,11 @@ describe('cancelSubscription', () => {
     expect(result).toEqual({ success: true })
     expect(mockUpdatePreapprovalStatus).toHaveBeenCalledWith('mp-1', 'cancelled')
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'cancelled' }),
+      expect.objectContaining({
+        plan: 'free',
+        status: 'cancelled',
+        cancelled_at: expect.any(String),
+      }),
     )
   })
 

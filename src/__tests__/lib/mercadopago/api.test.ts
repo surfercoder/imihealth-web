@@ -5,6 +5,8 @@ import {
   getPreapprovalPlan,
   updatePreapprovalStatus,
   getAuthorizedPayment,
+  searchAuthorizedPaymentsByPreapproval,
+  getPayment,
   getUsdToArsRate,
   __clearRateCacheForTests,
 } from '@/lib/mercadopago/api'
@@ -148,6 +150,28 @@ describe('mercadopago api wrapper', () => {
     await getAuthorizedPayment(99)
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
       'https://api.mercadopago.com/authorized_payments/99',
+    )
+  })
+
+  it('searchAuthorizedPaymentsByPreapproval returns the results array and url-encodes the id', async () => {
+    mockOk({ results: [{ id: 1, payment: { id: 9 } }] })
+    const out = await searchAuthorizedPaymentsByPreapproval('pre/1?')
+    expect(out).toEqual([{ id: 1, payment: { id: 9 } }])
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      'https://api.mercadopago.com/authorized_payments/search?preapproval_id=pre%2F1%3F',
+    )
+  })
+
+  it('searchAuthorizedPaymentsByPreapproval returns [] when MP omits results', async () => {
+    mockOk({})
+    expect(await searchAuthorizedPaymentsByPreapproval('pre-1')).toEqual([])
+  })
+
+  it('getPayment performs GET on /v1/payments with id encoded', async () => {
+    mockOk({ id: 1, payer: { email: 'p@example.com' } })
+    await getPayment(1)
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      'https://api.mercadopago.com/v1/payments/1',
     )
   })
 

@@ -168,6 +168,8 @@ export interface AuthorizedPayment {
   date_created: string;
   /** Date the next charge is scheduled for. */
   debit_date: string | null;
+  /** Inner payment record (only present on /search results). */
+  payment?: { id: number; status: string; status_detail?: string };
 }
 
 export async function getAuthorizedPayment(
@@ -176,6 +178,44 @@ export async function getAuthorizedPayment(
   return call<AuthorizedPayment>(
     "GET",
     `/authorized_payments/${encodeURIComponent(String(id))}`,
+  );
+}
+
+interface AuthorizedPaymentsSearch {
+  results: AuthorizedPayment[];
+}
+
+/**
+ * Lists every authorized_payment created against a preapproval. Used by the
+ * webhook self-heal path: the inner `payment.id` lets us fetch the actual
+ * /v1/payments record, which is the only place MP exposes the payer's email.
+ */
+export async function searchAuthorizedPaymentsByPreapproval(
+  preapprovalId: string,
+): Promise<AuthorizedPayment[]> {
+  const data = await call<AuthorizedPaymentsSearch>(
+    "GET",
+    `/authorized_payments/search?preapproval_id=${encodeURIComponent(preapprovalId)}`,
+  );
+  return data.results ?? [];
+}
+
+export interface PaymentRecord {
+  id: number;
+  status: string;
+  external_reference: string | null;
+  payer: {
+    id: string | number | null;
+    email: string | null;
+  } | null;
+}
+
+export async function getPayment(
+  id: string | number,
+): Promise<PaymentRecord> {
+  return call<PaymentRecord>(
+    "GET",
+    `/v1/payments/${encodeURIComponent(String(id))}`,
   );
 }
 

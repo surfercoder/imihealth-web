@@ -21,6 +21,8 @@ import { createServiceClient } from "@/utils/supabase/server";
 import {
   getPreapproval,
   updatePreapprovalStatus,
+  searchAuthorizedPaymentsByPreapproval,
+  getPayment,
   type Preapproval,
   type PreapprovalStatus,
 } from "@/lib/mercadopago/api";
@@ -53,6 +55,70 @@ export type ReconcileResult =
   | { kind: "pending-signup-cancelled"; pendingSignupId: string }
   | { kind: "stale"; reason: string }
   | { kind: "no-ref" };
+
+/**
+ * Last-resort recovery for stuck signups: if /billing/return never ran (or
+ * its cookie expired), the webhook arrives with no ref and no matching
+ * subscription. We pull the payer email off the most recent authorized
+ * payment and look it up in pending_signups (email is unique there). If the
+ * doctor's MP-account email matches their signup email, the materialization
+ * proceeds; otherwise we surface the mismatch in Sentry so it can be
+ * recovered with scripts/recover-stuck-signup.mjs.
+ */
+async function findPendingSignupByPayerEmail(
+  preapprovalId: string,
+): Promise<PendingSignupRow | null> {
+  let payments;
+  try {
+    payments = await searchAuthorizedPaymentsByPreapproval(preapprovalId);
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { flow: "reconcile-payer-email-search" },
+      extra: { preapprovalId },
+    });
+    return null;
+  }
+  // The most recent payment is what landed the user on /billing/return.
+  const latest = [...payments]
+    .filter((p) => p.payment?.id)
+    .sort(
+      (a, b) =>
+        Date.parse(b.date_created || "") - Date.parse(a.date_created || ""),
+    )[0];
+  if (!latest?.payment?.id) return null;
+
+  let payment;
+  try {
+    payment = await getPayment(latest.payment.id);
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { flow: "reconcile-payer-email-fetch" },
+      extra: { preapprovalId, paymentId: latest.payment.id },
+    });
+    return null;
+  }
+  const email = payment.payer?.email?.trim().toLowerCase();
+  if (!email) return null;
+
+  const admin = createServiceClient();
+  const { data: pending } = await admin
+    .from("pending_signups")
+    .select("id, email, encrypted_password, signup_data")
+    .ilike("email", email)
+    .maybeSingle<PendingSignupRow>();
+  if (!pending) {
+    Sentry.captureMessage(
+      "[reconcile] preapproval has no matching pending_signup by payer email",
+      {
+        level: "warning",
+        tags: { flow: "reconcile-payer-email-miss" },
+        extra: { preapprovalId, payerEmail: email },
+      },
+    );
+    return null;
+  }
+  return pending;
+}
 
 export function mapPreapprovalStatus(
   status: PreapprovalStatus,
@@ -174,20 +240,22 @@ export async function reconcilePreapproval(
     .maybeSingle();
 
   if (subByPreapproval) {
+    const cancelled = preapproval.status === "cancelled";
     await admin.from("subscriptions").upsert(
       {
         user_id: subByPreapproval.user_id,
-        plan: planTierFromAmount(preapproval),
+        // MP cancellation downgrades to the free tier — both via this app's
+        // cancel button and via the doctor's MP portal. We keep the MP linkage
+        // (preapproval/payer ids) so webhook replays remain idempotent and a
+        // re-subscription can still resolve by mp_preapproval_id.
+        plan: cancelled ? "free" : planTierFromAmount(preapproval),
         status: mapPreapprovalStatus(preapproval.status),
         mp_preapproval_id: preapproval.id,
         mp_payer_id: preapproval.payer_id
           ? String(preapproval.payer_id)
           : null,
         current_period_end: preapproval.next_payment_date,
-        cancelled_at:
-          preapproval.status === "cancelled"
-            ? new Date().toISOString()
-            : null,
+        cancelled_at: cancelled ? new Date().toISOString() : null,
       },
       { onConflict: "user_id" },
     );
@@ -199,23 +267,28 @@ export async function reconcilePreapproval(
 
   // Otherwise we need a ref. /billing/return passes one from a signed cookie;
   // the webhook only has external_reference, which MP drops for plan-based
-  // subscriptions. The first-ever webhook for a brand-new preapproval bails
-  // here — that's OK: /billing/return runs first in the happy path and links
+  // subscriptions. In the happy path /billing/return runs first and links
   // the row, so the cancel/replay branch above handles everything after that.
+  // When that path failed (cookie expired, browser closed before redirect,
+  // proxy bug like the /billing-not-public regression), we fall through to
+  // a payer-email lookup against pending_signups.
   const ref = preapproval.external_reference || options.refOverride || null;
-  if (!ref) {
-    console.warn(
-      `[reconcile] preapproval ${preapprovalId} has no external_reference, no refOverride, and no matching row; skipping`,
-    );
-    return { kind: "no-ref" };
+  let pending: PendingSignupRow | null = null;
+
+  if (ref) {
+    const { data } = await admin
+      .from("pending_signups")
+      .select("id, email, encrypted_password, signup_data")
+      .eq("id", ref)
+      .maybeSingle<PendingSignupRow>();
+    pending = data;
   }
 
-  // Path B: external_reference points at a staged signup awaiting payment.
-  const { data: pending } = await admin
-    .from("pending_signups")
-    .select("id, email, encrypted_password, signup_data")
-    .eq("id", ref)
-    .maybeSingle<PendingSignupRow>();
+  if (!pending && preapproval.status === "authorized") {
+    pending = await findPendingSignupByPayerEmail(preapproval.id);
+  }
+
+  // Path B: external_reference / payer-email match → staged signup awaiting payment.
 
   if (pending) {
     if (preapproval.status === "authorized") {
@@ -227,6 +300,18 @@ export async function reconcilePreapproval(
       return { kind: "pending-signup-cancelled", pendingSignupId: pending.id };
     }
     return { kind: "pending-signup-waiting", pendingSignupId: pending.id };
+  }
+
+  if (!ref) {
+    Sentry.captureMessage(
+      "[reconcile] preapproval has no external_reference, no refOverride, no matching subscription, and no pending_signup match by payer email",
+      {
+        level: "warning",
+        tags: { flow: "reconcile-no-ref" },
+        extra: { preapprovalId, status: preapproval.status },
+      },
+    );
+    return { kind: "no-ref" };
   }
 
   // Path C: existing-user first-time link via external_reference=user.id.
@@ -266,19 +351,17 @@ export async function reconcilePreapproval(
       : null;
 
   const userId = subByUser?.user_id ?? ref;
+  const cancelledC = preapproval.status === "cancelled";
 
   await admin.from("subscriptions").upsert(
     {
       user_id: userId,
-      plan: planTierFromAmount(preapproval),
+      plan: cancelledC ? "free" : planTierFromAmount(preapproval),
       status: mapPreapprovalStatus(preapproval.status),
       mp_preapproval_id: preapproval.id,
       mp_payer_id: preapproval.payer_id ? String(preapproval.payer_id) : null,
       current_period_end: preapproval.next_payment_date,
-      cancelled_at:
-        preapproval.status === "cancelled"
-          ? new Date().toISOString()
-          : null,
+      cancelled_at: cancelledC ? new Date().toISOString() : null,
     },
     { onConflict: "user_id" },
   );
