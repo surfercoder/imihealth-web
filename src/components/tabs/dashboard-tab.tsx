@@ -1,15 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { CheckCircle2, Clock, AlertCircle, Users, FileText } from "lucide-react";
 import { InformeCountStat } from "@/components/informe-count-stat";
 import { Separator } from "@/components/ui/separator";
+import { DashboardCharts } from "@/components/dashboard-charts";
 import type { ChartData } from "@/actions/dashboard-charts";
-
-const DashboardCharts = dynamic(
-  () => import("@/components/dashboard-charts").then((mod) => mod.DashboardCharts),
-  { ssr: false }
-);
 import type { PlanInfo } from "@/actions/subscriptions";
 import { useTranslations } from "next-intl";
 
