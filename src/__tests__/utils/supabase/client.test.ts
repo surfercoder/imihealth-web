@@ -7,17 +7,17 @@ jest.mock('@supabase/ssr', () => ({
 
 describe('createClient (browser)', () => {
   const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const originalKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+  const originalKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   beforeEach(() => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = 'test-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-key'
     jest.clearAllMocks()
   })
 
   afterEach(() => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = originalKey
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = originalKey
   })
 
   it('calls createBrowserClient with env vars and returns the client', () => {

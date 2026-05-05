@@ -163,7 +163,7 @@ describe('POST /api/webhooks/mercadopago', () => {
     mockGetPayment.mockResolvedValue({ payer: { email: null } })
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test'
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = 'anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'anon-key'
   })
 
   it('returns 401 when signature verification fails', async () => {

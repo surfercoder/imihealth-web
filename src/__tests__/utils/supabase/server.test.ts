@@ -43,7 +43,7 @@ describe('createServiceClient', () => {
 describe('createClient (server)', () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = 'test-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-key'
     jest.clearAllMocks()
     mockCreateServerClient.mockReturnValue({ mock: 'server-client' })
   })

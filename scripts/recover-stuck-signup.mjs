@@ -13,7 +13,7 @@
 //   node scripts/recover-stuck-signup.mjs <pending_signup_id> <preapproval_id> [<pending_signup_id> <preapproval_id>...]
 //
 // Requires the same env as the app: NEXT_PUBLIC_SUPABASE_URL,
-// SUPABASE_SECRET_KEY (service role), NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+// SUPABASE_SECRET_KEY (service role), NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 // MERCADOPAGO_ACCESS_TOKEN, NEXT_PUBLIC_APP_URL, SIGNUP_ENC_KEY.
 
 import { createClient } from "@supabase/supabase-js";
@@ -30,7 +30,7 @@ function envOrDie(key) {
 
 const SUPABASE_URL = envOrDie("NEXT_PUBLIC_SUPABASE_URL");
 const SUPABASE_SERVICE_KEY = envOrDie("SUPABASE_SECRET_KEY");
-const SUPABASE_ANON_KEY = envOrDie("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY");
+const SUPABASE_ANON_KEY = envOrDie("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
 const MP_TOKEN = envOrDie("MERCADOPAGO_ACCESS_TOKEN");
 const APP_URL = envOrDie("NEXT_PUBLIC_APP_URL");
 const SIGNUP_KEY_HEX = envOrDie("SIGNUP_ENC_KEY");

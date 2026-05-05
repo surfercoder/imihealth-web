@@ -163,7 +163,7 @@ async function materializePendingSignup(
   // fallback on /billing/return — both converge to the materialized state.
   const anon = createAnonClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   );
   const { data: signUp, error } = await anon.auth.signUp({
     email: pending.email,

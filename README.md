@@ -50,7 +50,7 @@ This document is the entry point for the codebase: what the system does, how it 
 
 ### Required environment variables
 The app expects (non-exhaustive):
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_SECRET_KEY` — Supabase clients (anon SSR + service role).
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` — Supabase clients (anon SSR + service role).
 - `ANTHROPIC_API_KEY`, `ASSEMBLYAI_API_KEY`.
 - `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `MERCADOPAGO_PRO_MONTHLY_PLAN_ID`, `MERCADOPAGO_PRO_YEARLY_PLAN_ID`.
 - `WHATSAPP_*` (Cloud API token, phone number id), `RESEND_API_KEY`.
