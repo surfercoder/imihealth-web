@@ -7,23 +7,23 @@ import { getPreapprovalPlan } from "@/lib/mercadopago/api";
 import { setCheckoutRefCookie } from "@/lib/billing/checkout-ref-cookie";
 import type { ProPlanTier } from "@/types/subscription";
 
-interface PlanConfig {
-  arsAmount: number;
-}
-
-const PLAN_CONFIG: Record<ProPlanTier, PlanConfig> = {
-  pro_monthly: { arsAmount: 15 },
-  pro_yearly: { arsAmount: 75 },
-};
-
-export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
-  return PLAN_CONFIG[plan].arsAmount;
-}
-
 function planEnvIdFor(plan: ProPlanTier): string | undefined {
   return plan === "pro_monthly"
     ? process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
     : process.env.MERCADOPAGO_PRO_YEARLY_PLAN_ID;
+}
+
+// Reads the locked ARS amount straight off the MP plan, so the price
+// rendered on /pricing always equals what we'll actually charge. The
+// pricing page wraps this in try/catch and degrades to USD-only if MP
+// is unreachable.
+export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
+  const planId = planEnvIdFor(plan);
+  if (!planId) {
+    throw new Error(`MercadoPago plan id not configured for ${plan}`);
+  }
+  const mpPlan = await getPreapprovalPlan(planId);
+  return mpPlan.auto_recurring.transaction_amount;
 }
 
 // Plan-based redirect: we never POST /preapproval ourselves (which would

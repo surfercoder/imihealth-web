@@ -70,7 +70,7 @@ describe('PricingPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetCurrentArsPrice.mockImplementation((plan: string) =>
-      Promise.resolve(plan === 'pro_yearly' ? 75 : 15),
+      Promise.resolve(plan === 'pro_yearly' ? 420750 : 42075),
     )
     mockGetPlanInfo.mockResolvedValue({
       plan: 'free',
@@ -94,8 +94,8 @@ describe('PricingPage', () => {
     expect(screen.queryByTestId('app-header')).not.toBeInTheDocument()
     const cards = screen.getByTestId('pricing-cards')
     expect(cards).toHaveAttribute('data-signed-in', 'false')
-    expect(cards).toHaveAttribute('data-ars-monthly', '15')
-    expect(cards).toHaveAttribute('data-ars-yearly', '75')
+    expect(cards).toHaveAttribute('data-ars-monthly', '42075')
+    expect(cards).toHaveAttribute('data-ars-yearly', '420750')
     // No subscription section for anonymous users.
     expect(screen.queryByTestId('subscription-section')).not.toBeInTheDocument()
     expect(

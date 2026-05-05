@@ -327,9 +327,36 @@ describe('createCheckout', () => {
 })
 
 describe('getCurrentArsPrice', () => {
-  it('returns the fixed ARS amounts for monthly and yearly', async () => {
-    expect(await getCurrentArsPrice('pro_monthly')).toBe(15)
-    expect(await getCurrentArsPrice('pro_yearly')).toBe(75)
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setBillingEnv()
+  })
+
+  it('returns the locked transaction_amount from the MP plan', async () => {
+    mockGetPreapprovalPlan.mockImplementation((id: string) => {
+      const amount = id === 'plan-yearly' ? 420750 : 42075
+      return Promise.resolve({
+        ...planResponse('https://mp/'),
+        id,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: amount,
+          currency_id: 'ARS',
+        },
+      })
+    })
+    expect(await getCurrentArsPrice('pro_monthly')).toBe(42075)
+    expect(await getCurrentArsPrice('pro_yearly')).toBe(420750)
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-monthly')
+    expect(mockGetPreapprovalPlan).toHaveBeenCalledWith('plan-yearly')
+  })
+
+  it('throws when the plan id env var is missing', async () => {
+    delete process.env.MERCADOPAGO_PRO_MONTHLY_PLAN_ID
+    await expect(getCurrentArsPrice('pro_monthly')).rejects.toThrow(
+      /plan id not configured/i,
+    )
   })
 })
 

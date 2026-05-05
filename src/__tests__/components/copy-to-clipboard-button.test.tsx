@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mockToastSuccess = jest.fn()
@@ -70,23 +70,24 @@ describe('CopyToClipboardButton', () => {
   })
 
   it('toggles between Copy and Check icons when clicked', async () => {
+    jest.useRealTimers()
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: jest.fn().mockResolvedValue(undefined) },
       writable: true,
       configurable: true,
     })
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const user = userEvent.setup()
     const { container } = render(<CopyToClipboardButton text="text" />)
-    // Initially shows Copy icon (svg element present)
-    const svgBefore = container.querySelector('svg')
-    expect(svgBefore).toBeInTheDocument()
-    // After clicking — state changes (icon swaps to Check)
+    expect(container.querySelector('.lucide-copy')).toBeInTheDocument()
+    expect(container.querySelector('.lucide-check')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button'))
-    const svgAfter = container.querySelector('svg')
-    expect(svgAfter).toBeInTheDocument()
-    // After timeout resets back
-    act(() => { jest.advanceTimersByTime(2000) })
-    const svgFinal = container.querySelector('svg')
-    expect(svgFinal).toBeInTheDocument()
+    await waitFor(() => {
+      expect(container.querySelector('.lucide-check')).toBeInTheDocument()
+    })
+    expect(container.querySelector('.lucide-copy')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(container.querySelector('.lucide-copy')).toBeInTheDocument()
+    }, { timeout: 3000 })
+    expect(container.querySelector('.lucide-check')).not.toBeInTheDocument()
   })
 })
