@@ -9,6 +9,7 @@ import { ReadOnlyBanner } from "@/components/read-only-banner";
 import type { PatientWithStats } from "@/actions/patients";
 import { getPlanInfo } from "@/actions/subscriptions";
 import { getDashboardChartData } from "@/actions/dashboard-charts";
+import { PlanProvider } from "@/contexts/plan-context";
 import { PublicLandingPage } from "@/components/public-landing-page";
 import { InformesTab } from "@/components/tabs/informes-tab";
 import { MisPacientesTab } from "@/components/tabs/mis-pacientes-tab";
@@ -107,29 +108,31 @@ export default async function HomePage({
   ]);
 
   return (
-    <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
-      <ReadOnlyBanner plan={plan} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-        <HomeTabs
-          initialTab={activeTab}
-          translations={{
-            informes: t("tabs.informes"),
-            misPacientes: t("tabs.misPacientes"),
-            dashboard: t("tabs.dashboard"),
-          }}
-          informesContent={<InformesTab />}
-          patientsContent={
-            <Suspense fallback={<TabContentSkeleton variant="patients" />}>
-              <PatientsTabServer userId={user.id} />
-            </Suspense>
-          }
-          dashboardContent={
-            <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
-              <DashboardTabServer userId={user.id} plan={plan} />
-            </Suspense>
-          }
-        />
-      </main>
-    </HomeWrapper>
+    <PlanProvider plan={plan}>
+      <HomeWrapper userName={doctor?.name} showWelcome={showWelcome}>
+        <ReadOnlyBanner plan={plan} />
+        <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+          <HomeTabs
+            initialTab={activeTab}
+            translations={{
+              informes: t("tabs.informes"),
+              misPacientes: t("tabs.misPacientes"),
+              dashboard: t("tabs.dashboard"),
+            }}
+            informesContent={<InformesTab />}
+            patientsContent={
+              <Suspense fallback={<TabContentSkeleton variant="patients" />}>
+                <PatientsTabServer userId={user.id} />
+              </Suspense>
+            }
+            dashboardContent={
+              <Suspense fallback={<TabContentSkeleton variant="dashboard" />}>
+                <DashboardTabServer userId={user.id} plan={plan} />
+              </Suspense>
+            }
+          />
+        </main>
+      </HomeWrapper>
+    </PlanProvider>
   );
 }

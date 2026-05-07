@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { getAuthUser } from "@/lib/cached-queries";
+import { getPlanInfo } from "@/actions/subscriptions";
+import { PlanProvider } from "@/contexts/plan-context";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -56,15 +58,18 @@ export default async function PatientPage({ params, searchParams }: Props) {
 
   if (!user) redirect("/login");
 
-  const { data: patient, error } = await supabase
-    .from("patients")
-    .select(
-      `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at,
-       informes(id, status, created_at, informe_doctor, informe_paciente)`
-    )
-    .eq("id", id)
-    .eq("doctor_id", user.id)
-    .single();
+  const [{ data: patient, error }, plan] = await Promise.all([
+    supabase
+      .from("patients")
+      .select(
+        `id, name, dni, email, phone, dob, obra_social, nro_afiliado, plan, created_at,
+         informes(id, status, created_at, informe_doctor, informe_paciente)`
+      )
+      .eq("id", id)
+      .eq("doctor_id", user.id)
+      .single(),
+    getPlanInfo(user.id),
+  ]);
 
   if (error || !patient) notFound();
 
@@ -123,7 +128,7 @@ export default async function PatientPage({ params, searchParams }: Props) {
   }`;
 
   return (
-    <>
+    <PlanProvider plan={plan}>
       <div className="border-b border-border/40">
         <div className="mx-auto flex h-11 max-w-5xl items-center gap-3 px-6">
           <Button variant="ghost" size="sm" asChild>
@@ -167,6 +172,6 @@ export default async function PatientPage({ params, searchParams }: Props) {
           }}
         />
       </main>
-    </>
+    </PlanProvider>
   );
 }
