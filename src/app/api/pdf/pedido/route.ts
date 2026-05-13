@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthedSupabase } from "@/utils/supabase/api-auth";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { extractDiagnosticoPresuntivo } from "./utils";
@@ -7,13 +7,8 @@ import { getTranslations } from "next-intl/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const { supabase, user } = await getAuthedSupabase(request);
+    if (!supabase || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

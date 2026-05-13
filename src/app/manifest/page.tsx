@@ -28,7 +28,7 @@ export default async function ManifestPage() {
           <div className="mb-8">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="size-4" />
                 {tNav("back")}
               </Link>
             </Button>
@@ -36,7 +36,7 @@ export default async function ManifestPage() {
 
           {/* Title Section */}
           <div className="mb-16 text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl mb-4">
               {t("title")}
             </h1>
             <p className="text-xl text-foreground/80 font-medium mb-2">
@@ -63,7 +63,7 @@ export default async function ManifestPage() {
 
           {/* Belief Section */}
           <div className="mb-16 text-center">
-            <h2 className="text-3xl font-bold mb-4">
+            <h2 className="text-3xl font-semibold mb-4">
               {t("beliefTitle")}
             </h2>
           </div>
@@ -79,7 +79,7 @@ export default async function ManifestPage() {
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <FileText className="h-4 w-4" />
+                        <FileText className="size-4" />
                       </div>
                       <p className="font-medium">{t(principleKey)}</p>
                     </div>
@@ -95,7 +95,7 @@ export default async function ManifestPage() {
               <CardContent className="p-8 text-center">
                 <div className="flex justify-center mb-4">
                   <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Brain className="h-6 w-6" />
+                    <Brain className="size-6" />
                   </div>
                 </div>
                 <h2 className="text-2xl font-semibold mb-3">
@@ -148,7 +148,7 @@ export default async function ManifestPage() {
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-full bg-green-500/10 text-green-600">
-                        <TrendingUp className="h-4 w-4" />
+                        <TrendingUp className="size-4" />
                       </div>
                       <p className="font-medium">{t(benefitKey)}</p>
                     </div>
@@ -161,7 +161,7 @@ export default async function ManifestPage() {
           {/* Conclusion Sections */}
           <div className="space-y-8 text-center">
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold">{t("conclusion1")}</h2>
+              <h2 className="text-3xl font-semibold">{t("conclusion1")}</h2>
               <p className="text-xl text-foreground/80">{t("conclusion2")}</p>
             </div>
             
@@ -169,7 +169,7 @@ export default async function ManifestPage() {
               <h2 className="text-2xl font-semibold mb-4 text-foreground/90">
                 {t("finalStatement")}
               </h2>
-              <p className="text-xl font-bold text-primary">
+              <p className="text-xl font-semibold text-primary">
                 {t("finalConclusion")}
               </p>
             </div>

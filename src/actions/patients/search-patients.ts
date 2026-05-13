@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import type { PatientSearchResult } from "@/types/patient";
 
 export async function searchPatients(query: string): Promise<{
@@ -9,10 +9,7 @@ export async function searchPatients(query: string): Promise<{
 }> {
   if (!query || query.trim().length < 2) return { data: [] };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const trimmed = query.trim();

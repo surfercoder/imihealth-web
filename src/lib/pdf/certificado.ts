@@ -5,8 +5,10 @@ export async function generateCertificadoPDF({
   patientName, date, diagnosis, observations, doctor, labels,
 }: GenerateCertificadoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const [helveticaBold, helvetica] = await Promise.all([
+    pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    pdfDoc.embedFont(StandardFonts.Helvetica),
+  ]);
 
   patientName = sanitizeForPdf(patientName);
 

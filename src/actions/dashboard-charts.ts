@@ -23,6 +23,7 @@ export interface ChartData {
   };
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- consumed only by server components that already authed the caller; userId is the authed id
 export async function getDashboardChartData(
   userId: string
 ): Promise<ChartData | null> {

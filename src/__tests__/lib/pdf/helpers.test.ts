@@ -69,8 +69,10 @@ describe('pdfColors', () => {
 describe('drawDoctorBlock', () => {
   const baseSetup = async () => {
     const pdfDoc = await PDFDocument.create()
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    const [helveticaBold, helvetica] = await Promise.all([
+      pdfDoc.embedFont(StandardFonts.HelveticaBold),
+      pdfDoc.embedFont(StandardFonts.Helvetica),
+    ])
     const page = pdfDoc.addPage([595, 842])
     return { pdfDoc, helvetica, helveticaBold, page }
   }

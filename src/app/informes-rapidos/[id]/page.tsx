@@ -94,7 +94,7 @@ export default async function InformeRapidoPage({ params }: Props) {
             </p>
             <Button
               asChild
-              className="mt-6 bg-gray-950 text-white hover:bg-gray-950/80"
+              className="mt-6 bg-zinc-950 text-white hover:bg-zinc-950/80"
             >
               <Link href="/quick-informe">
                 <Mic className="size-4 mr-1.5" />

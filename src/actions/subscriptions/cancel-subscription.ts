@@ -1,16 +1,14 @@
 "use server";
 
-import { createClient, createServiceClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { updatePreapprovalStatus } from "@/lib/mercadopago/api";
 
 export async function cancelSubscription(): Promise<{
   success?: true;
   error?: string;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const admin = createServiceClient();

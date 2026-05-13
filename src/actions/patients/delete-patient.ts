@@ -1,13 +1,10 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { revalidatePath } from "next/cache";
 
 export async function deletePatient(patientId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   // Verify the patient belongs to this doctor

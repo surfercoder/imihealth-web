@@ -33,49 +33,52 @@ export interface GeneratedMedia {
 
 export async function generateInformeMedia(input: InformeMediaInput): Promise<GeneratedMedia> {
   const { patient, patientNameFallback, dateStr, content, doctorInfo, labels } = input;
+  const patientName = patient?.name ?? patientNameFallback ?? "";
 
-  const pdfBytes = await generateInformePDF({
-    patientName: patient?.name ?? patientNameFallback ?? "",
-    date: dateStr,
-    content,
-    doctor: doctorInfo,
-    labels,
-  });
-
-  const pngBuffer = await generateInformeImage({
-    patientName: patient?.name ?? patientNameFallback ?? "",
-    patientPhone: patient?.phone ?? null,
-    date: dateStr,
-    content,
-    doctor: doctorInfo,
-  });
+  const [pdfBytes, pngBuffer] = await Promise.all([
+    generateInformePDF({
+      patientName,
+      date: dateStr,
+      content,
+      doctor: doctorInfo,
+      labels,
+    }),
+    generateInformeImage({
+      patientName,
+      patientPhone: patient?.phone ?? null,
+      date: dateStr,
+      content,
+      doctor: doctorInfo,
+    }),
+  ]);
 
   return { pdfBytes, pngBuffer };
 }
 
 export async function generateCertificadoMedia(input: CertificadoMediaInput): Promise<GeneratedMedia> {
   const { patient, patientNameFallback, dateStr, doctorInfo, certOptions, labels } = input;
-
+  const patientName = patient?.name ?? patientNameFallback ?? "";
   const patientDob = formatPatientDob(patient?.dob);
 
-  const pdfBytes = await generateCertificadoPDF({
-    patientName: patient?.name ?? patientNameFallback ?? "",
-    date: dateStr,
-    diagnosis: certOptions?.diagnosis ?? null,
-    observations: certOptions?.observations ?? null,
-    doctor: doctorInfo,
-    labels,
-  });
-
-  const pngBuffer = await generateCertificadoImage({
-    patientName: patient?.name ?? patientNameFallback ?? "",
-    patientDob,
-    date: dateStr,
-    diagnosis: certOptions?.diagnosis ?? null,
-    daysOff: certOptions?.daysOff ?? null,
-    observations: certOptions?.observations ?? null,
-    doctor: doctorInfo,
-  });
+  const [pdfBytes, pngBuffer] = await Promise.all([
+    generateCertificadoPDF({
+      patientName,
+      date: dateStr,
+      diagnosis: certOptions?.diagnosis ?? null,
+      observations: certOptions?.observations ?? null,
+      doctor: doctorInfo,
+      labels,
+    }),
+    generateCertificadoImage({
+      patientName,
+      patientDob,
+      date: dateStr,
+      diagnosis: certOptions?.diagnosis ?? null,
+      daysOff: certOptions?.daysOff ?? null,
+      observations: certOptions?.observations ?? null,
+      doctor: doctorInfo,
+    }),
+  ]);
 
   return { pdfBytes, pngBuffer };
 }

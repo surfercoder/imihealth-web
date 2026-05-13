@@ -1,16 +1,13 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { patientCreateSchema } from "@/schemas/patient";
 import type { Patient } from "@/types/patient";
 
 export async function createPatient(
   formData: FormData,
 ): Promise<{ data?: Patient; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const parsed = patientCreateSchema.safeParse({

@@ -14,14 +14,13 @@ interface ParsedSignature {
 }
 
 function parseSignature(header: string): ParsedSignature | null {
-  const parts = header.split(",").map((p) => p.trim());
   let ts = "";
   let v1 = "";
-  for (const part of parts) {
-    const eq = part.indexOf("=");
-    if (eq === -1) continue;
-    const k = part.slice(0, eq).trim();
-    const v = part.slice(eq + 1).trim();
+  for (const part of header.split(",")) {
+    const [rawKey, ...rest] = part.split("=");
+    if (rest.length === 0) continue;
+    const k = rawKey.trim();
+    const v = rest.join("=").trim();
     if (k === "ts") ts = v;
     else if (k === "v1") v1 = v;
   }

@@ -5,8 +5,10 @@ export async function generatePedidoPDF({
   patientName, obraSocial, nroAfiliado, plan, date, item, diagnostico, doctor, labels,
 }: GeneratePedidoPDFOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const [helveticaBold, helvetica] = await Promise.all([
+    pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    pdfDoc.embedFont(StandardFonts.Helvetica),
+  ]);
 
   patientName = sanitizeForPdf(patientName);
 

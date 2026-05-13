@@ -559,8 +559,10 @@ describe('POST /api/webhooks/mercadopago', () => {
         next_payment_date: '2026-06-05T00:00:00Z',
         auto_recurring: { frequency: 1, frequency_type: 'months' },
       })
-      // Both payments lack date_created → sort is a no-op, latest is index 0.
+      // First entry has no payment.id (must be skipped); the remaining two
+      // both lack date_created so we end up picking the first id-bearing one.
       mockSearchAuthorizedPayments.mockResolvedValue([
+        { id: 0, payment: null },
         { id: 1, payment: { id: 11 } },
         { id: 2, payment: { id: 22 } },
       ])

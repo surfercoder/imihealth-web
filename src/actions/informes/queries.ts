@@ -1,12 +1,9 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 
 export async function getInformes() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const { data, error } = await supabase
@@ -20,10 +17,7 @@ export async function getInformes() {
 }
 
 export async function getInforme(informeId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const { data, error } = await supabase

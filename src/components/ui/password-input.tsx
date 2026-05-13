@@ -28,7 +28,7 @@ function PasswordInput({
         type="button"
         variant="ghost"
         size="icon"
-        className="absolute right-0 top-0 h-9 w-9 px-2 text-muted-foreground hover:text-foreground"
+        className="absolute right-0 top-0 size-9 px-2 text-muted-foreground hover:text-foreground"
         onClick={() => setShowPassword((prev) => !prev)}
         aria-label={showPassword ? "Hide password" : "Show password"}
       >

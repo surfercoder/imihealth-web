@@ -28,12 +28,12 @@ export function ReportTypeCards({
         disabled={isLoadingClassic || limitReached}
         className="group relative overflow-hidden rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-8 text-left shadow-md transition-all hover:shadow-xl hover:scale-[1.02] hover:border-primary/50 hover:-translate-y-0.5 active:scale-[0.98] active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <div className="flex flex-col items-center text-center space-y-4">
+        <div className="flex flex-col items-center text-center gap-y-4">
           <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-2 ring-primary/20">
             {limitReached ? <Lock className="size-8" /> : <FileText className="size-8" />}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               {t("informes.classic")}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -49,12 +49,12 @@ export function ReportTypeCards({
         disabled={limitReached}
         className="group relative overflow-hidden rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-8 text-left shadow-md transition-all hover:shadow-xl hover:scale-[1.02] hover:border-emerald-500/50 hover:-translate-y-0.5 active:scale-[0.98] active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <div className="flex flex-col items-center text-center space-y-4">
+        <div className="flex flex-col items-center text-center gap-y-4">
           <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 ring-2 ring-emerald-500/20">
             {limitReached ? <Lock className="size-8" /> : <Zap className="size-8" />}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               {t("informes.quick")}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">

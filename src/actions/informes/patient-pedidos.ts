@@ -1,21 +1,18 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 
 export async function generatePatientPedidos(
   patientId: string,
   items: string[],
   diagnostico: string | null,
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
-
   if (!items || items.length === 0) {
     return { error: "No hay pedidos para generar" };
   }
+
+  const { supabase, user } = await requireAuth();
+  if (!user) return { error: "No autenticado" };
 
   const { data: patient, error: fetchError } = await supabase
     .from("patients")

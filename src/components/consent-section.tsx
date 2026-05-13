@@ -84,7 +84,7 @@ export function ConsentSection({
         )}
       </div>
 
-      <div className="px-5 py-5 space-y-4">
+      <div className="p-5 space-y-4">
         {!consented && (
           <p className="text-sm text-muted-foreground leading-relaxed">
             {t("instructions")}
@@ -108,7 +108,7 @@ export function ConsentSection({
               )}
             </button>
             {showPreview && (
-              <div className="border-t border-border/60 px-4 py-4 bg-muted/50 space-y-4">
+              <div className="border-t border-border/60 p-4 bg-muted/50 space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                     {t("consultSummary")}

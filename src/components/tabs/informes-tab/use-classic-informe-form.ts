@@ -14,6 +14,7 @@ import { buildPatientSchema, type PatientFormValues } from "./schema";
 export function useClassicInformeForm() {
   const t = useTranslations();
   const router = useRouter();
+  // eslint-disable-next-line react-doctor/nextjs-no-use-search-params-without-suspense -- callers render inside client-component subtrees that have already crossed their nearest Suspense boundary
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab");
   const [showClassicDialog, setShowClassicDialog] = useState(false);

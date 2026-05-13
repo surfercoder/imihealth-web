@@ -1,7 +1,7 @@
 "use server";
 
 import * as Sentry from "@sentry/nextjs";
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { getPlanInfo } from "@/actions/subscriptions";
 import {
@@ -23,14 +23,10 @@ export async function processQuickInforme(
   language: string = "es",
   recordingDuration?: number,
 ): Promise<ProcessQuickInformeResult> {
-  const supabase = await createClient();
+  const { supabase, user } = await requireAuth();
+  if (!user) return { error: "No autenticado" };
 
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { error: "No autenticado" };
-
     const plan = await getPlanInfo(user.id);
     if (plan.isReadOnly) {
       return {
@@ -77,6 +73,7 @@ export async function processQuickInforme(
           .from("audio-recordings")
           .download(audioPath);
         if (downloadError) {
+          // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
           console.warn(
             `[quick-informe] storage download failed: ${downloadError.message}`,
           );
@@ -96,6 +93,7 @@ export async function processQuickInforme(
         ? ""
         : browserTranscript;
 
+      // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
       console.info(
         `[quick-informe] start: id=${informeRapidoId}, browserTranscriptLen=${browserTranscript.length}, isBrowserFallback=${isBrowserFallback}, audioBufferSize=${audioBuffer?.length ?? 0}`,
       );
@@ -107,6 +105,7 @@ export async function processQuickInforme(
       );
 
       const trimmedTranscript = transcript?.trim() || "";
+      // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
       console.info(
         `[quick-informe] transcript ready: len=${trimmedTranscript.length}, assemblyAISucceeded=${assemblyAISucceeded}`,
       );
@@ -138,6 +137,7 @@ export async function processQuickInforme(
         typeof rawInformeDoctor === "string" ? rawInformeDoctor : "";
 
       if (!validMedicalContent || !informeDoctor.trim()) {
+        // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
         console.warn(
           `[quick-informe] no usable doctor report: validMedicalContent=${validMedicalContent}, informeDoctorType=${typeof rawInformeDoctor}, informeDoctorLen=${informeDoctor.length}`,
         );
@@ -182,6 +182,7 @@ export async function processQuickInforme(
         .from("audio-recordings")
         .remove([audioPath]);
       if (error) {
+        // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
         console.warn(
           `[quick-informe] storage cleanup failed: ${error.message}`,
         );

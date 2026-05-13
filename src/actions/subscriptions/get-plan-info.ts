@@ -40,6 +40,7 @@ function deriveAccess(sub: SubscriptionRow | null): AccessState {
   return { plan, status, isPro: false, periodEnd };
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- optional userId means callers may invoke unauthed (e.g. landing pricing); when authed, caller passes user.id explicitly
 export async function getPlanInfo(userId?: string): Promise<PlanInfo> {
   const supabase = await createClient();
 

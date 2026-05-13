@@ -111,7 +111,7 @@ export default async function InformePage({ params, searchParams }: Props) {
               {createdAt}
             </p>
           </div>
-          <Button size="sm" asChild className="bg-gray-950 text-white hover:bg-gray-950/80">
+          <Button size="sm" asChild className="bg-zinc-950 text-white hover:bg-zinc-950/80">
             <Link href={tab ? `/?tab=${tab}` : "/"}>
               <Home className="size-4 mr-1.5" />
               {t("nav.home")}

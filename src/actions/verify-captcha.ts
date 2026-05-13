@@ -2,6 +2,7 @@
 
 const VERIFY_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify';
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- pre-auth captcha verification runs before any user session exists
 export async function verifyCaptchaToken(token: string): Promise<{ success: boolean; error?: string }> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   if (!secretKey) {

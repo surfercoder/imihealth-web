@@ -34,7 +34,7 @@ export function DoctorWhatsAppIconButton({ phone, doctorName, reportContent }: {
             variant="ghost"
             size="sm"
             onClick={handleSend}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <MessageCircle className="size-6" />
           </Button>

@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- locale cookie is set both pre- and post-auth
 export async function setLocale(locale: string) {
   const validLocales = ["es", "en"];
   if (!validLocales.includes(locale)) return;

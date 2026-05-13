@@ -14,9 +14,9 @@ export default async function NotFound() {
   const t = await getTranslations("notFound");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 via-gray-900 to-slate-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950 px-4">
       <div className="max-w-2xl w-full text-center space-y-8">
-        <div className="relative w-96 h-96 mx-auto">
+        <div className="relative size-96 mx-auto">
           <Image
             src={imiBotNotFound}
             alt="IMI Bot"
@@ -28,11 +28,11 @@ export default async function NotFound() {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-6xl font-bold tracking-tight text-white">404</h1>
+          <h1 className="text-6xl font-semibold tracking-tight text-white">404</h1>
           <h2 className="text-3xl font-semibold text-white">
             {t("title")}
           </h2>
-          <p className="text-gray-300 text-lg">
+          <p className="text-zinc-300 text-lg">
             {t("description")}
           </p>
         </div>

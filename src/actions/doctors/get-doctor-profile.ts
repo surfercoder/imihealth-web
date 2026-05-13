@@ -1,13 +1,9 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 
 export async function getDoctorProfile() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { supabase, user } = await requireAuth();
   if (!user) return null;
 
   const { data: doctor } = await supabase

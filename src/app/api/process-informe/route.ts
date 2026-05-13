@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthedSupabase } from "@/utils/supabase/api-auth";
 import { revalidatePath } from "next/cache";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -12,11 +12,8 @@ import {
 } from "./helpers";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const { supabase, user } = await getAuthedSupabase(request);
+  if (!supabase || !user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 

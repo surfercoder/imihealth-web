@@ -36,7 +36,7 @@ export function CopyToClipboardButtonDoctor({ text }: CopyToClipboardButtonDocto
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             {copied ? <Check className="size-6" /> : <Copy className="size-6" />}
           </Button>

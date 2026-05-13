@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 
 export async function getPatient(patientId: string): Promise<{
   data?: {
@@ -21,10 +21,7 @@ export async function getPatient(patientId: string): Promise<{
   };
   error?: string;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const { data, error } = await supabase

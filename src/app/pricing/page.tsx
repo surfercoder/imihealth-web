@@ -50,7 +50,7 @@ export default async function PricingPage() {
     <main className="flex-1">
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             {t("heroTitle")}
           </h1>
           <p className="mt-4 text-lg text-foreground/60 max-w-2xl mx-auto">

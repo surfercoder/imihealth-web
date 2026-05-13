@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { getSpecialtyPrompt } from "@/lib/prompts";
 import { ANTHROPIC_MODEL } from "@/lib/ai-model";
 import { getPlanInfo } from "@/actions/subscriptions";
@@ -12,10 +12,7 @@ export async function regenerateReportFromEdits(
   editedDoctor: string,
   editedPaciente: string
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   const plan = await getPlanInfo(user.id);

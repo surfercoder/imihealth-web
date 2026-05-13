@@ -73,10 +73,10 @@ export function WelcomeScreen({ userName, onDone }: WelcomeScreenProps) {
 
         {/* Greeting and phrase */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="ws-text text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="ws-text text-3xl font-semibold tracking-tight text-zinc-900">
             {t("greeting", { name: displayName })}
           </h1>
-          <p className="ws-phrase max-w-lg text-base leading-relaxed text-gray-600">
+          <p className="ws-phrase max-w-lg text-base leading-relaxed text-zinc-600">
             {t(`messages.${messageIndex}` as Parameters<typeof t>[0])}
           </p>
         </div>

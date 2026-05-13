@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
-import { createClient } from '@/utils/supabase/server';
+import { getAuthedSupabase } from '@/utils/supabase/api-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const FEEDBACK_ADDRESS = 'support@imihealth.ai';
@@ -12,14 +12,8 @@ export async function POST(request: NextRequest) {
 
     // Allow unauthenticated requests only for feedback emails
     if (to !== FEEDBACK_ADDRESS) {
-      const supabase = await createClient();
-
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
+      const { user } = await getAuthedSupabase(request);
+      if (!user) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }

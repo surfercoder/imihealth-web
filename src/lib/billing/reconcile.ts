@@ -78,13 +78,22 @@ async function findPendingSignupByPayerEmail(
     });
     return null;
   }
-  // The most recent payment is what landed the user on /billing/return.
-  const latest = [...payments]
-    .filter((p) => p.payment?.id)
-    .sort(
-      (a, b) =>
-        Date.parse(b.date_created || "") - Date.parse(a.date_created || ""),
-    )[0];
+  // The most recent payment is what landed the user on /billing/return — pick
+  // it with a single pass instead of sorting just to read the first element.
+  // When date_created is missing on every candidate we fall back to the first
+  // payment (mirrors the previous sort-then-[0] behaviour, where NaN compares
+  // left the order unchanged).
+  let latest: typeof payments[number] | null = null;
+  let latestTs = -Infinity;
+  for (const p of payments) {
+    if (!p.payment?.id) continue;
+    if (latest === null) latest = p;
+    const ts = Date.parse(p.date_created || "");
+    if (!Number.isNaN(ts) && ts > latestTs) {
+      latestTs = ts;
+      latest = p;
+    }
+  }
   if (!latest?.payment?.id) return null;
 
   let payment;

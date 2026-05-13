@@ -2,7 +2,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { cookies } from "next/headers";
-import { createClient, createServiceClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { getPreapprovalPlan } from "@/lib/mercadopago/api";
 import { setCheckoutRefCookie } from "@/lib/billing/checkout-ref-cookie";
 import type { ProPlanTier } from "@/types/subscription";
@@ -17,6 +18,7 @@ function planEnvIdFor(plan: ProPlanTier): string | undefined {
 // rendered on /pricing always equals what we'll actually charge. The
 // pricing page wraps this in try/catch and degrades to USD-only if MP
 // is unreachable.
+// eslint-disable-next-line react-doctor/server-auth-actions -- public pricing read; no user context required
 export async function getCurrentArsPrice(plan: ProPlanTier): Promise<number> {
   const planId = planEnvIdFor(plan);
   if (!planId) {
@@ -50,6 +52,7 @@ async function resolvePlanInitPoint(
   return { initPoint: mpPlan.init_point };
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- internal helper called by createCheckout (which auths) and by the mobile API route (which auths upstream via getAuthedSupabase)
 export async function startProCheckout(
   plan: ProPlanTier,
   userId: string,
@@ -85,6 +88,7 @@ export async function startProCheckout(
 // rows don't exist yet. external_reference is the pending_signups id; the
 // MP webhook (and /billing/return reconcile) look it up to materialize the
 // account on payment authorization.
+// eslint-disable-next-line react-doctor/server-auth-actions -- runs pre-account; pendingSignupId is the bearer of identity
 export async function startProCheckoutForPendingSignup(
   pendingSignupId: string,
   plan: ProPlanTier,
@@ -104,13 +108,7 @@ export async function startProCheckoutForPendingSignup(
 export async function createCheckout(
   plan: ProPlanTier,
 ): Promise<{ initPoint?: string; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "No autenticado" };
-  }
-
+  const { user } = await requireAuth();
+  if (!user) return { error: "No autenticado" };
   return startProCheckout(plan, user.id);
 }

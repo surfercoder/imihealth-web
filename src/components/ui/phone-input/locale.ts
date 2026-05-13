@@ -1,6 +1,10 @@
 import type { CountryCode, CountryData } from "./types";
 import { COUNTRIES } from "./countries";
 
+const COUNTRIES_BY_CODE: Map<CountryCode, CountryData> = new Map(
+  COUNTRIES.map((c) => [c.code, c]),
+);
+
 /** Maps navigator.language / Intl country codes to our CountryCode */
 const LOCALE_TO_COUNTRY: Record<string, CountryCode> = {
   AR: "AR",
@@ -36,9 +40,9 @@ const LOCALE_TO_COUNTRY: Record<string, CountryCode> = {
 };
 
 export function detectCountryFromLocale(): CountryData {
-  if (typeof navigator === "undefined") {
-    return COUNTRIES.find((c) => c.code === "AR")!;
-  }
+  const fallback = COUNTRIES_BY_CODE.get("AR")!;
+  if (typeof navigator === "undefined") return fallback;
+
   const languages = navigator.languages?.length
     ? navigator.languages
     : [navigator.language];
@@ -46,19 +50,15 @@ export function detectCountryFromLocale(): CountryData {
   for (const lang of languages) {
     const region = lang.split("-")[1]?.toUpperCase();
     if (region && LOCALE_TO_COUNTRY[region]) {
-      const country = COUNTRIES.find(
-        (c) => c.code === LOCALE_TO_COUNTRY[region]
-      );
+      const country = COUNTRIES_BY_CODE.get(LOCALE_TO_COUNTRY[region]);
       if (country) return country;
     }
     const primary = lang.split("-")[0].toUpperCase();
     if (LOCALE_TO_COUNTRY[primary]) {
-      const country = COUNTRIES.find(
-        (c) => c.code === LOCALE_TO_COUNTRY[primary]
-      );
+      const country = COUNTRIES_BY_CODE.get(LOCALE_TO_COUNTRY[primary]);
       if (country) return country;
     }
   }
 
-  return COUNTRIES.find((c) => c.code === "AR")!;
+  return fallback;
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthedSupabase } from "@/utils/supabase/api-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   uploadMediaToWhatsApp,
@@ -25,16 +25,11 @@ import { sanitizeForPdf } from "@/lib/pdf/helpers";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 import { getTranslations } from "next-intl/server";
 
+// eslint-disable-next-line react-doctor/no-giant-component -- POST is a Next.js route handler, not a React component; the rule matches the uppercase name
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const { supabase, user } = await getAuthedSupabase(request);
+    if (!supabase || !user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -131,42 +126,43 @@ export async function POST(request: NextRequest) {
 
       const pedidoTemplateName = getPedidoDocTemplateName(locale);
       const cleanDiagnostico = diagnostico && diagnostico.trim() ? diagnostico.trim() : null;
-      let sentCount = 0;
 
-      for (const item of pedidoItems) {
-        const pdfBytes = await generatePedidoPDF({
-          patientName: patient.name ?? patientName ?? "",
-          obraSocial: patient.obra_social ?? null,
-          nroAfiliado: patient.nro_afiliado ?? null,
-          plan: patient.plan ?? null,
-          date: dateStr,
-          item,
-          diagnostico: cleanDiagnostico,
-          doctor: doctorInfo,
-          labels: pedidoLabels,
-        });
-
-        const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
-        if (!pdfUpload.success) {
-          console.error(`[WhatsApp] Patient pedido PDF upload failed for item: ${item}`, pdfUpload.error);
-          continue;
-        }
-
-        const docResult = await sendWhatsAppTemplateWithDocument({
-          to,
-          templateName: pedidoTemplateName,
-          languageCode: langCode,
-          bodyParameters: [],
-          mediaId: pdfUpload.mediaId,
-          documentFilename: "pedido-medico.pdf",
-        });
-
-        if (docResult.success) {
-          sentCount++;
-        } else {
-          console.error(`[WhatsApp] Patient pedido template failed for item: ${item}`, docResult.error);
-        }
-      }
+      // PDF gen + upload + template send for each item are independent across
+      // items — race them with Promise.all instead of waterfalling.
+      const results = await Promise.all(
+        pedidoItems.map(async (item) => {
+          const pdfBytes = await generatePedidoPDF({
+            patientName: patient.name ?? patientName ?? "",
+            obraSocial: patient.obra_social ?? null,
+            nroAfiliado: patient.nro_afiliado ?? null,
+            plan: patient.plan ?? null,
+            date: dateStr,
+            item,
+            diagnostico: cleanDiagnostico,
+            doctor: doctorInfo,
+            labels: pedidoLabels,
+          });
+          const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
+          if (!pdfUpload.success) {
+            console.error(`[WhatsApp] Patient pedido PDF upload failed for item: ${item}`, pdfUpload.error);
+            return false;
+          }
+          const docResult = await sendWhatsAppTemplateWithDocument({
+            to,
+            templateName: pedidoTemplateName,
+            languageCode: langCode,
+            bodyParameters: [],
+            mediaId: pdfUpload.mediaId,
+            documentFilename: "pedido-medico.pdf",
+          });
+          if (!docResult.success) {
+            console.error(`[WhatsApp] Patient pedido template failed for item: ${item}`, docResult.error);
+            return false;
+          }
+          return true;
+        }),
+      );
+      const sentCount = results.reduce((acc, ok) => acc + (ok ? 1 : 0), 0);
 
       if (sentCount === 0) {
         return NextResponse.json(
@@ -300,46 +296,47 @@ export async function POST(request: NextRequest) {
       }
 
       const pedidoTemplateName = getPedidoDocTemplateName(locale);
-      let sentCount = 0;
 
       const diagnostico = extractDiagnosticoPresuntivo(
         informe.informe_doctor as string | null
       );
 
-      for (const item of pedidoItems) {
-        const pdfBytes = await generatePedidoPDF({
-          patientName: patient?.name ?? patientName ?? "",
-          obraSocial: patient?.obra_social ?? null,
-          nroAfiliado: patient?.nro_afiliado ?? null,
-          plan: patient?.plan ?? null,
-          date: dateStr,
-          item,
-          diagnostico,
-          doctor: doctorInfo,
-          labels: pedidoLabels,
-        });
-
-        const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
-        if (!pdfUpload.success) {
-          console.error(`[WhatsApp] Pedido PDF upload failed for item: ${item}`, pdfUpload.error);
-          continue;
-        }
-
-        const docResult = await sendWhatsAppTemplateWithDocument({
-          to,
-          templateName: pedidoTemplateName,
-          languageCode: langCode,
-          bodyParameters: [],
-          mediaId: pdfUpload.mediaId,
-          documentFilename: "pedido-medico.pdf",
-        });
-
-        if (docResult.success) {
-          sentCount++;
-        } else {
-          console.error(`[WhatsApp] Pedido template failed for item: ${item}`, docResult.error);
-        }
-      }
+      // PDF gen + upload + template send for each item are independent across
+      // items — race them with Promise.all instead of waterfalling.
+      const results = await Promise.all(
+        pedidoItems.map(async (item) => {
+          const pdfBytes = await generatePedidoPDF({
+            patientName: patient?.name ?? patientName ?? "",
+            obraSocial: patient?.obra_social ?? null,
+            nroAfiliado: patient?.nro_afiliado ?? null,
+            plan: patient?.plan ?? null,
+            date: dateStr,
+            item,
+            diagnostico,
+            doctor: doctorInfo,
+            labels: pedidoLabels,
+          });
+          const pdfUpload = await uploadMediaToWhatsApp(pdfBytes, "application/pdf", "pedido-medico.pdf");
+          if (!pdfUpload.success) {
+            console.error(`[WhatsApp] Pedido PDF upload failed for item: ${item}`, pdfUpload.error);
+            return false;
+          }
+          const docResult = await sendWhatsAppTemplateWithDocument({
+            to,
+            templateName: pedidoTemplateName,
+            languageCode: langCode,
+            bodyParameters: [],
+            mediaId: pdfUpload.mediaId,
+            documentFilename: "pedido-medico.pdf",
+          });
+          if (!docResult.success) {
+            console.error(`[WhatsApp] Pedido template failed for item: ${item}`, docResult.error);
+            return false;
+          }
+          return true;
+        }),
+      );
+      const sentCount = results.reduce((acc, ok) => acc + (ok ? 1 : 0), 0);
 
       if (sentCount === 0) {
         return NextResponse.json(

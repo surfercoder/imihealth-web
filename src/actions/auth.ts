@@ -18,6 +18,7 @@ import {
 } from "@/actions/subscriptions";
 import { encryptPassword } from "@/lib/signup-password-crypto";
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- login is the auth entry point
 export async function login(
   _prevState: ActionResult | null,
   formData: FormData
@@ -52,6 +53,7 @@ export async function login(
 // on `authorized`, which calls supabase.auth.signUp() (creating the
 // doctor + subscription via triggers) and triggers the confirmation email.
 // A doctor who abandons checkout never gets an auth record or an email.
+// eslint-disable-next-line react-doctor/server-auth-actions -- signup creates the auth user; no session exists yet
 export async function signup(
   _prevState: ActionResult | null,
   formData: FormData
@@ -211,6 +213,7 @@ async function signupPro(
   return { success: true, initPoint: checkout.initPoint };
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- forgot-password runs from the logged-out flow
 export async function forgotPassword(
   _prevState: ActionResult | null,
   formData: FormData
@@ -222,8 +225,7 @@ export async function forgotPassword(
     return { error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createClient();
-  const headersList = await headers();
+  const [supabase, headersList] = await Promise.all([createClient(), headers()]);
   const origin = headersList.get("origin") ?? "";
 
   const { error } = await supabase.auth.resetPasswordForEmail(
@@ -240,6 +242,7 @@ export async function forgotPassword(
   return { success: true };
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- reset-password runs from the magic-link flow with a transient recovery session
 export async function resetPassword(
   _prevState: ActionResult | null,
   formData: FormData
@@ -267,6 +270,7 @@ export async function resetPassword(
   redirect("/");
 }
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- logout is idempotent for both authed and unauthed callers
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();

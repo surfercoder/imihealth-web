@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { doctorProfileUpdateSchema } from "@/schemas/doctor";
 
 type ProfileResult = {
@@ -29,14 +29,8 @@ export async function updateProfile(
     return { error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+  const { supabase, user } = await requireAuth();
+  if (!user) return { error: "Not authenticated" };
 
   const updateData: Record<string, string | null> = {
     /* v8 ignore next */

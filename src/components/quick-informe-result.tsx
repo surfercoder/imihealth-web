@@ -89,7 +89,7 @@ export function QuickInformeResult({ informeId, informe }: QuickInformeResultPro
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={tEditor("editReport")} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
+                      <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={tEditor("editReport")} className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
                         <Pencil className="size-4" />
                       </Button>
                     </TooltipTrigger>

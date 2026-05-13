@@ -7,7 +7,7 @@ export function TermsContent() {
   const terms = useTranslations("signupTerms.terms");
   return (
     <>
-      <h2 className="text-base font-bold text-foreground">{terms("title")}</h2>
+      <h2 className="text-base font-semibold text-foreground">{terms("title")}</h2>
       <p className="text-xs text-muted-foreground">{t("termsLastUpdated")}</p>
 
       <section className="space-y-2">

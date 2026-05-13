@@ -24,7 +24,7 @@ export function ViewPdfIconButton({ pdfUrl }: { pdfUrl: string }) {
             variant="ghost"
             size="sm"
             onClick={handleView}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+            className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
             <Eye className="size-6 text-emerald-600" />
           </Button>

@@ -37,7 +37,7 @@ export function CopyToClipboardButton({ text }: CopyToClipboardButtonProps) {
             size="sm"
             onClick={handleCopy}
             title={t("copyToClipboard")}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+            className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
             {copied ? <Check className="size-6 text-emerald-600" /> : <Copy className="size-6 text-emerald-600" />}
           </Button>

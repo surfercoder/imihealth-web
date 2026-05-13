@@ -97,7 +97,7 @@ export function DoctorReportCard({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={t("editReport")} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
+                    <Button variant="ghost" size="sm" onClick={handleEdit} aria-label={t("editReport")} className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
                       <Pencil className="size-6" />
                     </Button>
                   </TooltipTrigger>

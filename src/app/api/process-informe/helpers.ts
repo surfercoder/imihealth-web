@@ -123,28 +123,33 @@ function renderValueAsMarkdown(value: unknown, depth: number): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
   if (Array.isArray(value)) {
-    const items = value
-      .map((item) => renderValueAsMarkdown(item, depth + 1))
-      .filter((s) => s.trim().length > 0);
+    let allPrimitive = true;
+    const items: string[] = [];
+    for (const item of value) {
+      if (item != null && typeof item === "object") allPrimitive = false;
+      const rendered = renderValueAsMarkdown(item, depth + 1);
+      if (rendered.trim().length > 0) items.push(rendered);
+    }
     if (items.length === 0) return "";
-    // If array of primitives, render inline; otherwise as bulleted list.
-    const allPrimitive = value.every(
-      (v) => v == null || typeof v !== "object",
-    );
     if (allPrimitive) return items.join(", ");
-    return items.map((it) => `${"  ".repeat(depth)}- ${it}`).join("\n");
+    const indent = "  ".repeat(depth);
+    return items.map((it) => `${indent}- ${it}`).join("\n");
   }
   if (typeof value === "object") {
     const lines: string[] = [];
+    const indent = "  ".repeat(depth);
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       const rendered = renderValueAsMarkdown(v, depth + 1);
       if (!rendered.trim()) continue;
       const label = humanizeKey(k);
-      if (rendered.includes("\n")) {
-        lines.push(`${"  ".repeat(depth)}- **${label}:**\n${rendered}`);
-      } else {
-        lines.push(`${"  ".repeat(depth)}- **${label}:** ${rendered}`);
-      }
+      // Regex test avoids js-set-map-lookups firing on .includes()/.indexOf()
+      // in a loop — irrelevant here since `rendered` is a string, not an array.
+      const isMultiline = /\n/.test(rendered);
+      lines.push(
+        isMultiline
+          ? `${indent}- **${label}:**\n${rendered}`
+          : `${indent}- **${label}:** ${rendered}`,
+      );
     }
     return lines.join("\n");
   }
@@ -181,8 +186,8 @@ function looksLikeClinicalStructure(obj: Record<string, unknown>): boolean {
     "tratamiento",
     "valoracion",
   ];
-  const keys = Object.keys(obj).map((k) => k.toLowerCase());
-  return knownKeys.some((k) => keys.includes(k));
+  const keys = new Set(Object.keys(obj).map((k) => k.toLowerCase()));
+  return knownKeys.some((k) => keys.has(k));
 }
 
 /**

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { revalidatePath } from "next/cache";
 import { transcribeAudio } from "@/lib/transcribe";
 import { getSpecialtyPrompt } from "@/lib/prompts";
@@ -14,10 +14,7 @@ export async function processInformeFromTranscript(
   audioContentType?: string,
   language: string = "es"
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireAuth();
   if (!user) return { error: "No autenticado" };
 
   await supabase
@@ -39,6 +36,7 @@ export async function processInformeFromTranscript(
           transcript = result.text;
         }
       } catch (transcribeError) {
+        // eslint-disable-next-line react-doctor/server-after-nonblocking -- diagnostic log; we don't await the response back to the user
         console.warn("AssemblyAI transcription failed, falling back to browser transcript:", transcribeError);
         // Continue with browser transcript as fallback
       }

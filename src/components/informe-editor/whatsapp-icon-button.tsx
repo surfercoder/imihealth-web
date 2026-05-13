@@ -59,7 +59,7 @@ export function WhatsAppIconButton({ phone, patientName, informeId }: { phone: s
             size="sm"
             onClick={handleSend}
             disabled={isSending}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
+            className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-emerald-100/50"
           >
             {isSending ? (
               <Loader2 className="size-6 animate-spin text-emerald-600" />

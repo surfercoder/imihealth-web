@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthedSupabase } from "@/utils/supabase/api-auth";
 import { generatePedidoPDF } from "@/lib/pdf/pedido";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { extractDiagnosticoPresuntivo } from "@/app/api/pdf/pedido/utils";
 import { getTranslations } from "next-intl/server";
 
+// eslint-disable-next-line react-doctor/nextjs-no-side-effect-in-get-handler -- PDFDocument.create() is in-memory only (no DB writes); URL is built in a click handler, never auto-prefetched
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const { supabase, user } = await getAuthedSupabase(request);
+    if (!supabase || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -98,20 +94,29 @@ export async function GET(request: NextRequest) {
 
     const merged = await PDFDocument.create();
 
-    for (const item of items) {
-      const pdfBytes = await generatePedidoPDF({
-        patientName: patient?.name ?? "Paciente",
-        obraSocial: patient?.obra_social ?? null,
-        nroAfiliado: patient?.nro_afiliado ?? null,
-        plan: patient?.plan ?? null,
-        date,
-        item,
-        diagnostico,
-        doctor,
-        labels: pdfLabels,
-      });
-      const doc = await PDFDocument.load(pdfBytes);
-      const pages = await merged.copyPages(doc, doc.getPageIndices());
+    // Generate per-item PDFs concurrently — each call is independent. Page
+    // merging stays sequential to preserve the requested item order.
+    const docs = await Promise.all(
+      items.map(async (item) => {
+        const pdfBytes = await generatePedidoPDF({
+          patientName: patient?.name ?? "Paciente",
+          obraSocial: patient?.obra_social ?? null,
+          nroAfiliado: patient?.nro_afiliado ?? null,
+          plan: patient?.plan ?? null,
+          date,
+          item,
+          diagnostico,
+          doctor,
+          labels: pdfLabels,
+        });
+        return PDFDocument.load(pdfBytes);
+      }),
+    );
+
+    const allPages = await Promise.all(
+      docs.map((doc) => merged.copyPages(doc, doc.getPageIndices())),
+    );
+    for (const pages of allPages) {
       for (const page of pages) {
         merged.addPage(page);
       }

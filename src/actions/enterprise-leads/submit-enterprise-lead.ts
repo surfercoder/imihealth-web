@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { enterpriseLeadCreateSchema } from "@/schemas/enterprise-lead";
 import type { EnterpriseLeadInput } from "@/types/enterprise-lead";
 
+// eslint-disable-next-line react-doctor/server-auth-actions -- public lead form; visitor isn't a user yet
 export async function submitEnterpriseLead(
   input: EnterpriseLeadInput,
 ): Promise<{ success?: true; error?: string }> {

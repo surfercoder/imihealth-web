@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAuth } from "@/utils/supabase/require-auth";
 import { revalidatePath } from "next/cache";
 import { patientUpdateSchema } from "@/schemas/patient";
 
@@ -8,12 +8,6 @@ export async function updatePatient(
   patientId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
-
   const parsed = patientUpdateSchema.safeParse({
     name: formData.get("name") ?? "",
     dni: formData.get("dni"),
@@ -27,6 +21,9 @@ export async function updatePatient(
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
+
+  const { supabase, user } = await requireAuth();
+  if (!user) return { error: "No autenticado" };
 
   const { error } = await supabase
     .from("patients")

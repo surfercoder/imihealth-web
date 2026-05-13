@@ -19,6 +19,7 @@ export function SignupStatusPoller({ refId }: { refId: string }) {
   // eslint-disable-next-line react-doctor/no-fetch-in-effect, react-doctor/no-cascading-set-state -- the poller intentionally polls server status until it changes
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const startedAt = Date.now();
 
     async function tick() {
@@ -39,12 +40,13 @@ export function SignupStatusPoller({ refId }: { refId: string }) {
         if (!cancelled) setTimedOut(true);
         return;
       }
-      setTimeout(tick, POLL_INTERVAL_MS);
+      timer = setTimeout(tick, POLL_INTERVAL_MS);
     }
 
     tick();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [refId]);
 

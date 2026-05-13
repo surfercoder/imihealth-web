@@ -79,7 +79,7 @@ export function InformTypesChart({
               {(["classic", "quick"] as const).map((key) => (
                 <div key={key} className="flex items-center gap-1.5 text-sm">
                   <div
-                    className="h-2 w-2 shrink-0 rounded-[2px]"
+                    className="size-2 shrink-0 rounded-[2px]"
                     style={{ backgroundColor: chartConfig[key].color }}
                   />
                   {chartConfig[key].label}

@@ -1,7 +1,7 @@
 "use client";
 "use no memo";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,7 @@ export function useNuevoInformeForm() {
   const router = useRouter();
   const currentTab = useCurrentTab();
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const defaultCountry = detectCountryFromLocale();
@@ -38,45 +38,44 @@ export function useNuevoInformeForm() {
 
   const { handleSubmit, reset } = form;
 
-  const onSubmit = async (values: PatientFormValues) => {
-    setIsLoading(true);
+  const onSubmit = (values: PatientFormValues) => {
     setError(null);
 
-    const formData = new FormData();
-    formData.append("name", values.name);
-    formData.append("dni", values.dni);
-    if (values.dob) formData.append("dob", values.dob);
-    if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
-    if (values.email) formData.append("email", values.email);
-    /* v8 ignore next 3 */
-    if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
-    if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
-    if (values.plan) formData.append("plan", values.plan);
+    startLoading(async () => {
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("dni", values.dni);
+      if (values.dob) formData.append("dob", values.dob);
+      if (values.phone?.subscriber) formData.append("phone", values.phone.e164);
+      if (values.email) formData.append("email", values.email);
+      /* v8 ignore next 3 */
+      if (values.obraSocial) formData.append("obraSocial", values.obraSocial);
+      if (values.nroAfiliado) formData.append("nroAfiliado", values.nroAfiliado);
+      if (values.plan) formData.append("plan", values.plan);
 
-    const patientResult = await createPatient(formData);
-    if (patientResult.error || !patientResult.data) {
-      const msg = patientResult.error ?? t("errorPatient");
-      setError(msg);
-      toast.error(t("errorPatient"), { description: msg });
-      setIsLoading(false);
-      return;
-    }
+      const patientResult = await createPatient(formData);
+      if (patientResult.error || !patientResult.data) {
+        const msg = patientResult.error ?? t("errorPatient");
+        setError(msg);
+        toast.error(t("errorPatient"), { description: msg });
+        return;
+      }
 
-    const informeResult = await createInforme(patientResult.data.id);
-    if (informeResult.error || !informeResult.data) {
-      const msg = informeResult.error ?? t("errorInforme");
-      setError(msg);
-      toast.error(t("errorInforme"), { description: msg });
-      setIsLoading(false);
-      return;
-    }
+      const informeResult = await createInforme(patientResult.data.id);
+      if (informeResult.error || !informeResult.data) {
+        const msg = informeResult.error ?? t("errorInforme");
+        setError(msg);
+        toast.error(t("errorInforme"), { description: msg });
+        return;
+      }
 
-    setOpen(false);
-    reset();
-    const url = currentTab
-      ? `/informes/${informeResult.data.id}/grabar?tab=${currentTab}`
-      : `/informes/${informeResult.data.id}/grabar`;
-    router.push(url);
+      setOpen(false);
+      reset();
+      const url = currentTab
+        ? `/informes/${informeResult.data.id}/grabar?tab=${currentTab}`
+        : `/informes/${informeResult.data.id}/grabar`;
+      router.push(url);
+    });
   };
 
   const handleOpenChange = useCallback(

@@ -41,7 +41,7 @@ export async function PublicLandingPage() {
               className="mx-auto mb-14 h-auto w-[320px] sm:w-[480px] lg:w-[560px] mix-blend-multiply"
               priority
             />
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
               {t("heroTitle")}
             </h1>
             <p className="mt-6 text-lg text-foreground/60 sm:text-xl">{t("heroSubtitle")}</p>

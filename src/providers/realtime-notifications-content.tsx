@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { usePathname, useRouter, useSearchParams as useNextSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -31,7 +31,14 @@ function RealtimeNotificationsContentInner({
     }
   }, []);
 
-  const showBrowserNotification = useCallback(
+  // Holds the latest `push` so the subscription effect doesn't re-bind every
+  // time the router instance churns. We can't reference `push` directly inside
+  // the long-lived showBrowserNotification callback without making it a dep.
+  const pushRef = useRef(push);
+  useEffect(() => {
+    pushRef.current = push;
+  }, [push]);
+  const showBrowserNotificationRef = useRef(
     (title: string, body: string, url: string) => {
       if (
         !document.hidden ||
@@ -48,11 +55,10 @@ function RealtimeNotificationsContentInner({
 
       notification.onclick = () => {
         window.focus();
-        push(url);
+        pushRef.current(url);
         notification.close();
       };
     },
-    [push]
   );
 
   // Dismiss all toasts when navigating *away* from an informe detail page
@@ -128,7 +134,7 @@ function RealtimeNotificationsContentInner({
               closeButton: true,
             });
 
-            showBrowserNotification(
+            showBrowserNotificationRef.current(
               t("newReportTitle"),
               t("newReportDescription", { patientName }),
               informUrl
@@ -187,7 +193,7 @@ function RealtimeNotificationsContentInner({
               closeButton: true,
             });
 
-            showBrowserNotification(
+            showBrowserNotificationRef.current(
               t("newQuickReportTitle"),
               t("newQuickReportDescription"),
               quickUrl
@@ -220,7 +226,7 @@ function RealtimeNotificationsContentInner({
         supabase.removeChannel(quickChannelRef.current);
       }
     };
-  }, [userId, push, t, searchParams, showBrowserNotification]);
+  }, [userId, push, t, searchParams]);
 
   return <>{children}</>;
 }

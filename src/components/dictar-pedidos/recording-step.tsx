@@ -56,7 +56,7 @@ export function RecordingStep({
             <>
               <button
                 onClick={onPause}
-                className="relative flex size-14 items-center justify-center rounded-lg bg-white border-2 border-gray-300 text-gray-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                className="relative flex size-14 items-center justify-center rounded-lg bg-white border-2 border-zinc-300 text-zinc-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
                 aria-label={t("btnPause")}
               >
                 <Pause className="size-6" />
@@ -74,7 +74,7 @@ export function RecordingStep({
             <>
               <button
                 onClick={onResume}
-                className="relative flex size-14 items-center justify-center rounded-lg bg-white border-2 border-gray-300 text-gray-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                className="relative flex size-14 items-center justify-center rounded-lg bg-white border-2 border-zinc-300 text-zinc-700 shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
                 aria-label={t("btnResume")}
               >
                 <Mic className="size-6" />

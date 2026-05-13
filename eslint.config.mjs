@@ -14,6 +14,10 @@ const reactDoctorRuleNames = [
   "no-fetch-in-effect",
   "no-cascading-set-state",
   "nextjs-no-use-search-params-without-suspense",
+  "server-auth-actions",
+  "server-after-nonblocking",
+  "no-giant-component",
+  "nextjs-no-side-effect-in-get-handler",
 ];
 const reactDoctorPlugin = {
   rules: Object.fromEntries(
